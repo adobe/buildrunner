@@ -36,7 +36,7 @@ Artifacts can be collected from containers when they have finished running and
 archived in your build system (Jenkins, for instance).
 
 Resulting images (either from a build phase or a run phase) can be pushed to
-the central or private Docker image registries for use in other builds or to
+the central or a private Docker image registry for use in other builds or to
 run services in other environments.
 
 Build definitions are found in the root of your source tree, either in a file
@@ -53,6 +53,12 @@ yaml map defining 'steps'. Each step is given a custom name and must contain
       build: <build config>
       run: <run config>
       push: <push config>
+
+Step names are arbitrary--you can use whatever names you want as long as they
+are unique within a given "steps" configuration. Archived artifacts are stored
+in a step-specific results directory. To use artifacts generated from a
+previous step in a subsequent one you would reference them using the previous
+step name.
 
 Standard Docker Builds (the 'build' step attribute)
 ===================================================
@@ -98,7 +104,7 @@ shows the different configuration options available::
         path: my/container/build/context
 
         # The inject map specifies other files outside the build context that
-        # should be included in the context sent to the Docker # daemon
+        # should be included in the context sent to the Docker daemon
         # (NOTE: you do not need to specify a path attribute if you inject all
         # of the files you need, including a Dockerfile)
         inject:
@@ -111,28 +117,255 @@ shows the different configuration options available::
           path/to/file.txt: dest/dir
 
         # Whether to use the default Docker image cache for intermediate
-        # images--this significantly speeds up building images but may not be
-        # desired when building images for publishing
+        # images--caching images  significantly speeds up the building of
+        # images but may not be desired when building images for publishing
         no-cache: true/false (defaults to false)
 
-Running Docker Containers (the 'run' step attribute)
-====================================================
+Running Containers (the 'run' step attribute)
+=============================================
 
-TODO
+The 'run' step attribute is used to create and run a Docker container from a
+given image.
 
-2 reasons to run Docker containers::
+There are 2 reasons for running a Docker container within a build:
 
-1. Run a build or test and collect the artifacts.
-2. Modify an image to be saved as a new version (ala Packer)
+1. To run another build tool or test framework and collect the resulting
+   artifacts
+2. To run scripts and operations within an existing image to create a new image
+   (similar to how Packer creates Docker images)
+
+BuildRunner injects special environment variables and volume mounts into every
+run container. The following environment variables are set and available in
+every run container:
+
+1. BUILDRUNNER_BUILD_NUMBER = the build number
+2. BUILDRUNNER_BUILD_ID = a unique id identifying the build (includes vcs and
+   build number information)
+3. VCSINFO_BRANCH = the VCS branch
+4. VCSINFO_NUMBER = the VCS commit number
+5. VCSINFO_ID = the VCS commit id
+6. VCSINFO_MODIFIED = the last file modification timestamp if local changes
+   have been made and not committed to the source VCS repository
+
+The following volumes are created within run containers:
+
+1. /source = (read-write) maps to a pristene snapshot of the current source
+   tree (build directory)
+2. /artifacts = (read-only) maps to the buildrunner.results directory
+
+The following example shows the different configuration options available::
+
+  steps:
+    my-build-step:
+      run:
+        # A map of additional containers that should be created and linked to
+        # the primary run container. These can be used to bring up services
+        # (such as databases) that are required to run the step. More details
+        # on services below.
+        services:
+          service-name-1: <service config>
+          service-name-2: <service config>
+
+        # The Docker image to run. If empty the image created with the 'build'
+        # attribute will be used.
+        image: <the Docker image to run>
+
+        # The command to run. If ommitted BuildRunner runs the command
+        # configured in the Docker image without modification. If provided
+        # BuildRunner always sets the container command to a shell, running the
+        # given command here within the shell.
+        cmd: <a command to run>
+
+        # A collection of provisioners to run. Provisioners work similar to the
+        # way Packer provisioners do and are always run within a shell.
+        # When a provisioner is specified BuildRunner always sets the container
+        # command to a shell, running the provisioners within the shell.
+        # Currently BuildRunner supports shell and salt provisioners.
+        provisioners:
+          shell: path/to/script.sh
+          salt: <simple salt sls yaml config>
+
+        # The shell to use when specifying the cmd or provisioners attributes.
+        # Defaults to /bin/sh. If the cmd and provisioners attributes are not
+        # specified this setting has no effect.
+        shell: /bin/sh
+
+        # The directory to run commands within. Defaults to /source.
+        cwd: /source
+
+        # The user to run commands as. Defaults to the user specified in the
+        # Docker image.
+        user: <user to run commands as>
+
+        # A map specifying additional environment variables to be injected into
+        # the container. Keys are the variable names and values are variable
+        # values.
+        env:
+          ENV_VARIABLE_ONE: value1
+          ENV_VARIABLE_TWO: value2
+
+        # A map specifying the artifacts that should be archived for the step.
+        # The keys in the map specify glob patterns of files to archive. If a
+        # value is present it should be a map of additional properties that
+        # should be added to the build artifacts.json file. The artifacts.json
+        # file can be used to publish artifacts to another system (such as
+        # Gauntlet) with the accompanying metadata.
+        artifacts:
+          artifacts/to/archive/*:
+            property1: value1
+            property2: value2
+
+Service containers allow you to create and start additional containers that
+are linked to the primary build container. This is useful, for instance, if
+your unit or integration tests require an outside service, such as a database
+service. Service containers are instantiated in the order they are listed, and
+service containers can rely on previously instantiated service containers.
+Service containers have the same injected environment variables and volume
+mounts as build containers do, but the /source mount is read-only.
+
+The following example shows the different configuration options available
+within service container configuration::
+
+  steps:
+    my-build-step
+      run:
+        services:
+          my-service-container:
+            # The 'build' attribute functions the same way that the step
+            # 'build' attribute does. The only difference is that the image
+            # produced by a service container build attribute cannot be pushed
+            # to a remote repository.
+            build: <path/to/build/context or map>
+
+            # The pre-built image to base the container on. The 'build' and
+            # 'image' attributes are mutually exclusive in the service
+            # container context.
+            image: <the Docker image to run>
+
+            # The command to run. If ommitted BuildRunner runs the command
+            # configured in the Docker image without modification. If provided
+            # BuildRunner always sets the container command to a shell, running
+            # the given command here within the shell.
+            cmd: <a command to run>
+
+            # A collection of provisioners to run. Provisioners work similar to
+            # the way Packer provisioners do and are always run within a shell.
+            # When a provisioner is specified BuildRunner always sets the
+            # container command to a shell, running the provisioners within the
+            # shell. Currently BuildRunner supports shell and salt
+            # provisioners.
+            provisioners:
+              shell: path/to/script.sh
+              salt: <simple salt sls yaml config>
+
+            # The shell to use when specifying the cmd or provisioners
+            # attributes. Defaults to /bin/sh. If the cmd and provisioners
+            # attributes are not specified this setting has no effect.
+            shell: /bin/sh
+
+            # The directory to run commands within. Defaults to /source.
+            cwd: /source
+
+            # The user to run commands as. Defaults to the user specified in
+            # the Docker image.
+            user: <user to run commands as>
+
+            # A map specifying additional environment variables to be injected
+            # into the container. Keys are the variable names and values are
+            # variable values.
+            env:
+              ENV_VARIABLE_ONE: value1
+              ENV_VARIABLE_TWO: value2
+
+            # A map specifying ports to expose and link within other containers
+            # within the step.
+            ports:
+              <container port>: <host port>
+
+Here is an example of a 'run' definition that simply runs the default command
+from the specified Docker image and archives the given artifacts::
+
+  steps:
+    package:
+      run:
+        image: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***:latest
+        artifacts:
+          omtr_tmp/artifacts/*.x86_64.rpm: {platform: 'centos-6-x86_64'}
+
+This example builds a custom image using a build context and Dockerfile in a
+subdirectory of the project, then uses the resulting image for the run
+container::
+
+  steps:
+    package:
+      build: package-container
+      run:
+        artifacts:
+          omtr_tmp/artifacts/*.x86_64.rpm:
+
+This example uses one step to create a package and another to run an
+integration test::
+
+  steps:
+
+    package:
+      # This build context contains a Dockerfile that create an image that runs
+      # mvn as the default command in the /source directory.
+      build: package-container
+      run:
+        artifacts:
+          target/*.war:
+
+    test:
+      run:
+        services:
+          database-server:
+            image: mysql:5.7
+            ports:
+              3306:
+          tomcat-server:
+            # The build context defined here contains a Dockerfile that
+            # installs the war generated in the previous step. The war is
+            # available at /artifacts/package/*.war.
+            build: tomcat-server-container
+            ports:
+              8080:
+            env:
+              # Pass the mysql connection string as an environment variable to
+              # the container.
+              DB_CONNECT_URL: jdbc:mysql://database-server:3306/dbname
+        image: ubuntu:latest
+        # Run a simple 'test' to verify the app is responding.
+        cmd: 'curl -v http://tomcat-server:8080/myapp/test.html'
 
 Tagging/Pushing Docker Images (the 'push' step attribute)
 =========================================================
 
-TODO
+The 'push' step attribute is used to tag and push a Docker image to a remote
+registry.
+
+If a 'run' configuration is present the end state of the run container is
+committed, tagged and pushed. If there is no 'run' configuration for a given
+step the image produced from the 'build' configuration is tagged and pushed.
 
 Any published Docker images are tagged with source tree branch and commit
 information as well as a provided or generated build number for tracking
-purposes. The same version and build information is passed to running Docker
-containers as environment variables so plugin images can be configured to use
-them when producing other types of artifacts.
+purposes. Additional tags may be added in the 'push' configuration.
+
+The following is an example of a simple 'push' configuration where only the
+repository is defined::
+
+  steps:
+    build-my-container:
+      build: .
+      push: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***
+
+The configuration may also specify additional tags to add to the image::
+
+  steps:
+    build-my-container:
+      build: .
+      push:
+        repository: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***
+        tags: [ 'latest' ]
 
