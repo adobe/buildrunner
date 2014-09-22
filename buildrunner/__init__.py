@@ -100,8 +100,8 @@ class BuildRunner(object):
 
         # default environment
         self.env = {
-            'GAUNTLET_BUILD_NUMBER': str(self.build_number),
-            'GAUNTLET_BUILD_ID': str(self.build_id),
+            'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
+            'BUILDRUNNER_BUILD_ID': str(self.build_id),
             'VCSINFO_BRANCH': str(self.vcs.branch),
             'VCSINFO_NUMBER': str(self.vcs.number),
             'VCSINFO_ID': str(self.vcs.id),
