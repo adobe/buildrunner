@@ -25,7 +25,7 @@ class DockerBuilder(object):
         self,
         path=None,
         inject=None,
-        dockerd_url=DOCKER_DEFAULT_DOCKERD_URL,
+        dockerd_url=None,
     ):
         self.path = path
         self.inject = inject

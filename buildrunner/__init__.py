@@ -69,6 +69,7 @@ class BuildRunner(object):
         """
         self.build_dir = build_dir
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
+        self.working_dir = os.path.join(self.build_results_dir, '.working')
         self.push = push
 
         run_config_file = None
@@ -221,7 +222,6 @@ class BuildRunner(object):
         # reset the exit_code
         self.exit_code = None
 
-        source_builder = None
         exit_explanation = None
         try:
             # cleanup existing results dir (if needed)
@@ -231,6 +231,10 @@ class BuildRunner(object):
 
             #create a new results dir
             os.mkdir(self.build_results_dir)
+            os.mkdir(self.working_dir)
+            # the working directory needs open permissions in the case where it
+            # is mounted on a vm filesystem with different user ids
+            os.chmod(self.working_dir, 0777)
 
             self._init_log()
 
@@ -256,8 +260,6 @@ class BuildRunner(object):
             self._write_artifact_manifest()
 
             # cleanup the source image
-            if source_builder:
-                source_builder.cleanup()
             if self.source_image:
                 self.log.write(
                     "Destroying source image %s\n" % self.source_image
@@ -434,7 +436,10 @@ class BuildStepRunner(object):
         # use a small busybox image to list the files matching the glob
         artifact_lister = None
         try:
-            artifact_lister = DockerRunner('busybox')
+            artifact_lister = DockerRunner(
+                'busybox',
+                temp_dir=self.build_runner.working_dir,
+            )
             artifact_lister.start(
                 volumes_from=[self.source_container],
                 volumes={
@@ -552,7 +557,10 @@ class BuildStepRunner(object):
                     _env[key] = value
 
             # create and start runner, linking any service containers
-            runner = DockerRunner(image)
+            runner = DockerRunner(
+                image,
+                temp_dir=self.build_runner.working_dir,
+            )
             container_id = runner.start(
                 volumes={
                     self.build_runner.build_results_dir: \
@@ -756,6 +764,7 @@ class BuildStepRunner(object):
         # instantiate and start the runner
         service_runner = DockerRunner(
             _image,
+            temp_dir=self.build_runner.working_dir,
         )
         self.service_runners[service_name] = service_runner
         cont_name = self.id + '-' + service_name

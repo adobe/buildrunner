@@ -24,7 +24,7 @@ class DockerRunner(object):
     """
 
 
-    def __init__(self, image_name, dockerd_url=DOCKER_DEFAULT_DOCKERD_URL):
+    def __init__(self, image_name, dockerd_url=None, temp_dir=None):
         self.dr_mount = '/dr'
 
         self.image_name = image_name
@@ -45,6 +45,13 @@ class DockerRunner(object):
                     break
         if pull_image:
             self.docker_client.pull(self.image_name)
+
+        if temp_dir:
+            self.dr_dir = temp_dir
+        else:
+            self.dr_dir = tempfile.mkdtemp(
+                prefix='dr_',
+            )
 
 
     def start(
@@ -68,10 +75,6 @@ class DockerRunner(object):
         if self.container:
             raise BuildRunnerContainerError('Container already started')
 
-        # create tmp dr directory
-        self.dr_dir = tempfile.mkdtemp(
-            prefix='dr_',
-        )
         self.path_mappings = {self.dr_dir: self.dr_mount}
 
         # prepare volumes
@@ -156,9 +159,6 @@ class DockerRunner(object):
             )
         self.container = None
         self.path_mappings = None
-        if self.dr_dir and os.path.exists(self.dr_dir):
-            shutil.rmtree(self.dr_dir)
-        self.dr_dir = None
 
 
     def run(self, cmd, cwd=None, console=None):
@@ -357,14 +357,23 @@ class DockerRunner(object):
                 pass
 
 
-    def tempfile(self, suffix=None):
+    def tempfile(self, prefix=None, suffix=None, temp_dir=None):
         """
         Create a temporary file path within the container.
         """
         name = str(uuid.uuid4())
         if suffix:
             name = name + suffix
-        return os.path.join(self.dr_dir, name)
+        if prefix:
+            name = prefix + name
+
+        _file = name
+        if temp_dir:
+            _file = os.path.join(temp_dir, name)
+        elif self.dr_dir:
+            _file = os.path.join(self.dr_dir, name)
+
+        return _file
 
 
     def map_local_path(self, local_path):
@@ -372,8 +381,16 @@ class DockerRunner(object):
         Given a local path, return the path it is mapped to within the
         container (or None if it is not mapped).
         """
+        artifacts_path = None
         if self.path_mappings:
             for _local, _container in self.path_mappings.iteritems():
                 if local_path.startswith(_local):
-                    return local_path.replace(_local, _container, 1)
-        return None
+                    if _container == '/artifacts':
+                        artifacts_path = local_path.replace(
+                            _local,
+                            _container,
+                            1,
+                        )
+                    else:
+                        return local_path.replace(_local, _container, 1)
+        return artifacts_path
