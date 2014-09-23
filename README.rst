@@ -369,3 +369,47 @@ The configuration may also specify additional tags to add to the image::
         repository: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***
         tags: [ 'latest' ]
 
+Installation
+============
+
+Currently the best way to install BuildRunner is via pip, pointing at the
+Release Engineering internal pypi server. This is best done when installing
+into a virtual environment using virtualenv. The following commands will create
+a new virtual environment, activate it, and install BuildRunner within it::
+
+  virtualenv buildrunner
+  source buildrunner/bin/activate
+  pip install GitPython==0.3.2.RC1
+  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ vcsinfo
+  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ buildrunner
+
+The buildrunner executable is now available at buildrunner/bin/buildrunner and
+can be added to your path.
+
+OS X
+====
+
+BuildRunner will work with boot2docker, allowing you to develop on a Mac OS X
+machine while still building on linux. The latest development branch of
+boot2docker has support for shared folders, but the version has not been
+officially released yet. A boot2docker.iso file with the proper configuration
+is available at the following location::
+
+  http://eng-cbuild-master.dev.ut1.omniture.com/filevault/boot2docker.iso
+
+You can update the image your local boot2docker instance uses with the
+following steps:
+
+1. Download the .iso file at the url above to your machine
+2. Shut down the boot2docker vm by running 'boot2docker stop'
+3. Replace the file at ~/.boot2docker/boot2docker.iso with the downloaded file
+4. Instruct VirtualBox to map your /Users directory (or whatever directory you
+   do development in) to the VM (for /Users the command would be 'VBoxManage
+   sharedfolder add boot2docker-vm -name /Users -hostpath /Users')
+5. Re-start boot2docker by running 'boot2docker start'
+
+At this point you will need to export the DOCKER_HOST environment variable that
+boot2docker instructs you to. BuildRunner honors the environment variable
+setting the same way that the docker client does. You can use BuildRunner and
+the Docker client together on the boot2docker machine.
+
