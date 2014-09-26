@@ -52,7 +52,6 @@ def epoch_time():
     )
 
 
-#pylint: disable=too-few-public-methods
 class ConsoleLogger(object):
     """
     Class used to write decorated output to stdout while also redirecting
@@ -62,27 +61,28 @@ class ConsoleLogger(object):
         self.streams = streams
 
 
-    def write(self, output, line_prefix='', color=None):
+    def write(self, output, color=None):
         """
-        Write the given text to stdout and streams, adding the line prefix to
-        each line and decorating output to stdout with color.
+        Write the given text to stdout and streams decorating output to stdout
+        with color.
         """
-        lines = output.splitlines()
-        for line in lines:
-            _line = line + '\n'
-            if line_prefix:
-                _line = line_prefix + _line
+        # colorize stdout
+        _stdout = output
+        if color:
+            _color_start = '\033[01;3{color}m'.format(color=color)
+            _stdout = _color_start + _stdout + '\033[00;00m'
+        sys.stdout.write(_stdout)
 
-            # colorize stdout
-            _stdout = _line
-            if color:
-                _color_start = '\033[01;3{color}m'.format(color=color)
-                _stdout = _color_start + _line + '\033[00;00m'
-            sys.stdout.write(_stdout)
+        # do not colorize output to other streams
+        for stream in self.streams:
+            stream.write(output)
 
-            # do not colorize output to other streams
-            for stream in self.streams:
-                stream.write(_line)
+
+    def flush(self):
+        """
+        Flush.
+        """
+        pass
 
 
 class ContainerLogger(object):
@@ -100,11 +100,13 @@ class ContainerLogger(object):
         """
         Write the given output to the log.
         """
-        self.console_logger.write(
-            output,
-            line_prefix=self.line_prefix,
-            color=self.color,
-        )
+        lines = output.splitlines()
+        for line in lines:
+            _line = self.line_prefix + line + '\n'
+            self.console_logger.write(
+                _line,
+                color=self.color,
+            )
 
 
     BUILD_LOG_COLOR = 3

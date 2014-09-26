@@ -1,4 +1,4 @@
 FROM busybox
-ADD /source /source/
+ADD source.tar /source/
 VOLUME /source
 
