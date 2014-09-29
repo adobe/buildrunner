@@ -606,7 +606,10 @@ class BuildStepRunner(object):
                                         ):
                                             _arts.append(_ca)
                                             self.build_runner.add_artifact(
-                                                _ca,
+                                                os.path.join(
+                                                    self.name,
+                                                    os.path.basename(_ca),
+                                                ),
                                                 _props,
                                             )
                                 self.log.write("\nGathered artifacts:\n")
