@@ -20,6 +20,13 @@ def parse_args():
     )
 
     parser.add_argument(
+        '-c', '--global-config',
+        default=None,
+        dest='global_config_file',
+        help='global configuration file (defaults to "~/.buildrunner.yaml")',
+    )
+
+    parser.add_argument(
         '-d', '--directory',
         default=os.getcwd(),
         dest='directory',
@@ -29,7 +36,7 @@ def parse_args():
     parser.add_argument(
         '-f', '--file',
         default=None,
-        dest='file',
+        dest='config_file',
         #pylint: disable=C0301
         help='build configuration file (defaults to "buildrunner.yaml", then "gauntlet.yaml")',
     )
@@ -59,7 +66,8 @@ def main():
     try:
         build_runner = BuildRunner(
             args.directory,
-            args.file,
+            args.global_config_file,
+            args.config_file,
             args.build_number,
             push=args.push,
         )

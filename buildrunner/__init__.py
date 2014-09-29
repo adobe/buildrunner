@@ -3,6 +3,9 @@ Copyright (C) 2014 Adobe
 """
 from __future__ import absolute_import
 from collections import OrderedDict
+import fabric.tasks
+from fabric.api import hide, env, run, put, get
+from fabric.context_managers import settings
 import glob
 import json
 import os
@@ -34,7 +37,8 @@ from buildrunner.utils import (
 from vcsinfo import detect_vcs
 
 
-DEFAULT_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
+DEFAULT_GLOBAL_CONFIG_FILE = '~/.buildrunner.yaml'
+DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
 RESULTS_DIR = 'buildrunner.results'
 DEFAULT_SHELL = '/bin/sh'
 SOURCE_VOLUME_MOUNT = '/source'
@@ -61,7 +65,8 @@ class BuildRunner(object):
     def __init__(
         self,
         build_dir,
-        config_file=None,
+        global_config_file=None,
+        run_config_file=None,
         build_number=None,
         push=False,
     ):
@@ -72,24 +77,35 @@ class BuildRunner(object):
         self.working_dir = os.path.join(self.build_results_dir, '.working')
         self.push = push
 
-        run_config_file = None
-        if config_file:
-            run_config_file = self.to_abs_path(config_file)
+        # load global configuration
+        _global_config_file = self.to_abs_path(
+            global_config_file or DEFAULT_GLOBAL_CONFIG_FILE
+        )
+        self.global_config = {}
+        if _global_config_file and os.path.exists(_global_config_file):
+            with open(_global_config_file) as _file:
+                self.global_config = ordered_load(_file)
+
+        # load run configuration
+        _run_config_file = None
+        if run_config_file:
+            _run_config_file = self.to_abs_path(run_config_file)
         else:
-            for name_to_try in DEFAULT_CONFIG_FILES:
+            for name_to_try in DEFAULT_RUN_CONFIG_FILES:
                 _to_try = self.to_abs_path(name_to_try)
                 if os.path.exists(_to_try):
-                    run_config_file = _to_try
+                    _run_config_file = _to_try
                     break
 
-        if not run_config_file or not os.path.exists(run_config_file):
+        if not _run_config_file or not os.path.exists(_run_config_file):
             raise BuildRunnerConfigurationError(
                 'Cannot find build configuration file'
             )
         self.run_config = None
-        with open(run_config_file) as _file:
+        with open(_run_config_file) as _file:
             self.run_config = ordered_load(_file)
 
+        # set build number
         self.build_number = build_number
         if not self.build_number:
             self.build_number = epoch_time()
@@ -117,7 +133,8 @@ class BuildRunner(object):
         self.artifacts = OrderedDict()
 
         self.exit_code = None
-        self.source_image = None
+        self._source_image = None
+        self._source_archive = None
         self.log_file = None
 
 
@@ -125,11 +142,12 @@ class BuildRunner(object):
         """
         Convert a path to an absolute path (if it isn't on already).
         """
-        if os.path.isabs(path):
-            return path
+        _path = os.path.expanduser(path)
+        if os.path.isabs(_path):
+            return _path
         return os.path.join(
             self.build_dir,
-            path,
+            _path,
         )
 
 
@@ -140,24 +158,45 @@ class BuildRunner(object):
         self.artifacts[artifact_file] = properties
 
 
-    def _create_source_image(self):
+    def get_source_archive_path(self):
         """
-        Create the base image source containers will be created from.
+        Create the source archive for use in remote builds or to build the
+        source image.
         """
-        self.log.write('Creating source image\n')
-        source_builder = DockerBuilder(
-            inject={
-                self.build_dir: SOURCE_VOLUME_MOUNT,
-                SOURCE_DOCKERFILE: "Dockerfile",
-            },
-        )
-        exit_code = source_builder.build(
-            nocache=True,
-        )
-        if exit_code != 0 or not source_builder.image:
-            raise BuildRunnerProcessingError('Error building source image')
-        self.source_image = source_builder.image
-        return self.source_image
+        if not self._source_archive:
+            self.log.write('Creating source archive\n')
+            _fileobj = None
+            try:
+                _fileobj = tempfile.NamedTemporaryFile(delete=False)
+                with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
+                    tfile.add(self.build_dir, arcname='')
+                self._source_archive = _fileobj.name
+            finally:
+                if _fileobj:
+                    _fileobj.close()
+        return self._source_archive
+
+
+    def get_source_image(self):
+        """
+        Get and/or create the base image source containers will be created
+        from.
+        """
+        if not self._source_image:
+            self.log.write('Creating source image\n')
+            source_builder = DockerBuilder(
+                inject={
+                    self.get_source_archive_path(): 'source.tar',
+                    SOURCE_DOCKERFILE: "Dockerfile",
+                },
+            )
+            exit_code = source_builder.build(
+                nocache=True,
+            )
+            if exit_code != 0 or not source_builder.image:
+                raise BuildRunnerProcessingError('Error building source image')
+            self._source_image = source_builder.image
+        return self._source_image
 
 
     def _init_log(self):
@@ -238,7 +277,7 @@ class BuildRunner(object):
 
             self._init_log()
 
-            self._create_source_image()
+            self.get_source_archive_path()
 
             # run each step
             for step_name, step_config in self.run_config['steps'].iteritems():
@@ -260,12 +299,12 @@ class BuildRunner(object):
             self._write_artifact_manifest()
 
             # cleanup the source image
-            if self.source_image:
+            if self._source_image:
                 self.log.write(
-                    "Destroying source image %s\n" % self.source_image
+                    "Destroying source image %s\n" % self._source_image
                 )
                 docker.new_client().remove_image(
-                    self.source_image,
+                    self._source_image,
                     noprune=False,
                 )
 
@@ -305,11 +344,33 @@ class BuildStepRunner(object):
         self.service_links = {}
 
 
-    def run(self):
+    def _validate_configuration(self):
         """
-        Run the build step.
+        Validate the step configuration, reporting any errors by raising
+        BuildRunnerConfigurationErrors.
         """
-        # validate the configuration
+        # 'remote' config trumps others--if passes return
+        if 'remote' in self.config:
+            r_config = self.config['remote']
+            # must have a 'host' or 'platform' attribute
+            if 'host' not in r_config:
+                raise BuildRunnerConfigurationError(
+                    'Step "%s" has a "remote" configuration without '
+                    'a "host" attribute\n' % self.name
+                )
+
+            # must specify the cmd to run
+            if 'cmd' not in self.config['remote']:
+                raise BuildRunnerConfigurationError(
+                    'Step "%s" has a "remote" configuration without a'
+                    '"cmd" attribute\n' % self.name
+                )
+
+            # 'remote' build checks out, and since it overrides a Docker one we
+            # return here
+            return
+
+        # no remote config, must be a docker based build
         if not ('build' in self.config or 'run' in self.config):
             raise BuildRunnerConfigurationError(
                 (
@@ -325,10 +386,11 @@ class BuildStepRunner(object):
                 ) % self.name
             )
 
-        # create the step results dir
-        self.log.write('\nRunning step "%s"\n' % self.name)
-        self.log.write('________________________________________\n')
 
+    def _run_docker_build(self):
+        """
+        Run a Docker based build.
+        """
         _image = None
         _runner = None
         try:
@@ -341,7 +403,7 @@ class BuildStepRunner(object):
             if 'run' in self.config:
                 # create a new source container from the source image
                 self.source_container = self.docker_client.create_container(
-                    self.build_runner.source_image,
+                    self.build_runner.get_source_image(),
                     command='/bin/sh',
                 )['Id']
                 self.docker_client.start(
@@ -410,6 +472,199 @@ class BuildStepRunner(object):
                     self.source_container,
                     force=True,
                 )
+
+
+    def _dereference_host(self, host):
+        """
+        Given a host string determine the actual host value to use by checking
+        the global configuration.
+        """
+        # if no build servers configuration in global config just return host
+        if 'build-servers' not in self.build_runner.global_config:
+            return host
+
+        build_servers = self.build_runner.global_config['build-servers']
+        for _host, _host_aliases in build_servers.iteritems():
+            if host in _host_aliases:
+                return _host
+
+        return host
+
+
+    def _run_remote_build(self):
+        """
+        Run a remote build.
+        """
+        host = self._dereference_host(self.config['remote']['host'])
+        cmd = self.config['remote']['cmd']
+
+        artifacts = None
+        if 'artifacts' in self.config['remote']:
+            artifacts = self.config['remote']['artifacts']
+
+        def _run():
+            """
+            Routine run by fabric.
+            """
+            # call remote functions to copy tar and build remotely
+
+            remote_build_dir = '/tmp/buildrunner/%s-%s' % (
+                self.build_runner.build_id,
+                self.name,
+            )
+            remote_archive_filepath = remote_build_dir + '/source.tar'
+            self.log.write(
+                    "[%s] Creating temporary remote directory '%s'\n" % (
+                    host,
+                    remote_build_dir,
+                )
+            )
+
+            mkdir_result = run(
+                "mkdir -p %s" % remote_build_dir,
+                warn_only=True,
+                stdout=self.log,
+                stderr=self.log,
+            )
+            if mkdir_result.return_code:
+                raise BuildRunnerProcessingError(
+                    "Error creating remote directory"
+                )
+            else:
+                try:
+                    self.log.write(
+                        "[%s] Pushing archive file to remote directory\n" % (
+                            host,
+                        )
+                    )
+                    files = put(
+                        self.build_runner.get_source_archive_path(),
+                        remote_archive_filepath,
+                    )
+                    if files:
+                        self.log.write(
+                            "[%s] Extracting source tree archive on "
+                            "remote host:\n" % host
+                        )
+                        extract_result = run(
+                            "(cd %s; tar -xvf source.tar && "
+                            "rm -f source.tar)" % (
+                                remote_build_dir,
+                            ),
+                            warn_only=True,
+                            stdout=self.log,
+                            stderr=self.log,
+                        )
+                        if extract_result.return_code:
+                            raise BuildRunnerProcessingError(
+                                "Error extracting archive file"
+                            )
+                        else:
+                            self.log.write("[%s] Running command '%s'\n" % (
+                                host,
+                                cmd,
+                            ))
+                            package_result = run(
+                                "(cd %s; %s)" % (
+                                    remote_build_dir,
+                                    cmd,
+                                ),
+                                warn_only=True,
+                                stdout = self.log,
+                                stderr = self.log,
+                            )
+
+                            if artifacts:
+                                _arts = []
+                                for _art, _props in artifacts.iteritems():
+                                    # check to see if there are artifacts
+                                    # that match the pattern
+                                    with hide('everything'):
+                                        dummy_out = StringIO()
+                                        art_result = run(
+                                            'ls -A1 %s/%s' % (
+                                                remote_build_dir,
+                                                _art,
+                                            ),
+                                            warn_only=True,
+                                            stdout=dummy_out,
+                                            stderr=dummy_out,
+                                        )
+                                        if art_result.return_code:
+                                            continue
+
+                                    # we have at least one match--run the get
+                                    with settings(warn_only=True):
+                                        for _ca in get(
+                                            "%s/%s" % (
+                                                remote_build_dir,
+                                                _art,
+                                            ),
+                                            "%s/%%(basename)s" % (
+                                                self.results_dir,
+                                            )
+                                        ):
+                                            _arts.append(_ca)
+                                            self.build_runner.add_artifact(
+                                                _ca,
+                                                _props,
+                                            )
+                                self.log.write("\nGathered artifacts:\n")
+                                for _art in _arts:
+                                    self.log.write(
+                                        '- found %s\n' % os.path.basename(_art),
+                                    )
+                                self.log.write("\n")
+
+
+                            if package_result.return_code:
+                                raise BuildRunnerProcessingError(
+                                    "Error running remote build"
+                                )
+
+                    else:
+                        raise BuildRunnerProcessingError(
+                            "Error uploading source archive to host"
+                        )
+                finally:
+                    self.log.write(
+                        "[%s] Cleaning up remote temp directory %s\n" % (
+                            host,
+                            remote_build_dir,
+                        )
+                    )
+                    cleanup_result = run(
+                        "rm -Rf %s" % remote_build_dir,
+                        stdout=self.log,
+                        stderr=self.log,
+                    )
+                    if cleanup_result.return_code:
+                        raise BuildRunnerProcessingError(
+                            "Error cleaning up remote directory"
+                        )
+
+        self.log.write("Building on remote host %s\n\n" % host)
+        fabric.tasks.execute(
+            fabric.tasks.WrappedCallableTask(_run),
+            hosts=[host],
+        )
+
+
+    def run(self):
+        """
+        Run the build step.
+        """
+        # validate the configuration
+        self._validate_configuration()
+
+        # create the step results dir
+        self.log.write('\nRunning step "%s"\n' % self.name)
+        self.log.write('________________________________________\n')
+
+        if 'remote' in self.config:
+            self._run_remote_build()
+        else:
+            self._run_docker_build()
 
 
     def _retrieve_artifacts(self):

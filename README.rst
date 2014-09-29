@@ -2,17 +2,22 @@
 BuildRunner
 ===========
 
+Build and publish Docker images, run builds/tasks within Docker containers or
+on remote hosts.
+
 Overview
 ========
 
-BuildRunner is a tool written on top of Docker that allows engineers to do the
-following:
+BuildRunner is a tool written on top of Docker and ssh remoting frameworks that
+allows engineers to do the following:
 
-1. Build and publish Docker images
-2. Run other build and packaging tools within custom Docker containers while
-   collecting the artifacts these tools produce
-3. Creating ad-hoc environments using Docker containers for running automated,
-   self-contained integration and functional tests
+- Build and publish Docker images
+- Run other build and packaging tools within custom Docker containers while
+  collecting the artifacts these tools produce
+- Run builds/tasks on remote systems that cannot be done within a Docker
+  container
+- Creating ad-hoc environments using Docker containers for running automated,
+  self-contained integration and functional tests
 
 BuildRunner runs builds and tests by reading configuration files within a given
 source tree. This allows build and continuous integration test configurations
@@ -24,16 +29,62 @@ associated BuildRunner Jenkins plugin project located
 `here <https://***REMOVED***/***REMOVED***/buildrunner-plugin>`_
 for an example).
 
+============
+Installation
+============
+
+Currently the best way to install BuildRunner is via pip, pointing at the
+Release Engineering internal pypi server. This is best done when installing
+into a virtual environment using virtualenv. The following commands will create
+a new virtual environment, activate it, and install BuildRunner within it::
+
+  virtualenv buildrunner
+  source buildrunner/bin/activate
+  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ vcsinfo
+  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ buildrunner
+
+The buildrunner executable is now available at buildrunner/bin/buildrunner and
+can be added to your path.
+
+OS X
+====
+
+BuildRunner will work with boot2docker, allowing you to develop on a Mac OS X
+machine while still building on linux. The latest development branch of
+boot2docker has support for shared folders, but the version has not been
+officially released yet. A boot2docker.iso file with the proper configuration
+is available at the following location::
+
+  http://eng-cbuild-master.dev.ut1.omniture.com/filevault/boot2docker.iso
+
+You can update the image your local boot2docker instance uses with the
+following steps:
+
+1. Download the .iso file at the url above to your machine
+2. Shut down the boot2docker vm by running 'boot2docker stop'
+3. Replace the file at ~/.boot2docker/boot2docker.iso with the downloaded file
+4. Instruct VirtualBox to map your /Users directory (or whatever directory you
+   do development in) to the VM (for /Users the command would be 'VBoxManage
+   sharedfolder add boot2docker-vm -name /Users -hostpath /Users')
+5. Re-start boot2docker by running 'boot2docker start'
+
+At this point you will need to export the DOCKER_HOST environment variable that
+boot2docker instructs you to. BuildRunner honors the environment variable
+setting the same way that the docker client does. You can use BuildRunner and
+the Docker client together on the boot2docker machine.
+
+==================
 BuildRunner Builds
 ==================
 
 A BuildRunner build consists of one or more build steps.
 
-Each step may build a custom Docker image and/or run a specific image to
-perform some task.
+Each step may build a custom Docker image and run a task within a specific
+Docker container or run commands on a remote host.
 
-Artifacts can be collected from containers when they have finished running and
-archived in your build system (Jenkins, for instance).
+Artifacts can be collected from tasks run within containers or remote hosts
+when they have finished running and archived in your build system (Jenkins, for
+instance).
 
 Resulting images (either from a build phase or a run phase) can be pushed to
 the central or a private Docker image registry for use in other builds or to
@@ -42,23 +93,29 @@ run services in other environments.
 Build definitions are found in the root of your source tree, either in a file
 named 'buildrunner.yaml' or 'gauntlet.yaml'. The build definition is simply a
 yaml map defining 'steps'. Each step is given a custom name and must contain
-'build' and/or 'run' attributes and may optionally contain a 'push' attribute::
+either 'build' and/or 'run' attributes (optionally containing a 'push'
+attribute) or a 'remote' attribute::
 
   steps:
     step1-name:
       build: <build config>
       run: <run config>
       push: <push config>
+      # or
+      remote: <remote config>
     step2-name:
       build: <build config>
       run: <run config>
       push: <push config>
+      # or
+      remote: <remote config>
 
 Step names are arbitrary--you can use whatever names you want as long as they
 are unique within a given "steps" configuration. Archived artifacts are stored
 in a step-specific results directory. To use artifacts generated from a
 previous step in a subsequent one you would reference them using the previous
-step name.
+step name. (NOTE: Artifacts from previous steps are not available within remote
+builds)
 
 Standard Docker Builds (the 'build' step attribute)
 ===================================================
@@ -138,20 +195,20 @@ BuildRunner injects special environment variables and volume mounts into every
 run container. The following environment variables are set and available in
 every run container:
 
-1. BUILDRUNNER_BUILD_NUMBER = the build number
-2. BUILDRUNNER_BUILD_ID = a unique id identifying the build (includes vcs and
-   build number information)
-3. VCSINFO_BRANCH = the VCS branch
-4. VCSINFO_NUMBER = the VCS commit number
-5. VCSINFO_ID = the VCS commit id
-6. VCSINFO_MODIFIED = the last file modification timestamp if local changes
-   have been made and not committed to the source VCS repository
+- BUILDRUNNER_BUILD_NUMBER = the build number
+- BUILDRUNNER_BUILD_ID = a unique id identifying the build (includes vcs and
+  build number information)
+- VCSINFO_BRANCH = the VCS branch
+- VCSINFO_NUMBER = the VCS commit number
+- VCSINFO_ID = the VCS commit id
+- VCSINFO_MODIFIED = the last file modification timestamp if local changes
+  have been made and not committed to the source VCS repository
 
 The following volumes are created within run containers:
 
-1. /source = (read-write) maps to a pristene snapshot of the current source
-   tree (build directory)
-2. /artifacts = (read-only) maps to the buildrunner.results directory
+- /source = (read-write) maps to a pristene snapshot of the current source
+  tree (build directory)
+- /artifacts = (read-only) maps to the buildrunner.results directory
 
 The following example shows the different configuration options available::
 
@@ -369,47 +426,53 @@ The configuration may also specify additional tags to add to the image::
         repository: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***
         tags: [ 'latest' ]
 
-Installation
-============
+Remote Builds (the 'remote' step attribute)
+===========================================
 
-Currently the best way to install BuildRunner is via pip, pointing at the
-Release Engineering internal pypi server. This is best done when installing
-into a virtual environment using virtualenv. The following commands will create
-a new virtual environment, activate it, and install BuildRunner within it::
+BuildRunner was built to utilize Docker containers for builds, but there are
+times when a build or task needs to be performed within an environment that
+cannot be duplicated within a Docker container. In these situations the
+'remote' step attribute can be used to perform a build or task on a remote
+host. A 'remote' step attribute overrides any other attributes within the step.
 
-  virtualenv buildrunner
-  source buildrunner/bin/activate
-  pip install GitPython==0.3.2.RC1
-  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ vcsinfo
-  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ buildrunner
+The 'remote' step attribute value is a map providing the host to run on, the
+command to run, and information about which artifacts should be archived. The
+following example shows the configuration options available within a 'remote'
+configuration::
 
-The buildrunner executable is now available at buildrunner/bin/buildrunner and
-can be added to your path.
+  steps:
+    my-remote-step:
+      remote:
+        # A specific host or host alias to run the remote build/task on. A host
+        # alias is an arbitrary string that can be configured to map to a
+        # specific user@host value within the global buildrunner configuration
+        # file. BuildRunner first tries to lookup the host value in the
+        # 'build-servers' configuration map. If found the resulting host is
+        # used. If not, the string here is used as the remote host.
+        host: <user@host or alias to ssh to>
 
-OS X
-====
+        # The remote command to run. (Required)
+        cmd: <remote command to run>
 
-BuildRunner will work with boot2docker, allowing you to develop on a Mac OS X
-machine while still building on linux. The latest development branch of
-boot2docker has support for shared folders, but the version has not been
-officially released yet. A boot2docker.iso file with the proper configuration
-is available at the following location::
+        # A map specifying the artifacts that should be archived for the step.
+        # The keys in the map specify glob patterns of files to archive. If a
+        # value is present it should be a map of additional properties that
+        # should be added to the build artifacts.json file. The artifacts.json
+        # file can be used to publish artifacts to another system (such as
+        # Gauntlet) with the accompanying metadata.
+        artifacts:
+          artifacts/to/archive/*:
+            property1: value1
+            property2: value2
 
-  http://eng-cbuild-master.dev.ut1.omniture.com/filevault/boot2docker.iso
+The 'build-servers' global configuration consists of a map where each key is a
+server user@host string and the value is a list of host aliases that map to the
+server::
 
-You can update the image your local boot2docker instance uses with the
-following steps:
+  build-servers:
+    user@myserver1: [ alias1, alias2 ]
+    user@myserver2: [ alias3, alias4 ]
 
-1. Download the .iso file at the url above to your machine
-2. Shut down the boot2docker vm by running 'boot2docker stop'
-3. Replace the file at ~/.boot2docker/boot2docker.iso with the downloaded file
-4. Instruct VirtualBox to map your /Users directory (or whatever directory you
-   do development in) to the VM (for /Users the command would be 'VBoxManage
-   sharedfolder add boot2docker-vm -name /Users -hostpath /Users')
-5. Re-start boot2docker by running 'boot2docker start'
-
-At this point you will need to export the DOCKER_HOST environment variable that
-boot2docker instructs you to. BuildRunner honors the environment variable
-setting the same way that the docker client does. You can use BuildRunner and
-the Docker client together on the boot2docker machine.
-
+Namespacing aliases allows build configurations to be portable while also
+allowing builders to configure BuildRunner to talk to specific servers within
+their environment on a project by project basis.
