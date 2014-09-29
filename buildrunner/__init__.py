@@ -353,18 +353,10 @@ class BuildStepRunner(object):
         if 'remote' in self.config:
             r_config = self.config['remote']
             # must have a 'host' or 'platform' attribute
-            if not ('host' in r_config or 'platform' in r_config):
+            if 'host' not in r_config:
                 raise BuildRunnerConfigurationError(
                     'Step "%s" has a "remote" configuration without '
-                    'a "host" or "platform" attribute\n' % self.name
-                )
-
-            # can only have one of 'host' or 'platform' attributes
-            if 'host' in r_config and 'platform' in r_config:
-                raise BuildRunnerConfigurationError(
-                    'Step "%s" has a "remote" configuration with '
-                    '"host" and "platform" attributes--it can have '
-                    'only one or the other\n' % self.name
+                    'a "host" attribute\n' % self.name
                 )
 
             # must specify the cmd to run
@@ -482,66 +474,28 @@ class BuildStepRunner(object):
                 )
 
 
-    def _platform_to_host(self, platform_config):
+    def _dereference_host(self, host):
         """
-        Given a platform configuration determine the resulting host from the
-        global configuration.
+        Given a host string determine the actual host value to use by checking
+        the global configuration.
         """
-        # if no build servers configuration in global config just return None
+        # if no build servers configuration in global config just return host
         if 'build-servers' not in self.build_runner.global_config:
-            return None
-
-        platform_name = platform_config
-        platform_caps = None
-        if is_dict(platform_config):
-            if 'name' not in platform_config:
-                raise BuildRunnerConfigurationError(
-                    'Step "%s" has a "remote" "platform" configuration '
-                    'that does not specify a "name" attribute' % self.name
-                )
-            platform_name = platform_config['name']
-
-            if 'capabilities' in platform_config:
-                platform_caps = platform_config['capabilities']
+            return host
 
         build_servers = self.build_runner.global_config['build-servers']
-        for _host, _host_config in build_servers.iteritems():
-            if 'platforms' in _host_config:
-                for p_name, p_conf in _host_config['platforms'].iteritems():
-                    if p_name == platform_name:
-                        if not platform_caps:
-                            return _host
-                        elif 'capabilities' in p_conf:
-                            host_caps = p_conf['capabilities']
-                            # check capabilities
-                            _caps = [platform_caps.keys()]
-                            for cap in platform_caps.keys():
-                                if cap in host_caps.keys():
-                                    if platform_caps[cap] == host_caps[cap]:
-                                        _caps.remove(cap)
-                            if len(_caps) == 0:
-                                return _host
+        for _host, _host_aliases in build_servers.iteritems():
+            if host in _host_aliases:
+                return _host
 
-        # couldn't find a host--return None
-        return None
+        return host
 
 
     def _run_remote_build(self):
         """
         Run a remote build.
         """
-        # determine the host to run the remote build on
-        host = None
-        if 'host' in self.config['remote']:
-            host = self.config['remote']['host']
-        elif 'platform' in self.config['remote']:
-            host = self._platform_to_host(self.config['remote']['platform'])
-        if not host:
-            raise BuildRunnerConfigurationError(
-                'Cannot determine host for "remote" '
-                'build in step "%s"' % self.name
-            )
-
+        host = self._dereference_host(self.config['remote']['host'])
         cmd = self.config['remote']['cmd']
 
         artifacts = None
