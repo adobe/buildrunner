@@ -75,7 +75,7 @@ class ConsoleLogger(object):
 
         # do not colorize output to other streams
         for stream in self.streams:
-            stream.write(output)
+            stream.write(output.encode('utf-8'))
 
 
     def flush(self):
@@ -88,25 +88,46 @@ class ConsoleLogger(object):
 class ContainerLogger(object):
     """
     Class used to write container specific output to a ConsoleLogger.
+
+    This class is not thread safe, but since each container gets its own that
+    is ok.
     """
     def __init__(self, console_logger, name, color):
         self.console_logger = console_logger
         self.name = name
         self.line_prefix = '[' + name + '] '
         self.color = color
+        self._buffer = []
+
+
+    def _write_buffer(self):
+        """
+        Write the contents of the buffer to the log.
+        """
+        _line = self.line_prefix + ''.join(self._buffer)
+        del self._buffer[:]
+        self.console_logger.write(
+            _line,
+            color=self.color,
+        )
 
 
     def write(self, output):
         """
         Write the given output to the log.
         """
-        lines = output.splitlines()
-        for line in lines:
-            _line = self.line_prefix + line + '\n'
-            self.console_logger.write(
-                _line,
-                color=self.color,
-            )
+        for char in output:
+            self._buffer.append(char)
+            if char == '\n':
+                self._write_buffer()
+
+
+    def cleanup(self):
+        """
+        Flush the buffer.
+        """
+        self._buffer.append('\n')
+        self._write_buffer()
 
 
     BUILD_LOG_COLOR = 3

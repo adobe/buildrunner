@@ -767,6 +767,7 @@ class BuildStepRunner(object):
         """
         runner = None
         container_id = None
+        container_logger = None
         try:
             self.log.write('Creating build container from image "%s"\n' % (
                 image,
@@ -869,6 +870,8 @@ class BuildStepRunner(object):
         finally:
             if runner:
                 runner.stop()
+            if container_logger:
+                container_logger.cleanup()
 
         return runner, None
 
@@ -1059,6 +1062,7 @@ class BuildStepRunner(object):
                     )
             else:
                 service_runner.attach_until_finished(service_logger)
+            service_logger.cleanup()
 
         # Attach to the container in a separate thread
         service_management_thread = threading.Thread(
