@@ -75,7 +75,9 @@ class ConsoleLogger(object):
 
         # do not colorize output to other streams
         for stream in self.streams:
-            stream.write(output.encode('utf-8'))
+            if not isinstance(output, unicode):
+                output = unicode(output, encoding='utf-8', errors='replace')
+            stream.write(output)
 
 
     def flush(self):

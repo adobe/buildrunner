@@ -21,6 +21,11 @@ setup(
     ],
     package_data={
         'buildrunner' : ['SourceDockerfile'],
+        'buildrunner.sshagent' : [
+            'SSHAgentProxyImage/Dockerfile',
+            'SSHAgentProxyImage/run.sh',
+            'SSHAgentProxyImage/login.sh',
+        ],
     },
     install_requires=[
         'PyYAML==3.10',
