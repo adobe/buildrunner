@@ -334,7 +334,7 @@ class CustomAgentConnectionThread(threading.Thread):
         for _key in _keys:
             # add each key
             msg.add_string(_key.asbytes())
-            msg.add_string('comment')
+            msg.add_string('')
         self._send_reply(msg)
 
 
