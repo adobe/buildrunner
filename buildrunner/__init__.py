@@ -2,6 +2,7 @@
 Copyright (C) 2014 Adobe
 """
 from __future__ import absolute_import
+import codecs
 from collections import OrderedDict
 import fabric.tasks
 from fabric.api import hide, env, run, put, get
@@ -53,6 +54,9 @@ class BuildRunnerConfigurationError(BuildRunnerError):
 class BuildRunnerProcessingError(BuildRunnerError):
     """Error indicating the build should be 'failed'"""
     pass
+
+
+from buildrunner.sshagent import DockerSSHAgentProxy
 
 
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
@@ -204,7 +208,7 @@ class BuildRunner(object):
         create the log file and open for writing
         """
         log_file_path = os.path.join(self.build_results_dir, 'build.log')
-        self.log_file = open(log_file_path, 'w')
+        self.log_file = codecs.open(log_file_path, 'w', 'utf-8')
         self.log = ConsoleLogger(self.log_file)
         self.add_artifact(
             os.path.basename(log_file_path),
@@ -338,6 +342,7 @@ class BuildStepRunner(object):
 
         self.docker_client = docker.new_client()
         self.source_container = None
+        self.sshagent = None
 
         # service runner collections
         self.service_runners = OrderedDict()
@@ -410,10 +415,19 @@ class BuildStepRunner(object):
                     self.source_container,
                 )
                 self.log.write(
-                    'Created source container "%.10s"\n' % (
+                    'Created source container %.10s\n' % (
                         self.source_container,
                     )
                 )
+
+                # see if we need to inject ssh keys
+                if 'ssh-keys' in self.config['run']:
+                    _keys = self._get_ssh_keys(self.config['run']['ssh-keys'])
+                    self.sshagent = DockerSSHAgentProxy(
+                        self.docker_client,
+                        self.log,
+                    )
+                    self.sshagent.start(_keys)
 
                 # need to run--config defined image overrides the built one
                 if 'image' in self.config['run']:
@@ -462,6 +476,10 @@ class BuildStepRunner(object):
                     )
                     _srun.cleanup()
 
+            if self.sshagent:
+                self.sshagent.stop()
+                self.sshagent = None
+
             if self.source_container:
                 self.log.write(
                     'Destroying source container %.10s\n' % (
@@ -489,6 +507,49 @@ class BuildStepRunner(object):
                 return _host
 
         return host
+
+
+    def _get_ssh_keys(self, key_aliases):
+        """
+        Given a key alias lookup the private key file and passphrase from the
+        global config.
+        """
+        ssh_keys = []
+        if not key_aliases:
+            return ssh_keys
+        if 'ssh-keys' not in self.build_runner.global_config:
+            raise BuildRunnerConfigurationError(
+                "SSH key aliases specified but no 'ssh-keys' "
+                "configuration in global build runner config"
+            )
+
+        ssh_keys = self.build_runner.global_config['ssh-keys']
+        _key_files = {}
+        _matched_aliases = []
+        for key_info in ssh_keys:
+            if 'file' not in key_info:
+                continue
+            _key_file = key_info['file']
+
+            _password = None
+            if 'password' in key_info:
+                _password = key_info['password']
+
+            if 'aliases' not in key_info and not key_info['aliases']:
+                continue
+            for alias in key_aliases:
+                if alias in key_info['aliases']:
+                    _matched_aliases.append(alias)
+                    if _key_file not in _key_files:
+                        _key_files[_key_file] = _password
+
+        for alias in key_aliases:
+            if alias not in _matched_aliases:
+                raise BuildRunnerConfigurationError(
+                    "Could not find SSH key matching alias '%s'" % alias
+                )
+
+        return _key_files
 
 
     def _run_remote_build(self):
@@ -815,6 +876,17 @@ class BuildStepRunner(object):
                 for key, value in self.config['run']['env'].iteritems():
                     _env[key] = value
 
+            _volumes_from = [self.source_container]
+
+            # see if we need to attach to a sshagent container
+            if self.sshagent:
+                ssh_container, ssh_env = self.sshagent.get_info()
+                if ssh_container:
+                    _volumes_from.append(ssh_container)
+                if ssh_env:
+                    for _var, _val in ssh_env.iteritems():
+                        _env[_var] = _val
+
             # create and start runner, linking any service containers
             runner = DockerRunner(
                 image,
@@ -825,7 +897,7 @@ class BuildStepRunner(object):
                     self.build_runner.build_results_dir: \
                         ARTIFACTS_VOLUME_MOUNT + ':ro',
                 },
-                volumes_from=[self.source_container],
+                volumes_from=_volumes_from,
                 links=self.service_links,
                 shell=_shell,
                 provisioners=_provisioners,
@@ -1103,7 +1175,7 @@ class BuildStepRunner(object):
             repository = push_config
 
         self.log.write(
-            'Pushing resulting image to "%s".' % repository
+            'Pushing resulting image to "%s".\n' % repository
         )
 
         # if we have a container_id then we create an image based on
@@ -1111,7 +1183,7 @@ class BuildStepRunner(object):
         image_to_use = image
         if container_id:
             self.log.write(
-                'Committing build container %s as an image for tagging' % (
+                'Committing build container %s as an image for tagging\n' % (
                     container_id,
                 )
             )
@@ -1124,7 +1196,7 @@ class BuildStepRunner(object):
         # tag the image
         for _tag in tags:
             self.log.write(
-                'Tagging image "%s" with repository:tag "%s:%s"' % (
+                'Tagging image "%s" with repository:tag "%s:%s"\n' % (
                     image_to_use,
                     repository,
                     _tag,
@@ -1150,7 +1222,9 @@ class BuildStepRunner(object):
             # cleanup the image and tag
             self.docker_client.remove_image(image_to_use, noprune=True)
         else:
-            self.log.write('push not requested--not cleaning up image locally')
+            self.log.write(
+                'push not requested--not cleaning up image locally\n'
+            )
 
         # add image as artifact
         self.build_runner.add_artifact(
