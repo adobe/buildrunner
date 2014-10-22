@@ -3,6 +3,7 @@ Copyright (C) 2014 Adobe
 """
 from __future__ import absolute_import
 
+import codecs
 from collections import OrderedDict
 from datetime import datetime
 import sys
@@ -58,7 +59,10 @@ class ConsoleLogger(object):
     non-decorated output to one or more streams.
     """
     def __init__(self, *streams):
-        self.streams = streams
+        self.streams = []
+        for stream in streams:
+            self.streams.append(codecs.getwriter('utf-8')(stream, 'replace'))
+        self.stdout = codecs.getwriter('utf-8')(sys.stdout, 'replace')
 
 
     def write(self, output, color=None):
@@ -67,17 +71,20 @@ class ConsoleLogger(object):
         with color.
         """
         # colorize stdout
+        if not isinstance(output, unicode):
+            output = unicode(output, encoding='utf-8', errors='replace')
         _stdout = output
         if color:
-            _color_start = '\033[01;3{color}m'.format(color=color)
-            _stdout = _color_start + _stdout + '\033[00;00m'
-        sys.stdout.write(_stdout)
+            _color_start = u'\033[01;3{color}m'.format(color=color)
+            _stdout = _color_start + _stdout + u'\033[00;00m'
+        self.stdout.write(_stdout)
 
         # do not colorize output to other streams
         for stream in self.streams:
-            if not isinstance(output, unicode):
-                output = unicode(output, encoding='utf-8', errors='replace')
-            stream.write(output)
+            try:
+                stream.write(output)
+            except UnicodeDecodeError as ude:
+                stream.write("\nERROR writing to log: %s\n" % str(ude))
 
 
     def flush(self):
