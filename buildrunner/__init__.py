@@ -24,10 +24,21 @@ class BuildRunnerError(Exception):
     pass
 
 
+class BuildRunnerConfigurationError(BuildRunnerError):
+    """Error indicating an issue with the build configuration"""
+    pass
+
+
+class BuildRunnerProcessingError(BuildRunnerError):
+    """Error indicating the build should be 'failed'"""
+    pass
+
+
 from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.docker.runner import DockerRunner
 from buildrunner.provisioners import create_provisioners
+from buildrunner.sshagent import DockerSSHAgentProxy
 from buildrunner.utils import (
     ContainerLogger,
     ConsoleLogger,
@@ -44,19 +55,6 @@ RESULTS_DIR = 'buildrunner.results'
 DEFAULT_SHELL = '/bin/sh'
 SOURCE_VOLUME_MOUNT = '/source'
 ARTIFACTS_VOLUME_MOUNT = '/artifacts'
-
-
-class BuildRunnerConfigurationError(BuildRunnerError):
-    """Error indicating an issue with the build configuration"""
-    pass
-
-
-class BuildRunnerProcessingError(BuildRunnerError):
-    """Error indicating the build should be 'failed'"""
-    pass
-
-
-from buildrunner.sshagent import DockerSSHAgentProxy
 
 
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')

@@ -4,8 +4,10 @@ Copyright (C) 2014 Adobe
 from __future__ import absolute_import
 import docker
 import os
+import ssl
+import urlparse
 
-from buildrunner import BuildRunnerError
+from buildrunner import BuildRunnerError, BuildRunnerConfigurationError
 
 
 DOCKER_API_VERSION = '1.12'
@@ -19,6 +21,9 @@ class BuildRunnerContainerError(BuildRunnerError):
 
 def new_client(
     dockerd_url=None,
+    tls=False,
+    tls_verify=False,
+    cert_path=None,
 ):
     """
     Return a newly configured Docker client.
@@ -26,8 +31,41 @@ def new_client(
     _dockerd_url = dockerd_url
     if not _dockerd_url:
         _dockerd_url = os.getenv('DOCKER_HOST', DOCKER_DEFAULT_DOCKERD_URL)
+
+    _tls = tls
+
+    tls_config = None
+    if tls_verify or str(os.environ.get('DOCKER_TLS_VERIFY', '0')) == '1':
+        _tls = True
+        _cert_path = os.getenv('DOCKER_CERT_PATH', cert_path)
+        if not _cert_path:
+            raise BuildRunnerConfigurationError(
+                "TLS connection specified by cannot determine cert path "
+                "(from DOCKER_CERT_PATH env variable)"
+            )
+
+        ca_cert_path = os.path.join(_cert_path,'ca.pem')
+        client_cert = (
+            os.path.join(_cert_path, 'cert.pem'), 
+            os.path.join(_cert_path, 'key.pem')
+        )
+
+        tls_config = docker.tls.TLSConfig(
+            ssl_version = ssl.PROTOCOL_TLSv1,
+            client_cert = client_cert,
+            verify=ca_cert_path,
+            assert_hostname=False,
+        )
+
+    if _tls:
+        # make sure the scheme is https
+        url_parts = urlparse.urlparse(_dockerd_url)
+        if url_parts.scheme == 'tcp':
+            _dockerd_url = urlparse.urlunparse(('https',) + url_parts[1:])
+
     return docker.Client(
         base_url=_dockerd_url,
         version=DOCKER_API_VERSION,
+        tls=tls_config,
     )
 
