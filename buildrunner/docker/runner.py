@@ -6,6 +6,7 @@ import docker
 import os
 import shutil
 import socket
+import ssl
 import tempfile
 import time
 import uuid
@@ -344,7 +345,7 @@ class DockerRunner(object):
         docksock = self.docker_client.attach_socket(
             self.container['Id'],
         )
-        docksock.settimeout(0.2)
+        docksock.settimeout(1)
         running = True
         while running:
             running = self.is_running()
@@ -355,6 +356,9 @@ class DockerRunner(object):
                     data = docksock.recv(4096)
             except socket.timeout:
                 pass
+            except ssl.SSLError as ssle:
+                if ssle.message != 'The read operation timed out':
+                    raise
 
 
     def tempfile(self, prefix=None, suffix=None, temp_dir=None):
