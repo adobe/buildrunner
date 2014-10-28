@@ -550,6 +550,26 @@ class BuildStepRunner(object):
         return _key_files
 
 
+    def _resolve_file_alias(self, file_alias):
+        """
+        Given a file alias lookup the local file path from the global config.
+        """
+        if not file_alias:
+            return None
+        if 'local-files' not in self.build_runner.global_config:
+            raise BuildRunnerConfigurationError(
+                "File aliases specified but no 'local-files' "
+                "configuration in global build runner config"
+            )
+
+        local_files = self.build_runner.global_config['local-files']
+        for local_alias, local_file in local_files.iteritems():
+            if file_alias == local_alias:
+                return local_file
+
+        return None
+
+
     def _run_remote_build(self):
         """
         Run a remote build.
@@ -885,16 +905,31 @@ class BuildStepRunner(object):
                     for _var, _val in ssh_env.iteritems():
                         _env[_var] = _val
 
+            _volumes = {
+                self.build_runner.build_results_dir: \
+                    ARTIFACTS_VOLUME_MOUNT + ':ro',
+            }
+
+            # see if we need to inject any files
+            if 'files' in self.config['run']:
+                for f_alias, f_path in self.config['run']['files'].iteritems():
+                    # lookup file from alias
+                    f_local = self._resolve_file_alias(f_alias)
+                    if not f_local or not os.path.exists(f_local):
+                        raise BuildRunnerConfigurationError(
+                            "Cannot find valid local file for alias '%s'" % (
+                                f_alias,
+                            )
+                        )
+                    _volumes[f_local] = f_path + ':ro'
+
             # create and start runner, linking any service containers
             runner = DockerRunner(
                 image,
                 temp_dir=self.build_runner.working_dir,
             )
             container_id = runner.start(
-                volumes={
-                    self.build_runner.build_results_dir: \
-                        ARTIFACTS_VOLUME_MOUNT + ':ro',
-                },
+                volumes=_volumes,
                 volumes_from=_volumes_from,
                 links=self.service_links,
                 shell=_shell,
