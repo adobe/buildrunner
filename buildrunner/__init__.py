@@ -860,10 +860,13 @@ class BuildStepRunner(object):
             _shell = None
 
             # determine if there is a command to run
-            _cmd = None
+            _cmds = []
             if 'cmd' in self.config['run']:
                 _shell = DEFAULT_SHELL
-                _cmd = self.config['run']['cmd']
+                _cmds.append(self.config['run']['cmd'])
+            if 'cmds' in self.config['run']:
+                _shell = DEFAULT_SHELL
+                _cmds.extend(self.config['run']['cmds'])
 
             # determine if there are any provisioners defined
             _provisioners = None
@@ -942,34 +945,36 @@ class BuildStepRunner(object):
             )
 
             exit_code = None
-            if _cmd:
-                # run the cmd
-                container_logger.write(
-                    "cmd> %s\n" % _cmd
-                )
-                exit_code = runner.run(
-                    _cmd,
-                    console=container_logger,
-                    cwd=_cwd,
-                )
-            else:
-                runner.attach_until_finished(container_logger)
-                exit_code = runner.exit_code
-
-            if 0 != exit_code:
-                if _cmd:
+            if _cmds:
+                # run each cmd
+                for _cmd in _cmds:
+                    container_logger.write(
+                        "cmd> %s\n" % _cmd
+                    )
+                    exit_code = runner.run(
+                        _cmd,
+                        console=container_logger,
+                        cwd=_cwd,
+                    )
                     container_logger.write(
                         'Command "%s" exited with code %s\n' % (
                             _cmd,
                             exit_code,
                         )
                     )
-                else:
-                    container_logger.write(
-                        'Container exited with code %s\n' % (
-                            exit_code,
-                        )
+
+                    if 0 != exit_code:
+                        break
+            else:
+                runner.attach_until_finished(container_logger)
+                exit_code = runner.exit_code
+                container_logger.write(
+                    'Container exited with code %s\n' % (
+                        exit_code,
                     )
+                )
+
+            if 0 != exit_code:
                 return runner, 1
 
         finally:
