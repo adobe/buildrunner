@@ -126,6 +126,8 @@ class BuildRunner(object):
             'VCSINFO_ID': str(self.vcs.id),
             'VCSINFO_MODIFIED': str(self.vcs.modified),
         }
+        if self.push:
+            self.env['BUILDRUNNER_DO_PUSH'] = '1'
 
         if 'steps' not in self.run_config:
             raise BuildRunnerConfigurationError(
@@ -550,6 +552,26 @@ class BuildStepRunner(object):
         return _key_files
 
 
+    def _resolve_file_alias(self, file_alias):
+        """
+        Given a file alias lookup the local file path from the global config.
+        """
+        if not file_alias:
+            return None
+        if 'local-files' not in self.build_runner.global_config:
+            raise BuildRunnerConfigurationError(
+                "File aliases specified but no 'local-files' "
+                "configuration in global build runner config"
+            )
+
+        local_files = self.build_runner.global_config['local-files']
+        for local_alias, local_file in local_files.iteritems():
+            if file_alias == local_alias:
+                return local_file
+
+        return None
+
+
     def _run_remote_build(self):
         """
         Run a remote build.
@@ -840,10 +862,13 @@ class BuildStepRunner(object):
             _shell = None
 
             # determine if there is a command to run
-            _cmd = None
+            _cmds = []
             if 'cmd' in self.config['run']:
                 _shell = DEFAULT_SHELL
-                _cmd = self.config['run']['cmd']
+                _cmds.append(self.config['run']['cmd'])
+            if 'cmds' in self.config['run']:
+                _shell = DEFAULT_SHELL
+                _cmds.extend(self.config['run']['cmds'])
 
             # determine if there are any provisioners defined
             _provisioners = None
@@ -885,16 +910,31 @@ class BuildStepRunner(object):
                     for _var, _val in ssh_env.iteritems():
                         _env[_var] = _val
 
+            _volumes = {
+                self.build_runner.build_results_dir: \
+                    ARTIFACTS_VOLUME_MOUNT + ':ro',
+            }
+
+            # see if we need to inject any files
+            if 'files' in self.config['run']:
+                for f_alias, f_path in self.config['run']['files'].iteritems():
+                    # lookup file from alias
+                    f_local = self._resolve_file_alias(f_alias)
+                    if not f_local or not os.path.exists(f_local):
+                        raise BuildRunnerConfigurationError(
+                            "Cannot find valid local file for alias '%s'" % (
+                                f_alias,
+                            )
+                        )
+                    _volumes[f_local] = f_path + ':ro'
+
             # create and start runner, linking any service containers
             runner = DockerRunner(
                 image,
                 temp_dir=self.build_runner.working_dir,
             )
             container_id = runner.start(
-                volumes={
-                    self.build_runner.build_results_dir: \
-                        ARTIFACTS_VOLUME_MOUNT + ':ro',
-                },
+                volumes=_volumes,
                 volumes_from=_volumes_from,
                 links=self.service_links,
                 shell=_shell,
@@ -907,34 +947,36 @@ class BuildStepRunner(object):
             )
 
             exit_code = None
-            if _cmd:
-                # run the cmd
-                container_logger.write(
-                    "cmd> %s\n" % _cmd
-                )
-                exit_code = runner.run(
-                    _cmd,
-                    console=container_logger,
-                    cwd=_cwd,
-                )
-            else:
-                runner.attach_until_finished(container_logger)
-                exit_code = runner.exit_code
-
-            if 0 != exit_code:
-                if _cmd:
+            if _cmds:
+                # run each cmd
+                for _cmd in _cmds:
+                    container_logger.write(
+                        "cmd> %s\n" % _cmd
+                    )
+                    exit_code = runner.run(
+                        _cmd,
+                        console=container_logger,
+                        cwd=_cwd,
+                    )
                     container_logger.write(
                         'Command "%s" exited with code %s\n' % (
                             _cmd,
                             exit_code,
                         )
                     )
-                else:
-                    container_logger.write(
-                        'Container exited with code %s\n' % (
-                            exit_code,
-                        )
+
+                    if 0 != exit_code:
+                        break
+            else:
+                runner.attach_until_finished(container_logger)
+                exit_code = runner.exit_code
+                container_logger.write(
+                    'Container exited with code %s\n' % (
+                        exit_code,
                     )
+                )
+
+            if 0 != exit_code:
                 return runner, 1
 
         finally:
