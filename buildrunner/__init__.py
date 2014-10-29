@@ -126,6 +126,8 @@ class BuildRunner(object):
             'VCSINFO_ID': str(self.vcs.id),
             'VCSINFO_MODIFIED': str(self.vcs.modified),
         }
+        if self.push:
+            self.env['BUILDRUNNER_DO_PUSH'] = '1'
 
         if 'steps' not in self.run_config:
             raise BuildRunnerConfigurationError(
