@@ -28,10 +28,10 @@ setup(
         ],
     },
     install_requires=[
-        'PyYAML==3.10',
-        'docker-py==0.5.3',
+        'PyYAML>=3.10',
+        'docker-py>=0.5.3',
         'vcsinfo>=0.1.13',
-        'fabric==1.10.0',
+        'fabric>=1.10.0',
     ],
 
     # override the default egg_info class to enable setting the tag_build
