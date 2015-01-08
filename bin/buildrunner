@@ -57,7 +57,12 @@ def parse_args():
         help='push images to remote registries (without this flag buildrunner simply tags images)',
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    # Only absolute directories can do a mount bind
+    args.directory = os.path.realpath(args.directory)
+
+    return args
 
 
 def main():
