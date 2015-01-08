@@ -4,10 +4,12 @@ Copyright (C) 2014 Adobe
 from __future__ import absolute_import
 import codecs
 from collections import OrderedDict
+import copy
 import fabric.tasks
 from fabric.api import hide, env, run, put, get
 from fabric.context_managers import settings
 import glob
+import jinja2
 import json
 import os
 import shutil
@@ -63,21 +65,96 @@ class BuildRunner(object):
     Class used to manage running a build.
     """
 
+    CONTEXT_ENV_PREFIXES = ['BUILDRUNNER_', 'VCSINFO_', 'PACKAGER_']
+
+
+    def _get_config_context(self, ctx=None):
+        """
+        Generate the Jinja configuration context for substitution
+
+        Args:
+          ctx (dict): A dictionary of key/values to be merged
+          over the default, generated context.
+
+        Returns:
+          dict: A dictionary of key/values to be substituted
+        """
+
+        context = {
+            'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
+            'BUILDRUNNER_BUILD_ID': str(self.build_id),
+            'VCSINFO_BRANCH': str(self.vcs.branch),
+            'VCSINFO_NUMBER': str(self.vcs.number),
+            'VCSINFO_ID': str(self.vcs.id),
+            'VCSINFO_MODIFIED': str(self.vcs.modified),
+        }
+
+        if ctx:
+            context.update(ctx)
+
+        for env_name, env_value in os.environ.iteritems():
+            for prefix in self.CONTEXT_ENV_PREFIXES:
+                if env_name.startswith(prefix):
+                    context[env_name] = env_value
+
+        return context
+
+
+    def _load_config(self, cfg_file, ctx=None):
+        """
+        Load a config file templating it with Jinja and parsing the YAML.
+
+        Returns:
+          multi-structure: configuration keys and values
+        """
+
+        with open(cfg_file) as _file:
+            jtemplate = jinja2.Template(_file.read())
+
+        config_context = copy.deepcopy(self.env)
+        config_context.update({
+            'CONFIG_FILE': cfg_file,
+            'CONFIG_DIR': os.path.dirname(cfg_file),
+        })
+
+        if ctx:
+            config_context.update(ctx)
+
+        config_contents = jtemplate.render(config_context)
+        config = ordered_load(StringIO(config_contents))
+
+        return config
+
 
     def __init__(
-        self,
-        build_dir,
-        global_config_file=None,
-        run_config_file=None,
-        build_number=None,
-        push=False,
+            self,
+            build_dir,
+            global_config_file=None,
+            run_config_file=None,
+            build_number=None,
+            push=False,
     ):
         """
         """
         self.build_dir = build_dir
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
         self.working_dir = os.path.join(self.build_results_dir, '.working')
-        self.push = push
+        self.push = 1 if push else 0
+
+        # set build number
+        self.build_number = build_number
+        if not self.build_number:
+            self.build_number = epoch_time()
+
+        self.log = None
+
+        self.vcs = detect_vcs(self.build_dir)
+        self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
+
+        # default environment - must come *after* VCS detection
+        self.env = self._get_config_context({
+            'BUILDRUNNER_DO_PUSH': self.push,
+        })
 
         # load global configuration
         _global_config_file = self.to_abs_path(
@@ -85,8 +162,7 @@ class BuildRunner(object):
         )
         self.global_config = {}
         if _global_config_file and os.path.exists(_global_config_file):
-            with open(_global_config_file) as _file:
-                self.global_config = ordered_load(_file)
+            self.global_config = self._load_config(_global_config_file)
 
         # load run configuration
         _run_config_file = None
@@ -103,31 +179,7 @@ class BuildRunner(object):
             raise BuildRunnerConfigurationError(
                 'Cannot find build configuration file'
             )
-        self.run_config = None
-        with open(_run_config_file) as _file:
-            self.run_config = ordered_load(_file)
-
-        # set build number
-        self.build_number = build_number
-        if not self.build_number:
-            self.build_number = epoch_time()
-
-        self.log = None
-
-        self.vcs = detect_vcs(self.build_dir)
-        self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
-
-        # default environment
-        self.env = {
-            'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
-            'BUILDRUNNER_BUILD_ID': str(self.build_id),
-            'VCSINFO_BRANCH': str(self.vcs.branch),
-            'VCSINFO_NUMBER': str(self.vcs.number),
-            'VCSINFO_ID': str(self.vcs.id),
-            'VCSINFO_MODIFIED': str(self.vcs.modified),
-        }
-        if self.push:
-            self.env['BUILDRUNNER_DO_PUSH'] = '1'
+        self.run_config = self._load_config(_run_config_file)
 
         if 'steps' not in self.run_config:
             raise BuildRunnerConfigurationError(
@@ -595,7 +647,7 @@ class BuildStepRunner(object):
             )
             remote_archive_filepath = remote_build_dir + '/source.tar'
             self.log.write(
-                    "[%s] Creating temporary remote directory '%s'\n" % (
+                "[%s] Creating temporary remote directory '%s'\n" % (
                     host,
                     remote_build_dir,
                 )
@@ -651,8 +703,8 @@ class BuildStepRunner(object):
                                     cmd,
                                 ),
                                 warn_only=True,
-                                stdout = self.log,
-                                stderr = self.log,
+                                stdout=self.log,
+                                stderr=self.log,
                             )
 
                             if artifacts:
@@ -677,13 +729,13 @@ class BuildStepRunner(object):
                                     # we have at least one match--run the get
                                     with settings(warn_only=True):
                                         for _ca in get(
-                                            "%s/%s" % (
-                                                remote_build_dir,
-                                                _art,
-                                            ),
-                                            "%s/%%(basename)s" % (
-                                                self.results_dir,
-                                            )
+                                                "%s/%s" % (
+                                                    remote_build_dir,
+                                                    _art,
+                                                ),
+                                                "%s/%%(basename)s" % (
+                                                    self.results_dir,
+                                                )
                                         ):
                                             _arts.append(_ca)
                                             self.build_runner.add_artifact(

@@ -191,7 +191,7 @@ every run container:
 
 The following volumes are created within run containers:
 
-- /source = (read-write) maps to a pristene snapshot of the current source
+- /source = (read-write) maps to a pristine snapshot of the current source
   tree (build directory)
 - /artifacts = (read-only) maps to the buildrunner.results directory
 
