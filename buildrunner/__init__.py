@@ -65,12 +65,12 @@ class BuildRunner(object):
 
 
     def __init__(
-        self,
-        build_dir,
-        global_config_file=None,
-        run_config_file=None,
-        build_number=None,
-        push=False,
+            self,
+            build_dir,
+            global_config_file=None,
+            run_config_file=None,
+            build_number=None,
+            push=False,
     ):
         """
         """
@@ -595,7 +595,7 @@ class BuildStepRunner(object):
             )
             remote_archive_filepath = remote_build_dir + '/source.tar'
             self.log.write(
-                    "[%s] Creating temporary remote directory '%s'\n" % (
+                "[%s] Creating temporary remote directory '%s'\n" % (
                     host,
                     remote_build_dir,
                 )
@@ -651,8 +651,8 @@ class BuildStepRunner(object):
                                     cmd,
                                 ),
                                 warn_only=True,
-                                stdout = self.log,
-                                stderr = self.log,
+                                stdout=self.log,
+                                stderr=self.log,
                             )
 
                             if artifacts:
@@ -677,13 +677,13 @@ class BuildStepRunner(object):
                                     # we have at least one match--run the get
                                     with settings(warn_only=True):
                                         for _ca in get(
-                                            "%s/%s" % (
-                                                remote_build_dir,
-                                                _art,
-                                            ),
-                                            "%s/%%(basename)s" % (
-                                                self.results_dir,
-                                            )
+                                                "%s/%s" % (
+                                                    remote_build_dir,
+                                                    _art,
+                                                ),
+                                                "%s/%%(basename)s" % (
+                                                    self.results_dir,
+                                                )
                                         ):
                                             _arts.append(_ca)
                                             self.build_runner.add_artifact(
