@@ -67,6 +67,7 @@ class DockerRunner(object):
         provisioners=None,
         environment=None,
         user=None,
+        hostname=None,
     ):
         """
         Kwargs:
@@ -118,6 +119,7 @@ class DockerRunner(object):
             environment=environment,
             user=user,
             working_dir=working_dir,
+            hostname=hostname,
         )
         self.docker_client.start(
             self.container['Id'],
