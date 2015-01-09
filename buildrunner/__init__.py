@@ -220,12 +220,24 @@ class BuildRunner(object):
         source image.
         """
         if not self._source_archive:
+            def _exclude_working_dir(tarinfo):
+                """
+                Filter to exclude results dir from source archive.
+                """
+                if tarinfo.name == os.path.basename(self.build_results_dir):
+                    return None
+                return tarinfo
+
             self.log.write('Creating source archive\n')
             _fileobj = None
             try:
                 _fileobj = tempfile.NamedTemporaryFile(delete=False)
                 with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
-                    tfile.add(self.build_dir, arcname='')
+                    tfile.add(
+                        self.build_dir,
+                        arcname='',
+                        filter=_exclude_working_dir
+                    )
                 self._source_archive = _fileobj.name
             finally:
                 if _fileobj:
@@ -945,6 +957,11 @@ class BuildStepRunner(object):
             if 'user' in self.config['run']:
                 _user = self.config['run']['user']
 
+            # determine if a hostname is specified
+            _hostname = None
+            if 'hostname' in self.config['run']:
+                _hostname = self.config['run']['hostname']
+
             # set step specific environment variables
             _env = dict(self.build_runner.env)
             if 'env' in self.config['run']:
@@ -993,6 +1010,7 @@ class BuildStepRunner(object):
                 provisioners=_provisioners,
                 environment=_env,
                 user=_user,
+                hostname=_hostname,
             )
             self.log.write(
                 'Started build container %.10s\n' % container_id
