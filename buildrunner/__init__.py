@@ -233,7 +233,11 @@ class BuildRunner(object):
             try:
                 _fileobj = tempfile.NamedTemporaryFile(delete=False)
                 with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
-                    tfile.add(self.build_dir, arcname='')
+                    tfile.add(
+                        self.build_dir,
+                        arcname='',
+                        filter=_exclude_working_dir
+                    )
                 self._source_archive = _fileobj.name
             finally:
                 if _fileobj:
