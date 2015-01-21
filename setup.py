@@ -29,7 +29,7 @@ setup(
     },
     install_requires=[
         'PyYAML>=3.10',
-        'docker-py>=0.5.3',
+        'docker-py>=0.7.1',
         'vcsinfo>=0.1.13',
         'fabric>=1.10.0',
         'Jinja2>=2.7.1',

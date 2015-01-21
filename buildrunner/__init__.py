@@ -1324,10 +1324,10 @@ class BuildStepRunner(object):
                 if 'status' in msg:
                     if msg['status'] == previous_status:
                         continue
-                    self.log.write(msg['status'])
+                    self.log.write(msg['status'] + '\n')
                     previous_status = msg['status']
                 else:
-                    self.log.write(str(msg))
+                    self.log.write(str(msg) + '\n')
 
             # cleanup the image and tag
             self.docker_client.remove_image(image_to_use, noprune=True)
