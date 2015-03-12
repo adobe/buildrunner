@@ -1312,7 +1312,12 @@ class BuildStepRunner(object):
                     _tag,
                 )
             )
-            self.docker_client.tag(image_to_use, repository, tag=_tag)
+            self.docker_client.tag(
+                image_to_use,
+                repository,
+                tag=_tag,
+                force=True,
+            )
 
         # see if we should push the image to a remote repository
         if self.build_runner.push:
@@ -1326,6 +1331,17 @@ class BuildStepRunner(object):
                         continue
                     self.log.write(msg['status'] + '\n')
                     previous_status = msg['status']
+                elif 'errorDetail' in msg:
+                    error_detail = "Error pushing image: %s\n" % (
+                        msg['errorDetail']
+                    )
+                    self.log.write("\n" + error_detail)
+                    self.log.write((
+                        "This could be because you are not authenticated "
+                        "with the given Docker registry (try 'docker login "
+                        "<registry>')\n\n"
+                    ))
+                    raise BuildRunnerProcessingError(error_detail)
                 else:
                     self.log.write(str(msg) + '\n')
 
