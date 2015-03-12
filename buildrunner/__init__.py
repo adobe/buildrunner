@@ -1331,6 +1331,17 @@ class BuildStepRunner(object):
                         continue
                     self.log.write(msg['status'] + '\n')
                     previous_status = msg['status']
+                elif 'errorDetail' in msg:
+                    error_detail = "Error pushing image: %s\n" % (
+                        msg['errorDetail']
+                    )
+                    self.log.write("\n" + error_detail)
+                    self.log.write((
+                        "This could be because you are not authenticated "
+                        "with the given Docker registry (try 'docker login "
+                        "<registry>')\n\n"
+                    ))
+                    raise BuildRunnerProcessingError(error_detail)
                 else:
                     self.log.write(str(msg) + '\n')
 
