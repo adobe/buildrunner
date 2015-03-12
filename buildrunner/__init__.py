@@ -1312,7 +1312,12 @@ class BuildStepRunner(object):
                     _tag,
                 )
             )
-            self.docker_client.tag(image_to_use, repository, tag=_tag)
+            self.docker_client.tag(
+                image_to_use,
+                repository,
+                tag=_tag,
+                force=True,
+            )
 
         # see if we should push the image to a remote repository
         if self.build_runner.push:
