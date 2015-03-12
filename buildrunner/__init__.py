@@ -12,6 +12,7 @@ import glob
 import jinja2
 import json
 import os
+import requests
 import shutil
 from StringIO import StringIO
 import sys
@@ -361,6 +362,13 @@ class BuildRunner(object):
             self.exit_code = os.EX_CONFIG
         except BuildRunnerProcessingError as brpe:
             exit_explanation = str(brpe)
+            self.exit_code = 1
+        except requests.exceptions.ConnectionError as rece:
+            exit_explanation = (
+                "Error communicating with the remote Docker daemon.\nCheck "
+                "that it is running and/or that the DOCKER_* environment "
+                "variables are set correctly."
+            )
             self.exit_code = 1
 
         finally:
