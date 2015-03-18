@@ -163,6 +163,11 @@ shows the different configuration options available::
         # images but may not be desired when building images for publishing
         no-cache: true/false (defaults to false)
 
+        # Instead of building import the given tar file as a Docker image. If
+        # this value is present all other options are ignored and the resulting
+        # image is passed to subsequent steps.
+        import: path/to/image/archive.tar
+
 Running Containers (the 'run' step attribute)
 =============================================
 
