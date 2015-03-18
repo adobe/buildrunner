@@ -39,6 +39,7 @@ class BuildRunnerProcessingError(BuildRunnerError):
 
 from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
+from buildrunner.docker.importer import DockerImporter
 from buildrunner.docker.runner import DockerRunner
 from buildrunner.provisioners import create_provisioners
 from buildrunner.sshagent import DockerSSHAgentProxy
@@ -1077,6 +1078,13 @@ class BuildStepRunner(object):
         to_inject = []
         nocache = False
         if is_dict(build_context):
+            if 'import' in build_context:
+                # will override other configuration and perform a 'docker import'
+                self.log.write('  Importing %s as a Docker image\n' % (
+                    build_context['import']
+                ))
+                return DockerImporter(build_context['import']).import_image()
+
             if 'path' not in build_context and 'inject' not in build_context:
                 raise BuildRunnerConfigurationError(
                     'Docker build context must specify a '
