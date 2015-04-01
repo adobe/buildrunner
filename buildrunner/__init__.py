@@ -141,7 +141,7 @@ class BuildRunner(object):
         self.build_dir = build_dir
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
         self.working_dir = os.path.join(self.build_results_dir, '.working')
-        self.push = 1 if push else 0
+        self.push = push
 
         # set build number
         self.build_number = build_number
@@ -154,9 +154,10 @@ class BuildRunner(object):
         self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
 
         # default environment - must come *after* VCS detection
-        self.env = self._get_config_context({
-            'BUILDRUNNER_DO_PUSH': self.push,
-        })
+        base_context = {}
+        if push:
+            base_context['BUILDRUNNER_DO_PUSH'] = 1
+        self.env = self._get_config_context(base_context)
 
         # load global configuration
         _global_config_file = self.to_abs_path(
