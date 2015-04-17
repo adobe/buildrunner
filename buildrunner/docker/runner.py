@@ -68,6 +68,8 @@ class DockerRunner(object):
         environment=None,
         user=None,
         hostname=None,
+        dns=None,
+        dns_search=None,
     ):
         """
         Kwargs:
@@ -120,6 +122,7 @@ class DockerRunner(object):
             user=user,
             working_dir=working_dir,
             hostname=hostname,
+            dns=dns,
         )
         self.docker_client.start(
             self.container['Id'],
@@ -127,6 +130,8 @@ class DockerRunner(object):
             links=links,
             port_bindings=ports,
             volumes_from=volumes_from,
+            dns=dns,
+            dns_search=dns_search,
         )
 
         # run any supplied provisioners
