@@ -972,6 +972,16 @@ class BuildStepRunner(object):
             if 'hostname' in self.config['run']:
                 _hostname = self.config['run']['hostname']
 
+            # determine if a dns host is specified
+            _dns = None
+            if 'dns' in self.config['run']:
+                _dns = self.config['run']['dns']
+
+            # determine if a dns_search domain is specified
+            _dns_search = None
+            if 'dns_search' in self.config['run']:
+                _dns_search = self.config['run']['dns_search']
+
             # set step specific environment variables
             _env = dict(self.build_runner.env)
             if 'env' in self.config['run']:
@@ -1021,6 +1031,8 @@ class BuildStepRunner(object):
                 environment=_env,
                 user=_user,
                 hostname=_hostname,
+                dns=_dns,
+                dns_search=_dns_search,
             )
             self.log.write(
                 'Started build container %.10s\n' % container_id
@@ -1216,6 +1228,21 @@ class BuildStepRunner(object):
         if 'user' in service_config:
             _user = service_config['user']
 
+        # determine if a hostname is specified
+        _hostname = None
+        if 'hostname' in service_config:
+            _hostname = service_config['hostname']
+
+        # determine if a dns host is specified
+        _dns = None
+        if 'dns' in service_config:
+            _dns = service_config['dns']
+
+        # determine if a dns_search domain is specified
+        _dns_search = None
+        if 'dns_search' in service_config:
+            _dns_search = service_config['dns_search']
+
         # set service specific environment variables
         if 'env' in service_config:
             for key, value in service_config['env'].iteritems():
@@ -1241,6 +1268,9 @@ class BuildStepRunner(object):
             provisioners=_provisioners,
             environment=_env,
             user=_user,
+            hostname=_hostname,
+            dns=_dns,
+            dns_search=_dns_search,
         )
 
         def attach_to_service():
