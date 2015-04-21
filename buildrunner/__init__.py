@@ -1314,6 +1314,7 @@ class BuildStepRunner(object):
         registry/repository.
         """
         repository = None
+        insecure_registry = False
         tags = []
         if is_dict(push_config):
             if 'repository' not in push_config:
@@ -1328,6 +1329,9 @@ class BuildStepRunner(object):
 
             if 'tags' in push_config:
                 tags = push_config['tags']
+
+            if 'insecure_registry' in push_config:
+                insecure_registry = push_config['insecure_registry'] == True
         else:
             repository = push_config
 
@@ -1369,7 +1373,11 @@ class BuildStepRunner(object):
         # see if we should push the image to a remote repository
         if self.build_runner.push:
             # push the image
-            stream = self.docker_client.push(repository, stream=True)
+            stream = self.docker_client.push(
+                repository,
+                stream=True,
+                insecure_registry=insecure_registry,
+            )
             previous_status = None
             for msg_str in stream:
                 msg = json.loads(msg_str)
