@@ -202,7 +202,7 @@ class DockerRunner(object):
                 container_cwd_exit_file,
                 container_cwd_exit_file,
             )
-            docksock.send(cwd_script)
+            docksock.sendall(cwd_script)
 
             # wait for comfirmation of changed dir
             cwd_exit_code = -1
@@ -229,7 +229,7 @@ class DockerRunner(object):
             container_cmd_exit_file,
             container_cmd_exit_file,
         )
-        docksock.send(cmd_script)
+        docksock.sendall(cmd_script)
         docksock.close()
 
         # wait for the command to finish, "tailing" the output file and
