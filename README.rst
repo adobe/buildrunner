@@ -58,6 +58,47 @@ version of boot2docker here::
 
 BuildRunner has been verified to work with boot2docker 1.3.0.
 
+====================
+Global Configuration
+====================
+
+BuildRunner can be configured globally on a given build system to account for
+installation specific properties. This feature makes project build
+configuration files more portable, allowing specific BuildRunner installations
+to map remote hosts and local files to aliases defined in the project build
+configuration.
+
+The following example configuration explains what options are available and how
+they are used::
+
+  # The 'build-servers' global configuration consists of a map where each key
+  # is a server user@host string and the value is a list of host aliases that
+  # map to the server. This allows builders to configure BuildRunner to talk to
+  # specific servers within their environment on a project by project basis.
+  build-servers:¶
+    user@host:¶
+      - alias1
+      - alias2
+
+  # The 'ssh-keys' global configuration is a list of ssh key configurations.
+  # The file attribute specifies the path to a local ssh private key. If the
+  # private key is password protected the password attribute specifies the
+  # password. The alias attribute is a list of aliases assigned to the given
+  # key (see the "ssh-keys" configuration example of the "run" step attribute
+  # below).
+  ssh-keys:
+  - file: /path/to/ssh/private/key.pem
+    password: <password if needed>
+    aliases:
+      - 'my-github-key'
+
+  # The 'local-files' global configuration consists of a map where each key
+  # is a file alias and the value is the path where the file resides on the
+  # local server (see the "local-files" configuration example of the "run" step
+  # attribute below).
+  local-files:¶
+    digitalmarketing.mvn.settings: '/Users/tomkinso/.m2/settings.xml'
+
 ==================
 BuildRunner Builds
 ==================
@@ -250,6 +291,24 @@ The following example shows the different configuration options available::
         env:
           ENV_VARIABLE_ONE: value1
           ENV_VARIABLE_TWO: value2
+
+        # A map specifying files that should be injected into the container.
+        # The map key is the alias referencing a given file (as configured in
+        # the "local-files" section of the global configuration file) and the
+        # value is the path the given file should be mounted at within the
+        # container.
+        files:
+          namespaced.file.alias: /path/where/file/is/mounted
+
+        # A list specifying ssh keys that should be injected into the container
+        # via an ssh agent. The list should specify the ssh key aliases (as
+        # configured in the "local-files" section of the global configuration
+        # file) that buildrunner should inject into the container. Buildrunner
+        # injects the keys by mounting a ssh-agent socket and setting the
+        # appropriate environment variable, meaning that the private key itself
+        # is never available inside the container.
+        ssh-keys:
+          - my_ssh_key_alias
 
         # A map specifying the artifacts that should be archived for the step.
         # The keys in the map specify glob patterns of files to archive. If a
