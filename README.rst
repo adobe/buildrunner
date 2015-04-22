@@ -75,8 +75,8 @@ they are used::
   # is a server user@host string and the value is a list of host aliases that
   # map to the server. This allows builders to configure BuildRunner to talk to
   # specific servers within their environment on a project by project basis.
-  build-servers:¶
-    user@host:¶
+  build-servers:
+    user@host:
       - alias1
       - alias2
 
@@ -96,7 +96,7 @@ they are used::
   # is a file alias and the value is the path where the file resides on the
   # local server (see the "local-files" configuration example of the "run" step
   # attribute below).
-  local-files:¶
+  local-files:
     digitalmarketing.mvn.settings: '/Users/tomkinso/.m2/settings.xml'
 
 ==================
