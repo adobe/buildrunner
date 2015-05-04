@@ -1412,8 +1412,8 @@ class BuildStepRunner(object):
             os.path.join(self.name, image_to_use),
             {
                 'type': 'docker-image',
-                'image': image_to_use,
-                'repository': repository,
-                'tags': tags,
+                'docker:image': image_to_use,
+                'docker:repository': repository,
+                'docker:tags': tags,
             },
         )
