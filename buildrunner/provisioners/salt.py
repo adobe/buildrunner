@@ -1,9 +1,9 @@
 """
 Copyright (C) 2014 Adobe
 """
+import json
 import os
 import requests
-import yaml
 
 from buildrunner.provisioners import BuildRunnerProvisionerError
 
@@ -52,11 +52,15 @@ class SaltProvisioner(object):
 
         # create tmp file_root dir and write top.sls and dr.sls there
         file_root_dir = runner.tempfile(suffix='_salt_file_root')
-        os.mkdir(file_root_dir)
-        with open(os.path.join(file_root_dir, 'top.sls'), 'w') as top_fd:
-            top_fd.write('base: {"*": ["dr"]}')
-        with open(os.path.join(file_root_dir, 'dr.sls'), 'w') as dr_fd:
-            dr_fd.write(yaml.dump(dict(self.sls)))
+        runner.run('mkdir -p %s' % file_root_dir)
+        runner.write_to_container_file(
+            'base: {"*": ["dr"]}',
+            os.path.join(file_root_dir, 'top.sls'),
+        )
+        runner.write_to_container_file(
+            json.dumps(dict(self.sls)),
+            os.path.join(file_root_dir, 'dr.sls'),
+        )
 
         # run a salt-call highstate with the new file_root dir
         salt_call_prefix = ''
@@ -66,7 +70,7 @@ class SaltProvisioner(object):
         exit_code = runner.run(
             '%ssalt-call --local --file-root=%s state.highstate' % (
                 salt_call_prefix,
-                runner.map_local_path(file_root_dir)
+                file_root_dir,
             ),
             console=self.console,
         )

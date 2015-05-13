@@ -10,7 +10,7 @@ import urlparse
 from buildrunner import BuildRunnerError, BuildRunnerConfigurationError
 
 
-DOCKER_API_VERSION = '1.12'
+DOCKER_API_VERSION = '1.15'
 DOCKER_DEFAULT_DOCKERD_URL = 'unix:///var/run/docker.sock'
 
 

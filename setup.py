@@ -7,7 +7,7 @@ import vcsinfo
 #pylint: disable=C0301
 setup(
     name='buildrunner',
-    version='0.1',
+    version='0.2',
     author='***REMOVED***',
     author_email="***REMOVED***",
     license="Adobe",
@@ -29,7 +29,7 @@ setup(
     },
     install_requires=[
         'PyYAML==3.11',
-        'docker-py==1.1.0',
+        'docker-py==1.2.2',
         'vcsinfo>=0.1.13',
         'fabric==1.10.1',
         'Jinja2==2.7.3',

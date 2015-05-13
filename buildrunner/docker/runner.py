@@ -2,19 +2,16 @@
 Copyright (C) 2014 Adobe
 """
 from __future__ import absolute_import
+import base64
 import docker
 import os
-import shutil
 import socket
 import ssl
-import tempfile
-import time
 import uuid
 
 from buildrunner.docker import (
     new_client,
     BuildRunnerContainerError,
-    DOCKER_DEFAULT_DOCKERD_URL,
 )
 
 
@@ -25,16 +22,13 @@ class DockerRunner(object):
     """
 
 
-    def __init__(self, image_name, dockerd_url=None, temp_dir=None):
-        self.dr_mount = '/dr'
-
+    def __init__(self, image_name, dockerd_url=None):
         self.image_name = image_name
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
         )
         self.container = None
-        self.path_mappings = None
-        self.dr_dir = None
+        self.shell = None
 
         # check to see if we have the requested image locally and
         # pull it if we don't
@@ -46,13 +40,6 @@ class DockerRunner(object):
                     break
         if pull_image:
             self.docker_client.pull(self.image_name)
-
-        if temp_dir:
-            self.dr_dir = temp_dir
-        else:
-            self.dr_dir = tempfile.mkdtemp(
-                prefix='dr_',
-            )
 
 
     def start(
@@ -78,17 +65,11 @@ class DockerRunner(object):
         """
         if self.container:
             raise BuildRunnerContainerError('Container already started')
-
-        self.path_mappings = {self.dr_dir: self.dr_mount}
+        self.shell = shell
 
         # prepare volumes
-        _volumes = [self.dr_mount]
-        _binds = {
-            self.dr_dir: {
-                'bind': self.dr_mount,
-                'ro': False,
-            },
-        }
+        _volumes = []
+        _binds = {}
         if volumes:
             for key, value in volumes.iteritems():
                 to_bind = value
@@ -102,7 +83,6 @@ class DockerRunner(object):
                     'bind': to_bind,
                     'ro': _ro,
                 }
-                self.path_mappings[key] = to_bind
 
         # prepare ports
         _port_list = None
@@ -123,6 +103,7 @@ class DockerRunner(object):
             working_dir=working_dir,
             hostname=hostname,
             dns=dns,
+            host_config=docker.utils.create_host_config(binds=_binds),
         )
         self.docker_client.start(
             self.container['Id'],
@@ -153,6 +134,7 @@ class DockerRunner(object):
         if self.container:
             self.docker_client.stop(
                 self.container['Id'],
+                timeout=0,
             )
 
 
@@ -166,141 +148,75 @@ class DockerRunner(object):
                 force=True,
             )
         self.container = None
-        self.path_mappings = None
 
 
-    def run(self, cmd, cwd=None, console=None):
+    def run(self, cmd, console=None):
         """
         Run the given command in the container.
         """
-        # generate a unique id for the cmd
         if not self.container:
             raise BuildRunnerContainerError('Container has not been started')
-
-        # create the socket to allow communication
-        docksock = self.docker_client.attach_socket(
-            self.container['Id'],
-            params={
-                'logs': 0,
-                'stdin': 1,
-                'stdout': 0,
-                'stderr': 0,
-                'stream': 1,
-            }
-        )
-
-        # check to see if we need to change directories
-        if cwd:
-            cwd_exit_file = self.tempfile(suffix='.cwdexit')
-            cwd_out_file = self.tempfile(suffix='.cwdout')
-            container_cwd_exit_file = self.map_local_path(cwd_exit_file)
-            container_cwd_out_file = self.map_local_path(cwd_out_file)
-            cwd_script = 'cd %s >%s 2>&1; echo "$?" > %s_; mv %s_ %s\n' % (
-                cwd,
-                container_cwd_out_file,
-                container_cwd_exit_file,
-                container_cwd_exit_file,
-                container_cwd_exit_file,
+        if not self.shell:
+            raise BuildRunnerContainerError(
+                'Cannot call run if container cmd not shell'
             )
-            docksock.sendall(cwd_script)
 
-            # wait for comfirmation of changed dir
-            cwd_exit_code = -1
-            while cwd_exit_code < 0:
-                time.sleep(0.05)
-                if os.path.exists(cwd_exit_file):
-                    with open(cwd_exit_file, 'r') as cwd_exit_fd:
-                        cwd_exit_code = int(cwd_exit_fd.read())
-                    break
-            if cwd_exit_code != 0:
-                raise BuildRunnerContainerError(
-                    'Unable to change directory to "%s"' % cwd
-                )
-
-        # send the command
-        cmd_exit_file = self.tempfile(suffix='.exit')
-        cmd_out_file = self.tempfile(suffix='.out')
-        container_cmd_exit_file = self.map_local_path(cmd_exit_file)
-        container_cmd_out_file = self.map_local_path(cmd_out_file)
-        cmd_script = '%s >%s 2>&1; echo "$?" > %s_; mv %s_ %s\n' % (
-            cmd,
-            container_cmd_out_file,
-            container_cmd_exit_file,
-            container_cmd_exit_file,
-            container_cmd_exit_file,
+        create_res = self.docker_client.exec_create(
+            self.container['Id'],
+            [self.shell, '-c', cmd],
+            tty=True,
         )
-        docksock.sendall(cmd_script)
-        docksock.close()
-
-        # wait for the command to finish, "tailing" the output file and
-        # preparing the output string
-        output_scope = {
-            'output_file': None,
-            'console': console,
-        }
-
-        def _tail_output():
-            """
-            Function to tail the output of the command.
-            """
-            if not output_scope['output_file'] and os.path.exists(cmd_out_file):
-                output_scope['output_file'] = open(cmd_out_file, 'r')
-            if output_scope['output_file']:
-                while True:
-                    where = output_scope['output_file'].tell()
-                    line = output_scope['output_file'].readline()
-                    if not line:
-                        output_scope['output_file'].seek(where)
-                        break
-                    else:
-                        if output_scope['console']:
-                            output_scope['console'].write(line)
-
-        while True:
-            time.sleep(0.1)
-            _tail_output()
-            if os.path.exists(cmd_exit_file):
-                # we have an exit file--the command is finished, but make sure
-                # we've got all the output before closing the out file
-                _tail_output()
-                if output_scope['output_file']:
-                    output_scope['output_file'].close()
-                break
-
-        # retrieve the exit code from the exit file
-        exit_code = -1
-        with open(cmd_exit_file, 'r') as exit_fd:
-            exit_code = int(exit_fd.read())
-
-        return exit_code
+        output_buffer =  self.docker_client.exec_start(
+            create_res,
+            stream=True,
+        )
+        for line in output_buffer:
+            if console:
+                console.write(line)
+        inspect_res = self.docker_client.exec_inspect(create_res)
+        if 'ExitCode' in inspect_res:
+            return inspect_res['ExitCode']
+        raise BuildRunnerContainerError('Error running cmd: no exit code')
 
 
     def run_script(
         self,
         script,
         args='',
-        shell='/bin/sh',
-        cwd=None,
         console=None,
     ):
         """
         Run the given script within the container.
         """
         # write temp file with script contents
-        script_file = self.tempfile()
-        with open(script_file, 'w') as script_fd:
-            script_fd.write(script)
+        script_file_path = self.tempfile()
+        self.run('mkdir -p $(dirname %s)' % script_file_path, console=console)
+        self.write_to_container_file(script, script_file_path)
+        self.run('chmod +x %s' % script_file_path, console=console)
 
         # execute the script
         return self.run(
-            '%s %s %s' % (
-                shell,
-                self.map_local_path(script_file),
+            '%s %s' % (
+                script_file_path,
                 args,
             ),
-            cwd=cwd,
             console=console,
         )
+
+
+    def write_to_container_file(self, content, path):
+        """
+        Writes contents to the given path within the container.
+        """
+        # for now, we just take a str
+        buf_size = 1024
+        for index in range(0, len(content), buf_size):
+            self.run(
+                'printf -- "%s" | base64 --decode >> %s' % (
+                    base64.standard_b64encode(content[index:index + buf_size]),
+                    path,
+                ),
+            )
 
 
     def _get_status(self):
@@ -368,9 +284,9 @@ class DockerRunner(object):
                     raise
 
 
-    def tempfile(self, prefix=None, suffix=None, temp_dir=None):
+    def tempfile(self, prefix=None, suffix=None, temp_dir='/tmp'):
         """
-        Create a temporary file path within the container.
+        Generate a temporary file path within the container.
         """
         name = str(uuid.uuid4())
         if suffix:
@@ -378,30 +294,4 @@ class DockerRunner(object):
         if prefix:
             name = prefix + name
 
-        _file = name
-        if temp_dir:
-            _file = os.path.join(temp_dir, name)
-        elif self.dr_dir:
-            _file = os.path.join(self.dr_dir, name)
-
-        return _file
-
-
-    def map_local_path(self, local_path):
-        """
-        Given a local path, return the path it is mapped to within the
-        container (or None if it is not mapped).
-        """
-        artifacts_path = None
-        if self.path_mappings:
-            for _local, _container in self.path_mappings.iteritems():
-                if local_path.startswith(_local):
-                    if _container == '/artifacts':
-                        artifacts_path = local_path.replace(
-                            _local,
-                            _container,
-                            1,
-                        )
-                    else:
-                        return local_path.replace(_local, _container, 1)
-        return artifacts_path
+        return os.path.join(temp_dir, name)
