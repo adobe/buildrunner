@@ -134,7 +134,8 @@ class DockerSSHAgentProxy(object):
         _ssh_host = 'localhost'
         p_data = urlparse.urlparse(self.docker_client.base_url)
         if p_data and 'unix' not in p_data.scheme and p_data.hostname:
-            _ssh_host = p_data.hostname
+            if p_data.hostname != 'localunixsocket':
+                _ssh_host = p_data.hostname
         _ssh_port_info = self.docker_client.port(self._ssh_agent_container, 22)
         if not _ssh_port_info or 'HostPort' not in _ssh_port_info[0]:
             raise BuildRunnerProcessingError(
