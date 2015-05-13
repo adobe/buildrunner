@@ -10,9 +10,8 @@ class ShellProvisioner(object):
     """
 
 
-    def __init__(self, script, shell='/bin/sh', console=None):
+    def __init__(self, script, console=None):
         self.script = script
-        self.shell = shell
         self.console = console
 
 
@@ -24,7 +23,6 @@ class ShellProvisioner(object):
             self.console.write('Running shell provisioner...\n')
         exit_code = runner.run_script(
             self.script,
-            shell=self.shell,
             console=self.console,
         )
         if exit_code != 0:

@@ -850,8 +850,7 @@ class BuildStepRunner(object):
         artifact_lister = None
         try:
             artifact_lister = DockerRunner(
-                'busybox',
-                temp_dir=self.build_runner.working_dir,
+                'busybox:ubuntu-14.04',
             )
             artifact_lister.start(
                 volumes_from=[self.source_container],
@@ -873,7 +872,9 @@ class BuildStepRunner(object):
 
                 # if the command was succssful we found something
                 if 0 == exit_code:
-                    artifact_files = output.getvalue().split('\n')
+                    artifact_files = [
+                        af.strip() for af in output.getvalue().split('\n')
+                    ]
                     for artifact_file in artifact_files:
                         if artifact_file:
                             # copy artifact file to step dir
@@ -1020,7 +1021,6 @@ class BuildStepRunner(object):
             # create and start runner, linking any service containers
             runner = DockerRunner(
                 image,
-                temp_dir=self.build_runner.working_dir,
             )
             container_id = runner.start(
                 volumes=_volumes,
@@ -1033,6 +1033,7 @@ class BuildStepRunner(object):
                 hostname=_hostname,
                 dns=_dns,
                 dns_search=_dns_search,
+                working_dir=_cwd,
             )
             self.log.write(
                 'Started build container %.10s\n' % container_id
@@ -1048,7 +1049,6 @@ class BuildStepRunner(object):
                     exit_code = runner.run(
                         _cmd,
                         console=container_logger,
-                        cwd=_cwd,
                     )
                     container_logger.write(
                         'Command "%s" exited with code %s\n' % (
@@ -1251,7 +1251,6 @@ class BuildStepRunner(object):
         # instantiate and start the runner
         service_runner = DockerRunner(
             _image,
-            temp_dir=self.build_runner.working_dir,
         )
         self.service_runners[service_name] = service_runner
         cont_name = self.id + '-' + service_name
@@ -1271,6 +1270,7 @@ class BuildStepRunner(object):
             hostname=_hostname,
             dns=_dns,
             dns_search=_dns_search,
+            working_dir=_cwd,
         )
 
         def attach_to_service():
@@ -1280,7 +1280,6 @@ class BuildStepRunner(object):
                 exit_code = service_runner.run(
                     service_config['cmd'],
                     console=service_logger,
-                    cwd=_cwd,
                 )
                 if 0 != exit_code:
                     service_logger.write(
