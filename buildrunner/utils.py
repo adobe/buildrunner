@@ -139,9 +139,8 @@ class ContainerLogger(object):
         self._write_buffer()
 
 
-    BUILD_LOG_COLOR = 3
-    SERVICE_LOG_COLORS = [4, 5, 6, 1, 2]
-    CURRENT_SERVICE_COLOR = 0
+    BUILD_LOG_COLORS = [3, 4]
+    SERVICE_LOG_COLORS = [5, 6, 1, 2]
     LOGGERS = {}
 
     @classmethod
@@ -149,13 +148,15 @@ class ContainerLogger(object):
         """
         Return a ContainerLogger for a build container.
         """
-        if name not in cls.LOGGERS:
-            cls.LOGGERS[name] = ContainerLogger(
+        color = cls._cycle_colors(cls.BUILD_LOG_COLORS)
+        nameIdx = "%s%s" % (name, color)
+        if nameIdx not in cls.LOGGERS:
+            cls.LOGGERS[nameIdx] = ContainerLogger(
                 console_logger,
                 name,
-                cls.BUILD_LOG_COLOR,
+                color,
             )
-        return cls.LOGGERS[name]
+        return cls.LOGGERS[nameIdx]
 
 
     @classmethod
@@ -163,12 +164,20 @@ class ContainerLogger(object):
         """
         Return a ContainerLogger for a service container.
         """
-        idx = cls.CURRENT_SERVICE_COLOR % len(cls.SERVICE_LOG_COLORS)
-        cls.CURRENT_SERVICE_COLOR += 1
+        color = cls._cycle_colors(cls.SERVICE_LOG_COLORS)
         if name not in cls.LOGGERS:
             cls.LOGGERS[name] = ContainerLogger(
                 console_logger,
                 name,
-                cls.SERVICE_LOG_COLORS[idx],
+                color,
             )
         return cls.LOGGERS[name]
+
+
+    @staticmethod
+    def _cycle_colors(colors):
+        current = colors[0]
+        colors[0] = colors[1]
+        colors[-1] = current
+
+        return current

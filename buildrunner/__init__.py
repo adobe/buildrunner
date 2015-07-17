@@ -924,6 +924,7 @@ class BuildStepRunner(object):
         runner = None
         container_id = None
         container_logger = None
+        container_meta_logger = None
         try:
             self.log.write('Creating build container from image "%s"\n' % (
                 image,
@@ -931,6 +932,10 @@ class BuildStepRunner(object):
             container_logger = ContainerLogger.for_build_container(
                 self.log,
                 self.name,
+            )
+            container_meta_logger = ContainerLogger.for_build_container(
+                self.log,
+                self.name
             )
 
             # default to a container that runs the default image command
@@ -1043,14 +1048,14 @@ class BuildStepRunner(object):
             if _cmds:
                 # run each cmd
                 for _cmd in _cmds:
-                    container_logger.write(
+                    container_meta_logger.write(
                         "cmd> %s\n" % _cmd
                     )
                     exit_code = runner.run(
                         _cmd,
                         console=container_logger,
                     )
-                    container_logger.write(
+                    container_meta_logger.write(
                         'Command "%s" exited with code %s\n' % (
                             _cmd,
                             exit_code,
@@ -1062,7 +1067,7 @@ class BuildStepRunner(object):
             else:
                 runner.attach_until_finished(container_logger)
                 exit_code = runner.exit_code
-                container_logger.write(
+                container_meta_logger.write(
                     'Container exited with code %s\n' % (
                         exit_code,
                     )
@@ -1076,6 +1081,8 @@ class BuildStepRunner(object):
                 runner.stop()
             if container_logger:
                 container_logger.cleanup()
+            if container_meta_logger:
+                container_meta_logger.cleanup()
 
         return runner, None
 
