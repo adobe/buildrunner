@@ -298,7 +298,8 @@ The following example shows the different configuration options available::
         # value is the path the given file should be mounted at within the
         # container.
         files:
-          namespaced.file.alias: /path/where/file/is/mounted
+          namespaced.file.alias1: "/path/to/readonly/file/or/dir"
+          namespaced.file.alias2: "/path/to/readwrite/file/or/dir:rw"
 
         # A list specifying ssh keys that should be injected into the container
         # via an ssh agent. The list should specify the ssh key aliases (as
