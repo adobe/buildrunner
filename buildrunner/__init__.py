@@ -641,7 +641,7 @@ class BuildStepRunner(object):
         local_files = self.build_runner.global_config['local-files']
         for local_alias, local_file in local_files.iteritems():
             if file_alias == local_alias:
-                return local_file
+                return os.path.realpath(os.path.expanduser(os.path.expandvars(local_file)))
 
         return None
 
@@ -1021,7 +1021,13 @@ class BuildStepRunner(object):
                                 f_alias,
                             )
                         )
-                    _volumes[f_local] = f_path + ':ro'
+
+                    if f_path[-3:] not in [':ro', ':rw']:
+                        f_path = f_path + ':ro'
+
+                    _volumes[f_local] = f_path
+
+                    container_meta_logger.write("Mounting %s -> %s\n" % (f_local, f_path))
 
             # create and start runner, linking any service containers
             runner = DockerRunner(
