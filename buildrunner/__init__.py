@@ -88,6 +88,7 @@ class BuildRunner(object):
             'VCSINFO_BRANCH': str(self.vcs.branch),
             'VCSINFO_NUMBER': str(self.vcs.number),
             'VCSINFO_ID': str(self.vcs.id),
+            'VCSINFO_SHORT_ID': str(self.vcs.id)[:7],
             'VCSINFO_MODIFIED': str(self.vcs.modified),
         }
 

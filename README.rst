@@ -232,6 +232,7 @@ every run container:
 - VCSINFO_BRANCH = the VCS branch
 - VCSINFO_NUMBER = the VCS commit number
 - VCSINFO_ID = the VCS commit id
+- VCSINFO_SHORT_ID = the VCS short commit id
 - VCSINFO_MODIFIED = the last file modification timestamp if local changes
   have been made and not committed to the source VCS repository
 
