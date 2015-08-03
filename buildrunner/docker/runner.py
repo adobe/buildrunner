@@ -146,11 +146,12 @@ class DockerRunner(object):
             self.docker_client.remove_container(
                 self.container['Id'],
                 force=True,
+                v=True,
             )
         self.container = None
 
 
-    def run(self, cmd, console=None):
+    def run(self, cmd, console=None, stream=True):
         """
         Run the given command in the container.
         """
@@ -168,7 +169,7 @@ class DockerRunner(object):
         )
         output_buffer =  self.docker_client.exec_start(
             create_res,
-            stream=True,
+            stream=stream,
         )
         for line in output_buffer:
             if console:

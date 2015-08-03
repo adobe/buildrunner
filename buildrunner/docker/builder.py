@@ -114,6 +114,7 @@ class DockerBuilder(object):
                 self.docker_client.remove_container(
                     container,
                     force=True,
+                    v=True,
                 )
             except docker.errors.APIError:
                 pass
