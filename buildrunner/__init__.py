@@ -867,8 +867,9 @@ class BuildStepRunner(object):
                 # for parsing
                 output = StringIO()
                 exit_code = artifact_lister.run(
-                    'ls -A1 ' + pattern,
+                    'ls -A1 %s' % pattern,
                     console=output,
+                    stream=False,
                 )
 
                 # if the command was succssful we found something
