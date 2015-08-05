@@ -867,24 +867,49 @@ class BuildStepRunner(object):
                 # for parsing
                 output = StringIO()
                 exit_code = artifact_lister.run(
-                    'ls -A1 %s' % pattern,
+                    'stat -c "%%n" %s' % pattern,
                     console=output,
                     stream=False,
                 )
 
-                # if the command was succssful we found something
+                # if the command was successful we found something
                 if 0 == exit_code:
                     artifact_files = [
                         af.strip() for af in output.getvalue().split('\n')
                     ]
                     for artifact_file in artifact_files:
                         if artifact_file:
-                            # copy artifact file to step dir
+
+                            # check if the file is directory, to copy recursive
+                            output_is_dir = StringIO()
+                            exit_code = artifact_lister.run(
+                                'stat -c "%%F" "%s"' % artifact_file,
+                                console=output_is_dir,
+                                stream=False,
+                            )
+                            is_dir = output_is_dir.getvalue().strip() == 'directory'
+
+                            file_type = ''
+                            archive_command = ''
+                            new_artifact_file = ''
+
                             filename = os.path.basename(artifact_file)
-                            self.log.write('- found %s\n' % filename)
-                            new_artifact_file = '/stepresults/' + filename
+
+                            if is_dir:
+                                file_type = "directory"
+                                output_file_name = filename + '.tar.gz'
+                                new_artifact_file = '/stepresults/' + output_file_name
+                                archive_command = 'tar -cvzf ' + new_artifact_file + ' -C ' + os.path.dirname(artifact_file) + ' ' + filename
+                            else:
+                                file_type = "file"
+                                output_file_name = filename
+                                new_artifact_file = '/stepresults/' + output_file_name
+                                archive_command = 'cp ' + artifact_file + ' ' + new_artifact_file
+
+                            self.log.write('- found {type} {name}\n'.format(type=file_type, name=filename))
+
                             copy_exit = artifact_lister.run(
-                                'cp ' + artifact_file + ' ' + new_artifact_file,
+                                archive_command,
                             )
                             if 0 != copy_exit:
                                 raise Exception(
@@ -908,10 +933,15 @@ class BuildStepRunner(object):
                                     ),
                                 )
 
+                            # add properties if directory
+                            new_properties = properties or dict()
+                            if is_dir:
+                                new_properties['buildrunner.compressed.directory'] = 'true'
+
                             # register the artifact with the run controller
                             self.build_runner.add_artifact(
-                                os.path.join(self.name, filename),
-                                properties or dict(),
+                                os.path.join(self.name, output_file_name),
+                                new_properties,
                             )
 
         finally:
