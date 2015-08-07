@@ -1299,7 +1299,6 @@ class BuildStepRunner(object):
         )
         self.service_runners[service_name] = service_runner
         cont_name = self.id + '-' + service_name
-        self.service_links[cont_name] = service_name
         service_container_id = service_runner.start(
             name=cont_name,
             volumes={
@@ -1308,6 +1307,7 @@ class BuildStepRunner(object):
             },
             volumes_from=[self.source_container],
             ports=_ports,
+            links=self.service_links,
             shell=_shell,
             provisioners=_provisioners,
             environment=_env,
@@ -1317,6 +1317,7 @@ class BuildStepRunner(object):
             dns_search=_dns_search,
             working_dir=_cwd,
         )
+        self.service_links[cont_name] = service_name
 
         def attach_to_service():
             """Function to attach to service in a separate thread."""
