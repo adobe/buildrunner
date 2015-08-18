@@ -899,7 +899,10 @@ class BuildStepRunner(object):
                                 file_type = "directory"
                                 output_file_name = filename + '.tar.gz'
                                 new_artifact_file = '/stepresults/' + output_file_name
-                                archive_command = 'tar -cvzf ' + new_artifact_file + ' -C ' + os.path.dirname(artifact_file) + ' ' + filename
+                                working_dir = ''
+                                if os.path.dirname(artifact_file):
+                                    working_dir = ' -C %s' % os.path.dirname(artifact_file)
+                                archive_command = 'tar -cvzf ' + new_artifact_file + working_dir + ' ' + filename
                             else:
                                 file_type = "file"
                                 output_file_name = filename
