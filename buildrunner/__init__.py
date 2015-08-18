@@ -853,6 +853,8 @@ class BuildStepRunner(object):
             artifact_lister = DockerRunner(
                 'busybox:ubuntu-14.04',
             )
+            #TODO: see if we can use archive commands to eliminate the need for
+            #the /stepresults volume when we can move to api v1.20
             artifact_lister.start(
                 volumes_from=[self.source_container],
                 volumes={
@@ -862,32 +864,39 @@ class BuildStepRunner(object):
                 shell='/bin/sh',
             )
 
+            file_info_delimiter = '~!~'
             for pattern, properties in patterns.iteritems():
                 # query files for each artifacts pattern, capturing the output
                 # for parsing
-                output = StringIO()
+                stat_output_file = "%s.out" % str(uuid.uuid4())
+                stat_output_file_local = os.path.join(
+                    self.results_dir,
+                    stat_output_file,
+                )
                 exit_code = artifact_lister.run(
-                    'stat -c "%%n" %s' % pattern,
-                    console=output,
+                    'stat -c "%%n%s%%F" %s > /stepresults/%s' % (
+                        file_info_delimiter,
+                        pattern,
+                        stat_output_file,
+                    ),
                     stream=False,
                 )
 
                 # if the command was successful we found something
                 if 0 == exit_code:
+                    with open(stat_output_file_local, 'r') as output_fd:
+                        output = output_fd.read()
                     artifact_files = [
-                        af.strip() for af in output.getvalue().split('\n')
+                        af.strip() for af in output.split('\n')
                     ]
-                    for artifact_file in artifact_files:
-                        if artifact_file:
+                    for artifact_info in artifact_files:
+                        if artifact_info and file_info_delimiter in artifact_info:
+                            artifact_file, file_type = artifact_info.split(
+                                file_info_delimiter,
+                            )
 
                             # check if the file is directory, to copy recursive
-                            output_is_dir = StringIO()
-                            exit_code = artifact_lister.run(
-                                'stat -c "%%F" "%s"' % artifact_file,
-                                console=output_is_dir,
-                                stream=False,
-                            )
-                            is_dir = output_is_dir.getvalue().strip() == 'directory'
+                            is_dir = file_type.strip() == 'directory'
 
                             file_type = ''
                             archive_command = ''
@@ -946,6 +955,9 @@ class BuildStepRunner(object):
                                 os.path.join(self.name, output_file_name),
                                 new_properties,
                             )
+
+                #remove the stat output file
+                os.remove(stat_output_file_local)
 
         finally:
             if artifact_lister:
