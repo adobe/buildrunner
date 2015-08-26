@@ -136,6 +136,7 @@ class BuildRunner(object):
             run_config_file=None,
             build_number=None,
             push=False,
+            colorize_log=True,
     ):
         """
         """
@@ -143,6 +144,7 @@ class BuildRunner(object):
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
         self.working_dir = os.path.join(self.build_results_dir, '.working')
         self.push = push
+        self.colorize_log = colorize_log
 
         # set build number
         self.build_number = build_number
@@ -277,7 +279,7 @@ class BuildRunner(object):
         """
         log_file_path = os.path.join(self.build_results_dir, 'build.log')
         self.log_file = codecs.open(log_file_path, 'w', 'utf-8')
-        self.log = ConsoleLogger(self.log_file)
+        self.log = ConsoleLogger(self.colorize_log, self.log_file)
         self.add_artifact(
             os.path.basename(log_file_path),
             {'type': 'log'},

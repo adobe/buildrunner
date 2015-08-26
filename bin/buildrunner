@@ -57,6 +57,15 @@ def parse_args():
         help='push images to remote registries (without this flag buildrunner simply tags images)',
     )
 
+    parser.add_argument(
+        '--no-color',
+        default=False,
+        action='store_true',
+        dest='no_log_color',
+        #pylint: disable=C0301
+        help='disable colors when logging',
+    )
+
     args = parser.parse_args()
 
     # Only absolute directories can do a mount bind
@@ -75,6 +84,7 @@ def main():
             args.config_file,
             args.build_number,
             push=args.push,
+            colorize_log=not args.no_log_color
         )
         build_runner.run()
         if build_runner.exit_code:

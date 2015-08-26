@@ -58,7 +58,8 @@ class ConsoleLogger(object):
     Class used to write decorated output to stdout while also redirecting
     non-decorated output to one or more streams.
     """
-    def __init__(self, *streams):
+    def __init__(self, colorize_log, *streams):
+        self.colorize_log = colorize_log
         self.streams = []
         for stream in streams:
             self.streams.append(codecs.getwriter('utf-8')(stream, 'replace'))
@@ -74,7 +75,8 @@ class ConsoleLogger(object):
         if not isinstance(output, unicode):
             output = unicode(output, encoding='utf-8', errors='replace')
         _stdout = output
-        if color:
+        if color and self.colorize_log:
+            # Colorize stdout
             _color_start = u'\033[01;3{color}m'.format(color=color)
             _stdout = _color_start + _stdout + u'\033[00;00m'
         self.stdout.write(_stdout)
