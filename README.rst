@@ -460,6 +460,8 @@ Any published Docker images are tagged with source tree branch and commit
 information as well as a provided or generated build number for tracking
 purposes. Additional tags may be added in the 'push' configuration.
 
+To push the image to a registry, you mush add the --push argument to buildrunner.
+
 The following is an example of a simple 'push' configuration where only the
 repository is defined::
 
