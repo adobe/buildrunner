@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import base64
 import docker
 import os
+import six
 import socket
 import ssl
 import uuid
@@ -88,6 +89,10 @@ class DockerRunner(object):
         _port_list = None
         if ports:
             _port_list = list(ports.keys())
+
+        # check args
+        if dns_search and isinstance(dns_search, six.string_types):
+            dns_search = dns_search.split(',')
 
         # start the container
         self.container = self.docker_client.create_container(
