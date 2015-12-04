@@ -966,6 +966,31 @@ class BuildStepRunner(object):
                 artifact_lister.cleanup()
 
 
+    def _process_volumes_from(self, volumes_from):
+        _volumes_from = []
+        for sc_vf in volumes_from:
+            volumes_from_definition = sc_vf.rsplit(':')
+            service_container = volumes_from_definition[0]
+            volume_option = None
+            if len(volumes_from_definition) > 1:
+                volume_option = volumes_from_definition[1]
+            if service_container not in self.service_links.values():
+                raise BuildRunnerConfigurationError(
+                    '"volumes_from" configuration "%s" does not '
+                    'reference a valid service container\n' % sc_vf
+                )
+            for container, service in self.service_links.iteritems():
+                if service == service_container:
+                    if volume_option:
+                        _volumes_from.append(
+                            "%s:%s" % (container, volume_option),
+                        )
+                    else:
+                        _volumes_from.append(container)
+                    break
+        return _volumes_from
+
+
     def _run_container(self, image):
         """
         Run the main step container.
@@ -1044,6 +1069,12 @@ class BuildStepRunner(object):
                     _env[key] = value
 
             _volumes_from = [self.source_container]
+
+            # see if we need to map any service container volumes
+            if 'volumes_from' in self.config['run']:
+                _volumes_from.extend(self._process_volumes_from(
+                    self.config['run']['volumes_from'],
+                ))
 
             # see if we need to attach to a sshagent container
             if self.sshagent:
@@ -1310,6 +1341,14 @@ class BuildStepRunner(object):
             for key, value in service_config['env'].iteritems():
                 _env[key] = value
 
+        _volumes_from = [self.source_container]
+
+        # see if we need to map any service container volumes
+        if 'volumes_from' in service_config:
+            _volumes_from.extend(self._process_volumes_from(
+                service_config['volumes_from'],
+            ))
+
         # instantiate and start the runner
         service_runner = DockerRunner(
             _image,
@@ -1322,7 +1361,7 @@ class BuildStepRunner(object):
                 self.build_runner.build_results_dir: \
                     ARTIFACTS_VOLUME_MOUNT + ':ro',
             },
-            volumes_from=[self.source_container],
+            volumes_from=_volumes_from,
             ports=_ports,
             links=self.service_links,
             shell=_shell,
