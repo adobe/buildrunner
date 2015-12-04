@@ -259,11 +259,16 @@ The following example shows the different configuration options available::
         # attribute will be used.
         image: <the Docker image to run>
 
-        # The command to run. If ommitted BuildRunner runs the command
+        # The command(s) to run. If ommitted BuildRunner runs the command
         # configured in the Docker image without modification. If provided
         # BuildRunner always sets the container command to a shell, running the
-        # given command here within the shell.
+        # given command here within the shell. If both 'cmd' and 'cmds' are
+        # present the command in 'cmd' is run before the commands in the 'cmds'
+        # list are run.
         cmd: <a command to run>
+        cmds:
+          - <command one>
+          - <command two>
 
         # A collection of provisioners to run. Provisioners work similar to the
         # way Packer provisioners do and are always run within a shell.
@@ -286,6 +291,17 @@ The following example shows the different configuration options available::
         # Docker image.
         user: <user to run commands as>
 
+        # The hostname assigned to the run container.
+        hostname: <the hostname>
+
+        # Custom dns servers to use in the run container.
+        dns:
+          - 8.8.8.8
+          - 8.8.4.4
+
+        # A custom dns search path to use in the run container.
+        dns-search: mydomain.com
+
         # A map specifying additional environment variables to be injected into
         # the container. Keys are the variable names and values are variable
         # values.
@@ -301,6 +317,11 @@ The following example shows the different configuration options available::
         files:
           namespaced.file.alias1: "/path/to/readonly/file/or/dir"
           namespaced.file.alias2: "/path/to/readwrite/file/or/dir:rw"
+
+        # A list specifying service containers (see below) whose exposed
+        # volumes should be mapped into the run container's file system.
+        volumes_from:
+          - my-service-container
 
         # A list specifying ssh keys that should be injected into the container
         # via an ssh agent. The list should specify the ssh key aliases (as
@@ -322,6 +343,9 @@ The following example shows the different configuration options available::
           artifacts/to/archive/*:
             property1: value1
             property2: value2
+
+Service Containers
+------------------
 
 Service containers allow you to create and start additional containers that
 are linked to the primary build container. This is useful, for instance, if
@@ -378,12 +402,30 @@ within service container configuration::
             # the Docker image.
             user: <user to run commands as>
 
+            # The hostname assigned to the service container.
+            hostname: <the hostname>
+
+            # Custom dns servers to use in the service container.
+            dns:
+              - 8.8.8.8
+              - 8.8.4.4
+
+            # A custom dns search path to use in the service container.
+            dns-search: mydomain.com
+
             # A map specifying additional environment variables to be injected
             # into the container. Keys are the variable names and values are
             # variable values.
             env:
               ENV_VARIABLE_ONE: value1
               ENV_VARIABLE_TWO: value2
+
+            # A list specifying other service containers whose exposed volumes
+            # should be mapped into this service container's file system. Any
+            # service containers in this list must be defined before this
+            # container is.
+            volumes_from:
+              - my-service-container
 
             # A map specifying ports to expose and link within other containers
             # within the step.
