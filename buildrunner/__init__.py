@@ -388,6 +388,11 @@ class BuildRunner(object):
                     self._source_image,
                     noprune=False,
                 )
+            if self._source_archive:
+                self.log.write(
+                    "Destroying source archive\n"
+                )
+                os.remove(self._source_archive)
 
             self._exit_message_and_close_log(exit_explanation)
 
