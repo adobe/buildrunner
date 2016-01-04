@@ -1,11 +1,12 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2015 Adobe
 """
+from __future__ import absolute_import
 import json
 import os
 import requests
 
-from buildrunner.provisioners import BuildRunnerProvisionerError
+from buildrunner.errors import BuildRunnerProvisionerError
 
 
 class SaltProvisioner(object):
@@ -30,7 +31,7 @@ class SaltProvisioner(object):
         if runner.run('salt-call -h') != 0:
             # pull bootstrap and run as a script
             bootstrap_response = requests.get('http://bootstrap.saltstack.org')
-            if 200 != bootstrap_response.status_code:
+            if bootstrap_response.status_code != 200:
                 raise BuildRunnerProvisionerError(
                     "Unable to get salt bootstrap"
                 )

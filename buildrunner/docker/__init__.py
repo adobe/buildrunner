@@ -1,16 +1,17 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2015 Adobe
 """
 from __future__ import absolute_import
-import docker
 import os
 import ssl
 import urlparse
 
-from buildrunner import BuildRunnerError, BuildRunnerConfigurationError
+import docker
+
+from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
 
 
-DOCKER_API_VERSION = '1.15'
+DOCKER_API_VERSION = '1.19'
 DOCKER_DEFAULT_DOCKERD_URL = 'unix:///var/run/docker.sock'
 
 
@@ -20,11 +21,11 @@ class BuildRunnerContainerError(BuildRunnerError):
 
 
 def new_client(
-    dockerd_url=None,
-    tls=False,
-    tls_verify=False,
-    cert_path=None,
-    timeout=300,
+        dockerd_url=None,
+        tls=False,
+        tls_verify=False,
+        cert_path=None,
+        timeout=300,
 ):
     """
     Return a newly configured Docker client.
@@ -45,15 +46,15 @@ def new_client(
                 "(from DOCKER_CERT_PATH env variable)"
             )
 
-        ca_cert_path = os.path.join(_cert_path,'ca.pem')
+        ca_cert_path = os.path.join(_cert_path, 'ca.pem')
         client_cert = (
-            os.path.join(_cert_path, 'cert.pem'), 
+            os.path.join(_cert_path, 'cert.pem'),
             os.path.join(_cert_path, 'key.pem')
         )
 
         tls_config = docker.tls.TLSConfig(
-            ssl_version = ssl.PROTOCOL_TLSv1,
-            client_cert = client_cert,
+            ssl_version=ssl.PROTOCOL_TLSv1,
+            client_cert=client_cert,
             verify=ca_cert_path,
             assert_hostname=False,
         )
@@ -70,4 +71,3 @@ def new_client(
         tls=tls_config,
         timeout=timeout,
     )
-

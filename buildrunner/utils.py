@@ -6,16 +6,16 @@ from __future__ import absolute_import
 import codecs
 from collections import OrderedDict
 from datetime import datetime
+import os
 import sys
+import uuid
 import yaml
 
 
-#pylint: disable=C0301
-# from http://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
 def ordered_load(
-    stream,
-    loader_class=yaml.Loader,
-    object_pairs_hook=OrderedDict,
+        stream,
+        loader_class=yaml.Loader,
+        object_pairs_hook=OrderedDict,
 ):
     """
     Load yaml while preserving the order of attributes in maps/dictionaries.
@@ -51,6 +51,19 @@ def epoch_time():
     return int(
         (datetime.now() - datetime.utcfromtimestamp(0)).total_seconds()
     )
+
+
+def tempfile(prefix=None, suffix=None, temp_dir='/tmp'):
+    """
+    Generate a temporary file path within the container.
+    """
+    name = str(uuid.uuid4())
+    if suffix:
+        name = name + suffix
+    if prefix:
+        name = prefix + name
+
+    return os.path.join(temp_dir, name)
 
 
 class ConsoleLogger(object):
@@ -151,14 +164,14 @@ class ContainerLogger(object):
         Return a ContainerLogger for a build container.
         """
         color = cls._cycle_colors(cls.BUILD_LOG_COLORS)
-        nameIdx = "%s%s" % (name, color)
-        if nameIdx not in cls.LOGGERS:
-            cls.LOGGERS[nameIdx] = ContainerLogger(
+        name_idx = "%s%s" % (name, color)
+        if name_idx not in cls.LOGGERS:
+            cls.LOGGERS[name_idx] = ContainerLogger(
                 console_logger,
                 name,
                 color,
             )
-        return cls.LOGGERS[nameIdx]
+        return cls.LOGGERS[name_idx]
 
 
     @classmethod
@@ -178,6 +191,9 @@ class ContainerLogger(object):
 
     @staticmethod
     def _cycle_colors(colors):
+        """
+        Cycle through console colors.
+        """
         current = colors[0]
         colors[0] = colors[1]
         colors[-1] = current

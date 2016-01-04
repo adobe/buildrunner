@@ -325,7 +325,7 @@ The following example shows the different configuration options available::
 
         # A list specifying ssh keys that should be injected into the container
         # via an ssh agent. The list should specify the ssh key aliases (as
-        # configured in the "local-files" section of the global configuration
+        # configured in the "ssh-keys" section of the global configuration
         # file) that buildrunner should inject into the container. Buildrunner
         # injects the keys by mounting a ssh-agent socket and setting the
         # appropriate environment variable, meaning that the private key itself

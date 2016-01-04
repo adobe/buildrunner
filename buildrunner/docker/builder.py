@@ -1,17 +1,15 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2015 Adobe
 """
 from __future__ import absolute_import
-import docker
 import json
 import re
 import tarfile
 import tempfile
 
-from buildrunner.docker import (
-    new_client,
-    DOCKER_DEFAULT_DOCKERD_URL,
-)
+import docker
+
+from buildrunner.docker import new_client
 
 
 class DockerBuilder(object):
@@ -22,10 +20,10 @@ class DockerBuilder(object):
 
 
     def __init__(
-        self,
-        path=None,
-        inject=None,
-        dockerd_url=None,
+            self,
+            path=None,
+            inject=None,
+            dockerd_url=None,
     ):
         self.path = path
         self.inject = inject

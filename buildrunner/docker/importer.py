@@ -1,12 +1,13 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2015 Adobe
 """
 from __future__ import absolute_import
-import docker
 import yaml
 
-from buildrunner import BuildRunnerProcessingError
+import docker
+
 from buildrunner.docker import new_client
+from buildrunner.errors import BuildRunnerProcessingError
 from buildrunner.utils import is_dict
 
 
@@ -18,9 +19,9 @@ class DockerImporter(object):
 
 
     def __init__(
-        self,
-        src,
-        dockerd_url=None,
+            self,
+            src,
+            dockerd_url=None,
     ):
         self.src = src
         self.docker_client = new_client(
