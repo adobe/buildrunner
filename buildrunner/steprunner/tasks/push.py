@@ -50,18 +50,27 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             'Pushing resulting image to "%s".\n' % self._repository
         )
 
-        # if we have a container_id then we create an image based on
-        # the end state of the container, otherwise we use the image id
-        image_to_use = context.get('image', None)
-        if 'run_container' in context:
-            self.step_runner.log.write(
-                'Committing build container %s as an image for tagging\n' % (
-                    context['run_container'],
-                )
+        # first see if a run task produced an image (via a post-build config)
+        if 'run-image' in context:
+            image_to_use = context.get('run-image')
+        # next see if there was a run task, committing the end state of the
+        # container as the image to use
+        elif 'run_runner' in context:
+            image_to_use = context['run_runner'].commit(self.step_runner.log)
+        # finally see if we have an image from a build task
+        else:
+            image_to_use = context.get('image', None)
+
+        # validate we have an image
+        if not image_to_use:
+            raise BuildRunnerProcessingError(
+                'Cannot find an image to tag/push from a previous task'
             )
-            image_to_use = self._docker_client.commit(
-                context['run_container'],
-            )['Id']
+        self.step_runner.log.write(
+            'Using image %s for tagging\n' % (
+                image_to_use,
+            )
+        )
 
         # determine internal tag based on source control information and build
         # number

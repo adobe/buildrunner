@@ -30,6 +30,7 @@ class DockerRunner(object):
         )
         self.container = None
         self.shell = None
+        self.committed_image = None
 
         # check to see if we have the requested image locally and
         # pull it if we don't
@@ -288,3 +289,30 @@ class DockerRunner(object):
             except ssl.SSLError as ssle:
                 if ssle.message != 'The read operation timed out':
                     raise
+
+
+    def commit(self, stream):
+        """
+        Commit the ending state of the container as an image, returning the
+        image id.
+        """
+        if self.committed_image:
+            return self.committed_image
+        if not self.container:
+            raise BuildRunnerContainerError('Container not started')
+        if self.is_running():
+            raise BuildRunnerContainerError('Container is still running')
+        stream.write(
+            'Committing build container %.10s as an image...\n' % (
+                self.container['Id'],
+            )
+        )
+        self.committed_image = self.docker_client.commit(
+            self.container['Id'],
+        )['Id']
+        stream.write(
+            'Resulting build container image: %.10s\n' % (
+                self.committed_image,
+            )
+        )
+        return self.committed_image

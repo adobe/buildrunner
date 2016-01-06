@@ -187,7 +187,9 @@ shows the different configuration options available::
         path: my/container/build/context
 
         # The inject map specifies other files outside the build context that
-        # should be included in the context sent to the Docker daemon
+        # should be included in the context sent to the Docker daemon. Files
+        # injected into the build context override files with the same name/path
+        # contained in the path configuration above.
         # (NOTE: you do not need to specify a path attribute if you inject all
         # of the files you need, including a Dockerfile)
         inject:
@@ -198,6 +200,16 @@ shows the different configuration options available::
           # the Docker build.
           glob/to/files.*: dest/dir
           path/to/file.txt: dest/dir
+
+        # The path to a Dockerfile to use, or an inline Dockerfile declaration.
+        # This Dockerfile overrides any provided in the path or inject
+        # configurations. If the docker context does not require any additional
+        # resources the path and inject configurations are not required.
+        dockerfile: path/to/Dockerfile
+        <or>
+        dockerfile: |
+          FROM someimage:latest
+          RUN /some/command
 
         # Whether to use the default Docker image cache for intermediate
         # images--caching images  significantly speeds up the building of
@@ -343,6 +355,21 @@ The following example shows the different configuration options available::
           artifacts/to/archive/*:
             property1: value1
             property2: value2
+
+        # The post-build attribute commits the resulting run container as an
+        # image and allows additional Docker build processing to occur. This is
+        # useful for adding Docker configuration, such as EXPOSE and CMD
+        # instructions, when building an image via the run task that cannot be
+        # done without running a Docker build. The post-build attribute
+        # functions the same way as the 'build' step attribute does, except
+        # that it prepends the commited run container image to the provided
+        # Dockerfile ('FROM <image>\n').
+        post-build: path/to/build/context
+        <or>
+        post-build:
+          dockerfile: |
+            EXPOSE 80
+            CMD /runserver.sh
 
 Service Containers
 ------------------

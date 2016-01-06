@@ -624,7 +624,30 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 "Error running build container"
             )
 
-        context['run_container'] = self.runner.container['Id']
+        context['run_runner'] = self.runner
+
+        if 'post-build' in self.config:
+            self._run_post_build(context)
+
+
+    def _run_post_build(self, context):
+        """
+        Commit the run image and perform a docker build, prepending the run
+        image to the Dockerfile.
+        """
+        self.step_runner.log.write(
+            'Running post-build processing\n'
+        )
+        build_image_task = BuildBuildStepRunnerTask(
+            self.step_runner,
+            self.config['post-build'],
+            image_to_prepend_to_dockerfile=self.runner.commit(
+                self.step_runner.log,
+            )
+        )
+        _build_context = {}
+        build_image_task.run(_build_context)
+        context['run-image'] = _build_context.get('image', None)
 
 
     def cleanup(self, context): #pylint: disable=unused-argument

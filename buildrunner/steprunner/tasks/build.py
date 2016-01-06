@@ -21,24 +21,38 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
     """
 
 
-    def __init__(self, step_runner, config):
+    def __init__(
+            self,
+            step_runner,
+            config,
+            image_to_prepend_to_dockerfile=None,
+    ):
         super(BuildBuildStepRunnerTask, self).__init__(step_runner, config)
 
         self.path = None
+        self.dockerfile = None
         self.to_inject = {}
+        self.image_to_prepend_to_dockerfile = image_to_prepend_to_dockerfile
         self.nocache = False
         self._import = None
         if is_dict(self.config):
             if 'import' in self.config:
                 self._import = self.config['import']
-            elif 'path' not in self.config and 'inject' not in self.config:
+            elif all(prop not in self.config for prop in (
+                    'path',
+                    'dockerfile',
+                    'inject'
+            )):
                 raise BuildRunnerConfigurationError(
                     'Docker build context must specify a '
-                    '"path" or "inject" attribute'
+                    '"path", "dockerfile", or "inject" attribute'
                 )
 
             if 'path' in self.config:
                 self.path = self.config['path']
+
+            if 'dockerfile' in self.config:
+                self.dockerfile = self.config['dockerfile']
 
             if 'no-cache' in self.config:
                 self.nocache = self.config['no-cache']
@@ -65,6 +79,39 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 'Invalid build context path "%s"' % self.path
             )
 
+        if not self.dockerfile:
+            if self.path:
+                path_dockerfile = os.path.join(self.path, 'Dockerfile')
+                if os.path.exists(path_dockerfile):
+                    self.dockerfile = path_dockerfile
+            for src_file, dest_file in self.to_inject.iteritems():
+                if os.path.abspath(dest_file) == os.path.abspath('Dockerfile'):
+                    self.dockerfile = src_file
+
+        if not self.dockerfile:
+            raise BuildRunnerConfigurationError(
+                'Cannot find a Dockerfile in the given path '
+                'or inject configurations'
+            )
+
+        _dockerfile_abs_path = self.step_runner.build_runner.to_abs_path(
+            self.dockerfile,
+        )
+        if os.path.exists(_dockerfile_abs_path):
+            self.dockerfile = _dockerfile_abs_path
+            if self.image_to_prepend_to_dockerfile:
+                # need to load the contents of the Dockerfile so that we
+                # can prepend the image
+                with open(_dockerfile_abs_path, 'r') as _dockerfile:
+                    self.dockerfile = _dockerfile.read()
+
+        if self.image_to_prepend_to_dockerfile:
+            # prepend the given image to the dockerfile
+            self.dockerfile = 'FROM %s\n%s' % (
+                self.image_to_prepend_to_dockerfile,
+                self.dockerfile
+            )
+
 
     def run(self, context):
         # 'import' will override other configuration and perform a 'docker
@@ -80,6 +127,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
         builder = DockerBuilder(
             self.path,
             inject=self.to_inject,
+            dockerfile=self.dockerfile,
         )
         try:
             exit_code = builder.build(

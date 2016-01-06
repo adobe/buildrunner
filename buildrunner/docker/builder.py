@@ -3,6 +3,7 @@ Copyright (C) 2015 Adobe
 """
 from __future__ import absolute_import
 import json
+import os
 import re
 import tarfile
 import tempfile
@@ -23,10 +24,25 @@ class DockerBuilder(object):
             self,
             path=None,
             inject=None,
+            dockerfile=None,
             dockerd_url=None,
     ):
         self.path = path
         self.inject = inject
+        self.dockerfile = None
+        self.cleanup_dockerfile = False
+        if dockerfile:
+            if os.path.exists(dockerfile):
+                self.dockerfile = dockerfile
+            else:
+                df_file = tempfile.NamedTemporaryFile(delete=False)
+                try:
+                    df_file.write(dockerfile)
+                    self.cleanup_dockerfile = True
+                    self.dockerfile = df_file.name
+                finally:
+                    df_file.close()
+
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
         )
@@ -39,28 +55,22 @@ class DockerBuilder(object):
         Run a docker build using the configured context, constructing the
         context tar file if necessary.
         """
-        _path = None
-        _custom_context = False
-        _fileobj = None
-
-        if self.inject:
-            # need to create our own tar file, injecting the appropriate paths
-            _custom_context = True
-            _fileobj = tempfile.NamedTemporaryFile()
-            tfile = tarfile.open(mode='w', fileobj=_fileobj)
-            if self.path:
-                tfile.add(self.path, arcname='.')
-            for to_inject, dest in self.inject.iteritems():
-                tfile.add(to_inject, arcname=dest)
-            tfile.close()
-            _fileobj.seek(0)
-        else:
-            _path = self.path
+        # create our own tar file, injecting the appropriate paths
+        _fileobj = tempfile.NamedTemporaryFile()
+        tfile = tarfile.open(mode='w', fileobj=_fileobj)
+        if self.path:
+            tfile.add(self.path, arcname='.')
+        for to_inject, dest in self.inject.iteritems():
+            tfile.add(to_inject, arcname=dest)
+        if self.dockerfile:
+            tfile.add(self.dockerfile, arcname='./Dockerfile')
+        tfile.close()
+        _fileobj.seek(0)
 
         stream = self.docker_client.build(
-            path=_path,
+            path=None,
             nocache=nocache,
-            custom_context=_custom_context,
+            custom_context=True,
             fileobj=_fileobj,
             rm=rm,
         )
@@ -106,6 +116,11 @@ class DockerBuilder(object):
         """
         Cleanup the docker build environment.
         """
+        # cleanup the generated dockerfile if present
+        if self.cleanup_dockerfile:
+            if self.dockerfile and os.path.exists(self.dockerfile):
+                os.remove(self.dockerfile)
+
         # iterate through and destory intermediate containers
         for container in self.intermediate_containers:
             try:

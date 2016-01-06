@@ -7,7 +7,7 @@ import vcsinfo
 #pylint: disable=C0301
 setup(
     name='buildrunner',
-    version='0.3',
+    version='0.4',
     author='***REMOVED***',
     author_email="***REMOVED***",
     license="Adobe",
