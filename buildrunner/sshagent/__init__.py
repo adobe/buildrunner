@@ -4,6 +4,12 @@ Copyright (C) 2014 Adobe
 from __future__ import absolute_import
 import fcntl
 import os
+from select import select
+import struct
+import threading
+import time
+import urlparse
+
 from paramiko import (
     DSSKey,
     MissingHostKeyPolicy,
@@ -15,13 +21,8 @@ from paramiko import (
 from paramiko.agent import AgentSSH, AgentRequestHandler
 from paramiko.common import asbytes, io_sleep
 from paramiko.message import Message
-from select import select
-import struct
-import threading
-import time
-import urlparse
 
-from buildrunner import (
+from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
@@ -316,7 +317,7 @@ class CustomAgentConnectionThread(threading.Thread):
                             self._send_reply(SSH2_AGENT_FAILURE)
                 except SSHException:
                     raise
-                except Exception:
+                except Exception: #pylint: disable=broad-except
                     pass
                 time.sleep(io_sleep)
         #pylint: disable=W0703

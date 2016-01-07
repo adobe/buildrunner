@@ -1,7 +1,8 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2015 Adobe
 """
-from buildrunner.provisioners import BuildRunnerProvisionerError
+from __future__ import absolute_import
+from buildrunner.errors import BuildRunnerProvisionerError
 
 
 class ShellProvisioner(object):

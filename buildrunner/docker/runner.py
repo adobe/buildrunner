@@ -1,19 +1,19 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2015 Adobe
 """
 from __future__ import absolute_import
 import base64
-import docker
-import os
-import six
 import socket
 import ssl
-import uuid
+
+import docker
+import six
 
 from buildrunner.docker import (
     new_client,
     BuildRunnerContainerError,
 )
+from buildrunner.utils import tempfile
 
 
 class DockerRunner(object):
@@ -30,6 +30,7 @@ class DockerRunner(object):
         )
         self.container = None
         self.shell = None
+        self.committed_image = None
 
         # check to see if we have the requested image locally and
         # pull it if we don't
@@ -44,21 +45,21 @@ class DockerRunner(object):
 
 
     def start(
-        self,
-        shell='/bin/sh',
-        working_dir=None,
-        name=None,
-        volumes=None,
-        volumes_from=None,
-        links=None,
-        ports=None,
-        provisioners=None,
-        environment=None,
-        user=None,
-        hostname=None,
-        dns=None,
-        dns_search=None,
-    ):
+            self,
+            shell='/bin/sh',
+            working_dir=None,
+            name=None,
+            volumes=None,
+            volumes_from=None,
+            links=None,
+            ports=None,
+            provisioners=None,
+            environment=None,
+            user=None,
+            hostname=None,
+            dns=None,
+            dns_search=None,
+    ): #pylint: disable=too-many-arguments
         """
         Kwargs:
           volumes (dict): mount the local dir (key) to the given container
@@ -78,7 +79,7 @@ class DockerRunner(object):
                 if to_bind.rfind(':') > 0:
                     tokens = to_bind.rsplit(':', 1)
                     to_bind = tokens[0]
-                    _ro = 'ro' == tokens[1]
+                    _ro = tokens[1] == 'ro'
                 _volumes.append(to_bind)
                 _binds[key] = {
                     'bind': to_bind,
@@ -172,7 +173,7 @@ class DockerRunner(object):
             [self.shell, '-c', cmd],
             tty=True,
         )
-        output_buffer =  self.docker_client.exec_start(
+        output_buffer = self.docker_client.exec_start(
             create_res,
             stream=stream,
         )
@@ -186,16 +187,16 @@ class DockerRunner(object):
 
 
     def run_script(
-        self,
-        script,
-        args='',
-        console=None,
+            self,
+            script,
+            args='',
+            console=None,
     ):
         """
         Run the given script within the container.
         """
         # write temp file with script contents
-        script_file_path = self.tempfile()
+        script_file_path = tempfile()
         self.run('mkdir -p $(dirname %s)' % script_file_path, console=console)
         self.write_to_container_file(script, script_file_path)
         self.run('chmod +x %s' % script_file_path, console=console)
@@ -290,14 +291,28 @@ class DockerRunner(object):
                     raise
 
 
-    def tempfile(self, prefix=None, suffix=None, temp_dir='/tmp'):
+    def commit(self, stream):
         """
-        Generate a temporary file path within the container.
+        Commit the ending state of the container as an image, returning the
+        image id.
         """
-        name = str(uuid.uuid4())
-        if suffix:
-            name = name + suffix
-        if prefix:
-            name = prefix + name
-
-        return os.path.join(temp_dir, name)
+        if self.committed_image:
+            return self.committed_image
+        if not self.container:
+            raise BuildRunnerContainerError('Container not started')
+        if self.is_running():
+            raise BuildRunnerContainerError('Container is still running')
+        stream.write(
+            'Committing build container %.10s as an image...\n' % (
+                self.container['Id'],
+            )
+        )
+        self.committed_image = self.docker_client.commit(
+            self.container['Id'],
+        )['Id']
+        stream.write(
+            'Resulting build container image: %.10s\n' % (
+                self.committed_image,
+            )
+        )
+        return self.committed_image

@@ -6,31 +6,44 @@ from __future__ import absolute_import
 import codecs
 from collections import OrderedDict
 from datetime import datetime
+import os
 import sys
+import uuid
 import yaml
 
 
-#pylint: disable=C0301
-# from http://stackoverflow.com/questions/5121931/in-python-how-can-you-load-yaml-mappings-as-ordereddicts
-def ordered_load(
-    stream,
-    loader_class=yaml.Loader,
-    object_pairs_hook=OrderedDict,
-):
+class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
     """
-    Load yaml while preserving the order of attributes in maps/dictionaries.
+    Custom loader class that preserves dictionary order.
     """
-    #pylint: disable=too-many-ancestors,too-many-public-methods
-    class OrderedLoader(loader_class):
-        """
-        Custom loader class that preserves dictionary order.
-        """
-        pass
-    OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        lambda loader, node: object_pairs_hook(loader.construct_pairs(node)),
+    pass
+OrderedLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    lambda loader, node: OrderedDict(loader.construct_pairs(node)),
+)
+
+
+class IgnoreAliasesDumper(yaml.Dumper): #pylint: disable=too-many-ancestors
+    """
+    Custom dumper class that removes aliases.
+    """
+    def ignore_aliases(self, data):
+        return True
+
+
+def load_config(stream):
+    """
+    Load yaml while preserving the order of attributes in maps/dictionaries and
+    removing any aliases.
+    """
+    # run the data through pyyaml again to remove any aliases
+    return yaml.load(
+        yaml.dump(
+            yaml.load(stream, OrderedLoader),
+            default_flow_style=False, Dumper=IgnoreAliasesDumper,
+        ),
+        Loader=OrderedLoader,
     )
-    return yaml.load(stream, OrderedLoader)
 
 
 def is_dict(obj):
@@ -51,6 +64,19 @@ def epoch_time():
     return int(
         (datetime.now() - datetime.utcfromtimestamp(0)).total_seconds()
     )
+
+
+def tempfile(prefix=None, suffix=None, temp_dir='/tmp'):
+    """
+    Generate a temporary file path within the container.
+    """
+    name = str(uuid.uuid4())
+    if suffix:
+        name = name + suffix
+    if prefix:
+        name = prefix + name
+
+    return os.path.join(temp_dir, name)
 
 
 class ConsoleLogger(object):
@@ -151,14 +177,14 @@ class ContainerLogger(object):
         Return a ContainerLogger for a build container.
         """
         color = cls._cycle_colors(cls.BUILD_LOG_COLORS)
-        nameIdx = "%s%s" % (name, color)
-        if nameIdx not in cls.LOGGERS:
-            cls.LOGGERS[nameIdx] = ContainerLogger(
+        name_idx = "%s%s" % (name, color)
+        if name_idx not in cls.LOGGERS:
+            cls.LOGGERS[name_idx] = ContainerLogger(
                 console_logger,
                 name,
                 color,
             )
-        return cls.LOGGERS[nameIdx]
+        return cls.LOGGERS[name_idx]
 
 
     @classmethod
@@ -178,6 +204,9 @@ class ContainerLogger(object):
 
     @staticmethod
     def _cycle_colors(colors):
+        """
+        Cycle through console colors.
+        """
         current = colors[0]
         colors[0] = colors[1]
         colors[-1] = current
