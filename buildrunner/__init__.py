@@ -29,7 +29,7 @@ from buildrunner.steprunner import BuildStepRunner
 from buildrunner.utils import (
     ConsoleLogger,
     epoch_time,
-    ordered_load,
+    load_config,
 )
 from vcsinfo import detect_vcs
 
@@ -102,7 +102,7 @@ class BuildRunner(object):
             config_context.update(ctx)
 
         config_contents = jtemplate.render(config_context)
-        config = ordered_load(StringIO(config_contents))
+        config = load_config(StringIO(config_contents))
 
         return config
 

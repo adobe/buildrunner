@@ -12,25 +12,38 @@ import uuid
 import yaml
 
 
-def ordered_load(
-        stream,
-        loader_class=yaml.Loader,
-        object_pairs_hook=OrderedDict,
-):
+class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
     """
-    Load yaml while preserving the order of attributes in maps/dictionaries.
+    Custom loader class that preserves dictionary order.
     """
-    #pylint: disable=too-many-ancestors,too-many-public-methods
-    class OrderedLoader(loader_class):
-        """
-        Custom loader class that preserves dictionary order.
-        """
-        pass
-    OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        lambda loader, node: object_pairs_hook(loader.construct_pairs(node)),
+    pass
+OrderedLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+    lambda loader, node: OrderedDict(loader.construct_pairs(node)),
+)
+
+
+class IgnoreAliasesDumper(yaml.Dumper): #pylint: disable=too-many-ancestors
+    """
+    Custom dumper class that removes aliases.
+    """
+    def ignore_aliases(self, data):
+        return True
+
+
+def load_config(stream):
+    """
+    Load yaml while preserving the order of attributes in maps/dictionaries and
+    removing any aliases.
+    """
+    # run the data through pyyaml again to remove any aliases
+    return yaml.load(
+        yaml.dump(
+            yaml.load(stream, OrderedLoader),
+            default_flow_style=False, Dumper=IgnoreAliasesDumper,
+        ),
+        Loader=OrderedLoader,
     )
-    return yaml.load(stream, OrderedLoader)
 
 
 def is_dict(obj):
