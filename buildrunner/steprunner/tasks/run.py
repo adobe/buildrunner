@@ -564,6 +564,18 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     "Mounting %s -> %s\n" % (f_local, f_path)
                 )
 
+        # see if we need to mount any caches
+        if 'caches' in self.config:
+            for cache_name, cache_path in self.config['caches'].iteritems():
+                # get the cache location from the main BuildRunner class
+                cache_local_path = self.step_runner.build_runner.get_cache_path(
+                    cache_name,
+                )
+                container_args['volumes'][cache_local_path] = cache_path + ':rw'
+                container_meta_logger.write(
+                    "Mounting cache dir %s -> %s\n" % (cache_name, cache_path)
+                )
+
         exit_code = None
         try:
             # create and start runner, linking any service containers

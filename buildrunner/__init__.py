@@ -35,6 +35,7 @@ from vcsinfo import detect_vcs
 
 
 DEFAULT_GLOBAL_CONFIG_FILE = '~/.buildrunner.yaml'
+DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
 DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
 RESULTS_DIR = 'buildrunner.results'
 
@@ -260,9 +261,25 @@ class BuildRunner(object):
         return None
 
 
+    def get_cache_path(self, cache_name):
+        """
+        Given a cache name determine the local file path.
+        """
+        caches_root = self.global_config.get('caches-root', DEFAULT_CACHES_ROOT)
+        build_path = os.path.splitdrive(self.build_dir)[1]
+        if os.path.isabs(build_path):
+            build_path = build_path[1:]
+        cache_dir = os.path.expanduser(
+            os.path.join(caches_root, build_path, 'CACHES', cache_name)
+        )
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+        return cache_dir
+
+
     def to_abs_path(self, path):
         """
-        Convert a path to an absolute path (if it isn't on already).
+        Convert a path to an absolute path (if it isn't one already).
         """
         _path = os.path.expanduser(path)
         if os.path.isabs(_path):
