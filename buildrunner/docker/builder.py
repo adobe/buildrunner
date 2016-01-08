@@ -60,8 +60,9 @@ class DockerBuilder(object):
         tfile = tarfile.open(mode='w', fileobj=_fileobj)
         if self.path:
             tfile.add(self.path, arcname='.')
-        for to_inject, dest in self.inject.iteritems():
-            tfile.add(to_inject, arcname=dest)
+        if self.inject:
+            for to_inject, dest in self.inject.iteritems():
+                tfile.add(to_inject, arcname=dest)
         if self.dockerfile:
             tfile.add(self.dockerfile, arcname='./Dockerfile')
         tfile.close()
