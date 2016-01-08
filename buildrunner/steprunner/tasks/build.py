@@ -85,7 +85,11 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 if os.path.exists(path_dockerfile):
                     self.dockerfile = path_dockerfile
             for src_file, dest_file in self.to_inject.iteritems():
-                if os.path.abspath(dest_file) == os.path.abspath('Dockerfile'):
+                if dest_file in [
+                        './Dockerfile',
+                        '././Dockerfile',
+                        '/Dockerfile',
+                ]:
                     self.dockerfile = src_file
 
         if not self.dockerfile:
