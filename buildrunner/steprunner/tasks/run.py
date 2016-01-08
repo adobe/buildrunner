@@ -467,7 +467,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # see if we need to inject ssh keys
         if 'ssh-keys' in self.config:
-            _keys = self.step_runner.build_runner.get_ssh_keys(
+            _keys = self.step_runner.build_runner.get_ssh_keys_from_aliases(
                 self.config['ssh-keys'],
             )
             self._sshagent = DockerSSHAgentProxy(
