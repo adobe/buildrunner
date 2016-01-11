@@ -364,6 +364,32 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 config['volumes_from'],
             ))
 
+        _volumes = {
+            self.step_runner.build_runner.build_results_dir: \
+                ARTIFACTS_VOLUME_MOUNT + ':ro',
+        }
+        if 'files' in config:
+            for f_alias, f_path in config['files'].iteritems():
+                # lookup file from alias
+                f_local = self.step_runner.build_runner.get_local_files_from_alias( #pylint: disable=line-too-long
+                    f_alias,
+                )
+                if not f_local or not os.path.exists(f_local):
+                    raise BuildRunnerConfigurationError(
+                        "Cannot find valid local file for alias '%s'" % (
+                            f_alias,
+                        )
+                    )
+
+                if f_path[-3:] not in [':ro', ':rw']:
+                    f_path = f_path + ':ro'
+
+                _volumes[f_local] = f_path
+
+                service_logger.write(
+                    "Mounting %s -> %s\n" % (f_local, f_path)
+                )
+
         # instantiate and start the runner
         service_runner = DockerRunner(
             _image,
@@ -372,10 +398,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         cont_name = self.step_runner.id + '-' + name
         service_container_id = service_runner.start(
             name=cont_name,
-            volumes={
-                self.step_runner.build_runner.build_results_dir: \
-                    ARTIFACTS_VOLUME_MOUNT + ':ro',
-            },
+            volumes=_volumes,
             volumes_from=_volumes_from,
             ports=_ports,
             links=self._service_links,

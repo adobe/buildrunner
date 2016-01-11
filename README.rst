@@ -461,6 +461,15 @@ within service container configuration::
               ENV_VARIABLE_ONE: value1
               ENV_VARIABLE_TWO: value2
 
+            # A map specifying files that should be injected into the container.
+            # The map key is the alias referencing a given file (as configured in
+            # the "local-files" section of the global configuration file) and the
+            # value is the path the given file should be mounted at within the
+            # container.
+            files:
+              namespaced.file.alias1: "/path/to/readonly/file/or/dir"
+              namespaced.file.alias2: "/path/to/readwrite/file/or/dir:rw"
+
             # A list specifying other service containers whose exposed volumes
             # should be mapped into this service container's file system. Any
             # service containers in this list must be defined before this
