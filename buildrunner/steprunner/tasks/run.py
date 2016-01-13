@@ -168,28 +168,32 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                             file_type = "directory"
                             output_file_name = filename + '.tar.gz'
                             new_artifact_file = (
-                                '/stepresults/' + output_file_name
+                                '/stepresults/' +
+                                output_file_name.replace('"', '\\"')
                             )
                             working_dir = ''
                             if os.path.dirname(artifact_file):
                                 working_dir = (
-                                    ' -C %s' % os.path.dirname(
+                                    ' -C "%s"' % os.path.dirname(
                                         artifact_file,
-                                    )
+                                    ).replace('"', '\\"')
                                 )
                             archive_command = (
-                                'tar -cvzf ' + new_artifact_file +
-                                working_dir + ' ' + filename
+                                'tar -cvzf "' + new_artifact_file + '"' +
+                                working_dir + ' "' +
+                                filename.replace('"', '\\"') + '"'
                             )
                         else:
                             file_type = "file"
                             output_file_name = filename
                             new_artifact_file = (
-                                '/stepresults/' + output_file_name
+                                '/stepresults/' +
+                                output_file_name.replace('"', '\\"')
                             )
                             archive_command = (
-                                'cp ' + artifact_file +
-                                ' ' + new_artifact_file
+                                'cp "' + artifact_file.replace('"', '\\"') +
+                                '" "' + new_artifact_file +
+                                '"'
                             )
 
                         self.step_runner.log.write(
@@ -212,7 +216,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         # make sure the current user/group ids of our
                         # process are set as the owner of the files
                         exit_code = artifact_lister.run(
-                            'chown %d:%d %s' % (
+                            'chown %d:%d "%s"' % (
                                 os.getuid(),
                                 os.getgid(),
                                 new_artifact_file,
@@ -242,7 +246,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         )
 
                 #remove the stat output file
-                os.remove(stat_output_file_local)
+                if os.path.exists(stat_output_file_local):
+                    os.remove(stat_output_file_local)
 
         finally:
             if artifact_lister:
