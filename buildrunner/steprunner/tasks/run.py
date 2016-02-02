@@ -718,4 +718,5 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._docker_client.remove_container(
                 self._source_container,
                 force=True,
+                v=True,
             )
