@@ -123,7 +123,11 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                     self.step_runner.log.write(str(msg) + '\n')
 
             # cleanup the image and tag
-            self._docker_client.remove_image(image_to_use, noprune=True, force=True)
+            self._docker_client.remove_image(
+                image_to_use,
+                noprune=True,
+                force=True,
+            )
         else:
             self.step_runner.log.write(
                 'push not requested--not cleaning up image locally\n'
