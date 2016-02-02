@@ -464,6 +464,7 @@ class BuildRunner(object):
                 docker.new_client().remove_image(
                     self._source_image,
                     noprune=False,
+                    force=True,
                 )
             if self._source_archive:
                 self.log.write(
