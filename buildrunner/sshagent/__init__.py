@@ -201,6 +201,7 @@ class DockerSSHAgentProxy(object):
             self.docker_client.remove_container(
                 self._ssh_agent_container,
                 force=True,
+                v=True,
             )
 
 
