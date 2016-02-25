@@ -605,10 +605,17 @@ configuration::
         # should be added to the build artifacts.json file. The artifacts.json
         # file can be used to publish artifacts to another system (such as
         # Gauntlet) with the accompanying metadata.
+        # The "type" property may be used to signify what type of artifact
+        # it is. While this field is optional and open-ended, anything that
+        # ends in -test-results will be processed as test results in Jenkins.
+        # Also, the platform property may be used to process RPMs correctly.
         artifacts:
           artifacts/to/archive/*:
+            type: 'unit-test-results'
             property1: value1
             property2: value2
+          artifacts/to/archive/*.rpm:
+            platform: 'centos-6-noarch'
 
 The 'build-servers' global configuration consists of a map where each key is a
 server user@host string and the value is a list of host aliases that map to the
