@@ -30,7 +30,7 @@ setup(
     install_requires=[
         'PyYAML==3.11',
         'docker-py==1.3.1',
-        'vcsinfo>=0.1.13',
+        'vcsinfo>=0.1.21',
         'fabric==1.10.1',
         'Jinja2==2.7.3',
     ],
