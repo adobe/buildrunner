@@ -398,6 +398,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # instantiate and start the runner
         service_runner = DockerRunner(
             _image,
+            pull_image=config.get('pull', True),
         )
         self._service_runners[name] = service_runner
         cont_name = self.step_runner.id + '-' + name
@@ -609,6 +610,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             # create and start runner, linking any service containers
             self.runner = DockerRunner(
                 _run_image,
+                pull_image=self.config.get('pull', True),
             )
             container_id = self.runner.start(
                 links=self._service_links,

@@ -220,6 +220,11 @@ shows the different configuration options available::
         # images but may not be desired when building images for publishing
         no-cache: true/false (defaults to false)
 
+        # Whether to do a docker pull of the "FROM" image prior to the build.
+        # This is critical if you are building from images that are changing
+        # with regularity.
+        pull: true/false (defaults to true)
+
         # Instead of building import the given tar file as a Docker image. If
         # this value is present all other options are ignored and the resulting
         # image is passed to subsequent steps.
@@ -370,6 +375,15 @@ The following example shows the different configuration options available::
             property1: value1
             property2: value2
 
+        # Whether or not to pull the image from upstream prior to running
+        # the step.  This is almost always desirable, as it ensures the
+        # most up to date source image.  There are situations, however, when
+        # this can be set to false as an optimization.  For example, if a
+        # container is built at the beginning of a buildrunner file and then
+        # used repeatedly.  In this case, it is clear that the cached version
+        # is appropriate and we don't need to check upstream for changes.
+        pull: true/false (defaults to true)
+
         # The post-build attribute commits the resulting run container as an
         # image and allows additional Docker build processing to occur. This is
         # useful for adding Docker configuration, such as EXPOSE and CMD
@@ -481,6 +495,15 @@ within service container configuration::
             # within the step.
             ports:
               <container port>: <host port>
+
+            # Whether or not to pull the image from upstream prior to running
+            # the step.  This is almost always desirable, as it ensures the
+            # most up to date source image.  There are situations, however, when
+            # this can be set to false as an optimization.  For example, if a
+            # container is built at the beginning of a buildrunner file and then
+            # used repeatedly.  In this case, it is clear that the cached version
+            # is appropriate and we don't need to check upstream for changes.
+            pull: true/false (defaults to true)
 
 Here is an example of a 'run' definition that simply runs the default command
 from the specified Docker image and archives the given artifacts::
