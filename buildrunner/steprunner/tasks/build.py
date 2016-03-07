@@ -34,6 +34,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
         self.to_inject = {}
         self.image_to_prepend_to_dockerfile = image_to_prepend_to_dockerfile
         self.nocache = False
+        self.pull = True
         self._import = None
         if is_dict(self.config):
             if 'import' in self.config:
@@ -56,6 +57,9 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
 
             if 'no-cache' in self.config:
                 self.nocache = self.config['no-cache']
+
+            if 'pull' in self.config:
+                self.pull = self.config['pull']
 
             if 'inject' in self.config and is_dict(self.config['inject']):
                 for src_glob, dest_dir in self.config['inject'].iteritems():
@@ -137,6 +141,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             exit_code = builder.build(
                 console=self.step_runner.log,
                 nocache=self.nocache,
+                pull=self.pull,
             )
             if exit_code != 0 or not builder.image:
                 raise BuildRunnerProcessingError('Error building image')

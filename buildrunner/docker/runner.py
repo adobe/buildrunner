@@ -15,7 +15,6 @@ from buildrunner.docker import (
 )
 from buildrunner.utils import tempfile
 
-
 class DockerRunner(object):
     """
     An object that manages and orchestrates the lifecycle and execution of a
@@ -23,7 +22,7 @@ class DockerRunner(object):
     """
 
 
-    def __init__(self, image_name, dockerd_url=None):
+    def __init__(self, image_name, dockerd_url=None, pull_image=True):
         self.image_name = image_name
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
@@ -32,15 +31,16 @@ class DockerRunner(object):
         self.shell = None
         self.committed_image = None
 
-        # check to see if we have the requested image locally and
-        # pull it if we don't
-        pull_image = True
+        # By default, pull the image.  If the pull_image parameter is
+        # set to False, only pull the image if it can't be found locally
+        found_image = False
         for image in self.docker_client.images():
             for tag in image['RepoTags']:
                 if tag == self.image_name:
-                    pull_image = False
+                    found_image = True
                     break
-        if pull_image:
+
+        if pull_image or not found_image:
             self.docker_client.pull(self.image_name)
 
 
