@@ -17,7 +17,7 @@ from buildrunner.provisioners import create_provisioners
 from buildrunner.sshagent import DockerSSHAgentProxy
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
-from buildrunner.utils import ContainerLogger
+from buildrunner.utils import ContainerLogger, is_dict
 
 
 DEFAULT_SHELL = '/bin/sh'
@@ -680,9 +680,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self.step_runner.log.write(
             'Running post-build processing\n'
         )
+        config = self.config['post-build']
+        # post build always uses the image hash--can't pull
+        if not is_dict(config):
+            config = {'path': config}
+        config['pull'] = False
         build_image_task = BuildBuildStepRunnerTask(
             self.step_runner,
-            self.config['post-build'],
+            config,
             image_to_prepend_to_dockerfile=self.runner.commit(
                 self.step_runner.log,
             )
