@@ -46,7 +46,7 @@ class BuildRunner(object):
     Class used to manage running a build.
     """
 
-    CONTEXT_ENV_PREFIXES = ['BUILDRUNNER_', 'VCSINFO_', 'PACKAGER_']
+    CONTEXT_ENV_PREFIXES = ['BUILDRUNNER_', 'VCSINFO_', 'PACKAGER_', 'GAUNTLET_']
 
 
     def _get_config_context(self, ctx=None):
