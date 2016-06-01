@@ -250,6 +250,8 @@ every run container:
 - BUILDRUNNER_BUILD_NUMBER = the build number
 - BUILDRUNNER_BUILD_ID = a unique id identifying the build (includes vcs and
   build number information)
+- BUILDRUNNER_BUILD_TIME = the "unix" time or "epoch" time of the build (in
+  seconds)
 - VCSINFO_BRANCH = the VCS branch
 - VCSINFO_NUMBER = the VCS commit number
 - VCSINFO_ID = the VCS commit id

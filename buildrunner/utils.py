@@ -62,7 +62,7 @@ def is_dict(obj):
 def epoch_time():
     """Return the current epoch time in integer seconds."""
     return int(
-        (datetime.now() - datetime.utcfromtimestamp(0)).total_seconds()
+        (datetime.utcnow() - datetime.utcfromtimestamp(0)).total_seconds()
     )
 
 

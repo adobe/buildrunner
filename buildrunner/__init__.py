@@ -64,6 +64,7 @@ class BuildRunner(object):
         context = {
             'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
             'BUILDRUNNER_BUILD_ID': str(self.build_id),
+            'BUILDRUNNER_BUILD_TIME': str(self.build_time),
             'VCSINFO_BRANCH': str(self.vcs.branch),
             'VCSINFO_NUMBER': str(self.vcs.number),
             'VCSINFO_ID': str(self.vcs.id),
@@ -125,10 +126,13 @@ class BuildRunner(object):
         self.push = push
         self.colorize_log = colorize_log
 
+        # set build time
+        self.build_time = epoch_time()
+
         # set build number
         self.build_number = build_number
         if not self.build_number:
-            self.build_number = epoch_time()
+            self.build_number = self.build_time
 
         self.log = None
 
