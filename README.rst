@@ -265,7 +265,15 @@ The following volumes are created within run containers:
   tree (build directory)
 - /artifacts = (read-only) maps to the buildrunner.results directory
 
-The following example shows the different configuration options available::
+The /source volume is actually a mapped volume to a new source container
+containing a copy of the build source tree. This container is created from a
+docker image containing the entire source tree. Files can be excluded from this
+source image by creating a '.buildignore' file in the root of the source tree.
+This file follows the same conventions as a .dockerignore file does when
+creating Docker images.
+
+The following example shows the different configuration options available in
+the run step::
 
   steps:
     my-build-step:

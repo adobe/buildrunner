@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import codecs
 from collections import OrderedDict
 import copy
+import fnmatch
 import json
 import os
 import shutil
@@ -307,12 +308,21 @@ class BuildRunner(object):
         source image.
         """
         if not self._source_archive:
+            buildignore = os.path.join(self.build_dir, '.buildignore')
+            excludes = []
+            if os.path.exists(buildignore):
+                with open(buildignore, 'r') as _file:
+                    excludes = [_ex for _ex in _file.read().splitlines()]
+
             def _exclude_working_dir(tarinfo):
                 """
                 Filter to exclude results dir from source archive.
                 """
                 if tarinfo.name == os.path.basename(self.build_results_dir):
                     return None
+                for _ex in excludes:
+                    if fnmatch.fnmatch(tarinfo.name, _ex):
+                        return None
                 return tarinfo
 
             self.log.write('Creating source archive\n')
