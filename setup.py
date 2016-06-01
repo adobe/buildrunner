@@ -29,6 +29,9 @@ setup(
     },
     install_requires=[
         'PyYAML==3.11',
+        'requests==2.9.1',
+        'paramiko==1.16.0',
+        'pycrypto==2.6.1',
         'docker-py==1.3.1',
         'vcsinfo>=0.1.23',
         'fabric==1.10.1',
