@@ -91,7 +91,7 @@ class BuildRunner(object):
           multi-structure: configuration keys and values
         """
 
-        with open(cfg_file) as _file:
+        with codecs.open(cfg_file, 'r', encoding='utf-8') as _file:
             jtemplate = jinja2.Template(_file.read())
 
         config_context = copy.deepcopy(self.env)
@@ -359,7 +359,7 @@ class BuildRunner(object):
         create the log file and open for writing
         """
         log_file_path = os.path.join(self.build_results_dir, 'build.log')
-        self.log_file = codecs.open(log_file_path, 'w', 'utf-8')
+        self.log_file = open(log_file_path, 'w')
         self.log = ConsoleLogger(self.colorize_log, self.log_file)
         self.add_artifact(
             os.path.basename(log_file_path),
