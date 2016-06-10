@@ -221,7 +221,9 @@ class BuildRunner(object):
         for key_info in ssh_keys:
             if 'file' not in key_info:
                 continue
-            _key_file = key_info['file']
+            _key_file = os.path.realpath(
+                os.path.expanduser(os.path.expandvars(key_info['file']))
+            )
 
             _password = None
             if 'password' in key_info:
