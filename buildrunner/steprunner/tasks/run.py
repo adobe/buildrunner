@@ -8,6 +8,7 @@ import threading
 import uuid
 
 import buildrunner.docker
+from buildrunner.docker.daemon import DockerDaemonProxy
 from buildrunner.docker.runner import DockerRunner
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
@@ -39,6 +40,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._service_runners = OrderedDict()
         self._service_links = {}
         self._sshagent = None
+        self._dockerdaemonproxy = None
         self.runner = None
 
 
@@ -477,7 +479,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         )
 
         # container defaults
+        _source_container = self._get_source_container()
+        _container_name = str(uuid.uuid4())
+        _env_defaults = dict(self.step_runner.build_runner.env)
+        _env_defaults.update({
+            'BUILDRUNNER_SOURCE_CONTAINER': _source_container,
+            'BUILDRUNNER_BUILD_CONTAINER': _container_name,
+        })
         container_args = {
+            'name': _container_name,
             'hostname': None,
             'working_dir': SOURCE_VOLUME_MOUNT,
             'shell': None,
@@ -485,8 +495,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             'provisioners': None,
             'dns': None,
             'dns_search': None,
-            'environment': dict(self.step_runner.build_runner.env),
-            'volumes_from': [self._get_source_container()],
+            'environment': _env_defaults,
+            'volumes_from': [_source_container],
             'volumes': {
                 self.step_runner.build_runner.build_results_dir: (
                     ARTIFACTS_VOLUME_MOUNT + ':ro'
@@ -569,6 +579,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             if ssh_env:
                 for _var, _val in ssh_env.iteritems():
                     container_args['environment'][_var] = _val
+
+        # attach the docker daemon container
+        self._dockerdaemonproxy = DockerDaemonProxy(
+            self._docker_client,
+            self.step_runner.log,
+        )
+        self._dockerdaemonproxy.start()
+        daemon_container, daemon_env = self._dockerdaemonproxy.get_info()
+        if daemon_container:
+            container_args['volumes_from'].append(daemon_container)
+        if daemon_env:
+            for _var, _val in daemon_env.iteritems():
+                container_args['environment'][_var] = _val
 
         # see if we need to inject any files
         if 'files' in self.config:
@@ -699,11 +722,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
     def cleanup(self, context): #pylint: disable=unused-argument
         if self.runner:
-            self.step_runner.log.write(
-                'Destroying build container %.10s\n' % (
-                    self.runner.container['Id'],
+            if self.runner.container:
+                self.step_runner.log.write(
+                    'Destroying build container %.10s\n' % (
+                        self.runner.container['Id'],
+                    )
                 )
-            )
             self.runner.cleanup()
 
         if self._service_runners:
@@ -712,6 +736,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     'Destroying service container "%s"\n' % _sname
                 )
                 _srun.cleanup()
+
+        if self._dockerdaemonproxy:
+            self._dockerdaemonproxy.stop()
 
         if self._sshagent:
             self._sshagent.stop()
