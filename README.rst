@@ -33,10 +33,28 @@ for an example).
 Installation
 ============
 
-Currently the best way to install BuildRunner is via pip, pointing at the
-Release Engineering internal pypi server. This is best done when installing
-into a virtual environment using virtualenv. The following commands will create
-a new virtual environment, activate it, and install BuildRunner within it::
+There are three different options for installing Buildrunner.  Each option
+depends on `Docker <http://www.docker.com/getdocker>`_.  Windows also depends
+on ``bash``, which can be found at `Git Bash <https://git-for-windows.github.io/>`_.
+
+**1. Docker Container**  
+
+Buildrunner can be run as a Docker container.  This works cross-platform and
+is the easiest way to keep up to date.
+
+To install, simply checkout this repo and add the ``scripts`` directory to your 
+``$PATH``.  ``scripts`` contains wrapper scripts that pass the appropriate
+context to the Docker container.  There is a `bash <scripts/buildrunner>`_ script
+and a Windows `batch file <scripts/buildrunner.bat>`_, which simply calls the bash
+script.
+
+**2. Pip**
+
+If you wish to install buildrunner directly on your local machine, install via
+pip, pointing at the Release Engineering internal pypi server. This is best
+done when installing into a virtual environment using virtualenv. The following
+commands will create a new virtual environment, activate it, and install
+BuildRunner within it::
 
   virtualenv buildrunner
   source buildrunner/bin/activate
@@ -46,17 +64,10 @@ a new virtual environment, activate it, and install BuildRunner within it::
 The buildrunner executable is now available at buildrunner/bin/buildrunner and
 can be added to your path.
 
-OS X
-====
+**3. RPM**
 
-BuildRunner will work with boot2docker, allowing you to develop on a Mac OS X
-machine while still building on linux. BuildRunner honors the environment
-variable settings the same way that the docker client does. Get the latest
-version of boot2docker here::
-
-  https://github.com/boot2docker/osx-installer/releases
-
-BuildRunner has been verified to work with boot2docker 1.3.0.
+If you run CentOS 6 or CentOS 7, buildrunner can be installed using packages
+published by RelEng.
 
 ====================
 Global Configuration
