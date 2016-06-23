@@ -9,6 +9,7 @@ import struct
 import threading
 import time
 import urlparse
+import json
 
 from paramiko import (
     DSSKey,
@@ -130,20 +131,26 @@ class DockerSSHAgentProxy(object):
             "Created ssh-agent container %.10s\n" % self._ssh_agent_container
         )
 
-        # get the Docker server ip address and ssh port exposed by this
-        # container
         _ssh_host = 'localhost'
-        p_data = urlparse.urlparse(self.docker_client.base_url)
-        if p_data and 'unix' not in p_data.scheme and p_data.hostname:
-            if p_data.hostname != 'localunixsocket':
-                _ssh_host = p_data.hostname
-        _ssh_port_info = self.docker_client.port(self._ssh_agent_container, 22)
-        if not _ssh_port_info or 'HostPort' not in _ssh_port_info[0]:
-            raise BuildRunnerProcessingError(
-                "Unable to find port for ssh-agent container"
-            )
-        _ssh_port = _ssh_port_info[0]['HostPort']
-        _ssh_port = int(_ssh_port)
+        # See if buildrunner is executing from a container.  If so, hit the newly created container directly on port 22
+        if os.environ.get('BUILDRUNNER_CONTAINER'):
+            _ssh_container = self.docker_client.inspect_container(self._ssh_agent_container)
+            _ssh_host = _ssh_container.get("NetworkSettings", {}).get("IPAddress", _ssh_host)
+            _ssh_port = 22
+        else:
+            # get the Docker server ip address and ssh port exposed by this
+            # container
+            p_data = urlparse.urlparse(self.docker_client.base_url)
+            if p_data and 'unix' not in p_data.scheme and p_data.hostname:
+                if p_data.hostname != 'localunixsocket':
+                    _ssh_host = p_data.hostname
+            _ssh_port_info = self.docker_client.port(self._ssh_agent_container, 22)
+            if not _ssh_port_info or 'HostPort' not in _ssh_port_info[0]:
+                raise BuildRunnerProcessingError(
+                    "Unable to find port for ssh-agent container"
+                )
+            _ssh_port = _ssh_port_info[0]['HostPort']
+            _ssh_port = int(_ssh_port)
         time.sleep(3)
 
         # setup ssh connection with fake agent in own thread
