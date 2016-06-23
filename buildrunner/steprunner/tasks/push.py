@@ -102,25 +102,27 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             )
             previous_status = None
             for msg_str in stream:
-                msg = json.loads(msg_str)
-                if 'status' in msg:
-                    if msg['status'] == previous_status:
-                        continue
-                    self.step_runner.log.write(msg['status'] + '\n')
-                    previous_status = msg['status']
-                elif 'errorDetail' in msg:
-                    error_detail = "Error pushing image: %s\n" % (
-                        msg['errorDetail']
-                    )
-                    self.step_runner.log.write("\n" + error_detail)
-                    self.step_runner.log.write((
-                        "This could be because you are not authenticated "
-                        "with the given Docker registry (try 'docker login "
-                        "<registry>')\n\n"
-                    ))
-                    raise BuildRunnerProcessingError(error_detail)
-                else:
-                    self.step_runner.log.write(str(msg) + '\n')
+                for msg in msg_str.split("\n"):
+                    if msg:
+                        msg = json.loads(msg)
+                        if 'status' in msg:
+                            if msg['status'] == previous_status:
+                                continue
+                            self.step_runner.log.write(msg['status'] + '\n')
+                            previous_status = msg['status']
+                        elif 'errorDetail' in msg:
+                            error_detail = "Error pushing image: %s\n" % (
+                                msg['errorDetail']
+                            )
+                            self.step_runner.log.write("\n" + error_detail)
+                            self.step_runner.log.write((
+                                "This could be because you are not authenticated "
+                                "with the given Docker registry (try 'docker login "
+                                "<registry>')\n\n"
+                            ))
+                            raise BuildRunnerProcessingError(error_detail)
+                        else:
+                            self.step_runner.log.write(str(msg) + '\n')
 
             # cleanup the image and tag
             self._docker_client.remove_image(

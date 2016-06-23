@@ -80,36 +80,38 @@ class DockerBuilder(object):
         # monitor output for logs and status
         exit_code = 0
         for msg_str in stream:
-            msg = json.loads(msg_str)
-            if 'stream' in msg:
-                # capture intermediate containers for cleanup later
-                # the command line 'docker build' has a '--force-rm' option,
-                # but that isn't available in the python client
-                container_match = re.search(
-                    r' ---> Running in ([0-9a-f]+)',
-                    msg['stream'],
-                )
-                if container_match:
-                    self.intermediate_containers.append(
-                        container_match.group(1)
-                    )
-
-                # capture the resulting image
-                image_match = re.search(
-                    r'Successfully built ([0-9a-f]+)',
-                    msg['stream'],
-                )
-                if image_match:
-                    self.image = image_match.group(1)
-
-                if console:
-                    console.write(msg['stream'])
-            if 'error' in msg:
-                exit_code = 1
-                if 'errorDetail' in msg:
-                    if 'message' in msg['errorDetail'] and console:
-                        console.write(msg['errorDetail']['message'])
-                        console.write('\n')
+            for msg in msg_str.split("\n"):
+                if msg:
+                    msg = json.loads(msg)
+                    if 'stream' in msg:
+                        # capture intermediate containers for cleanup later
+                        # the command line 'docker build' has a '--force-rm' option,
+                        # but that isn't available in the python client
+                        container_match = re.search(
+                            r' ---> Running in ([0-9a-f]+)',
+                            msg['stream'],
+                        )
+                        if container_match:
+                            self.intermediate_containers.append(
+                                container_match.group(1)
+                            )
+    
+                        # capture the resulting image
+                        image_match = re.search(
+                            r'Successfully built ([0-9a-f]+)',
+                            msg['stream'],
+                        )
+                        if image_match:
+                            self.image = image_match.group(1)
+    
+                        if console:
+                            console.write(msg['stream'])
+                    if 'error' in msg:
+                        exit_code = 1
+                        if 'errorDetail' in msg:
+                            if 'message' in msg['errorDetail'] and console:
+                                console.write(msg['errorDetail']['message'])
+                                console.write('\n')
 
         return exit_code
 
