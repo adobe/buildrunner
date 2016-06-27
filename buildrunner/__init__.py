@@ -118,6 +118,7 @@ class BuildRunner(object):
             build_number=None,
             push=False,
             colorize_log=True,
+            cleanup=False,
     ):
         """
         """
@@ -125,6 +126,9 @@ class BuildRunner(object):
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
         self.working_dir = os.path.join(self.build_results_dir, '.working')
         self.push = push
+        self.cleanup = cleanup
+        self.generated_images = []
+        self.repo_tags_to_push = []
         self.colorize_log = colorize_log
 
         # set build time
@@ -455,6 +459,56 @@ class BuildRunner(object):
                 )
                 build_step_runner.run()
 
+            self.log.write(
+                "\nFinalizing build\n________________________________________\n"
+            )
+
+            # see if we should push registered tags to remote registries
+            if self.push:
+                self.log.write(
+                    'Push requested--pushing generated images to remote '
+                    'registries\n'
+                )
+                _docker_client = docker.new_client()
+                for _repo_tag, _insecure_registry in self.repo_tags_to_push:
+                    self.log.write(
+                        '\nPushing %s\n' % _repo_tag
+                    )
+                    stream = _docker_client.push(
+                        _repo_tag,
+                        stream=True,
+                        insecure_registry=_insecure_registry,
+                    )
+                    previous_status = None
+                    for msg_str in stream:
+                        for msg in msg_str.split("\n"):
+                            if not msg:
+                                continue
+                            msg = json.loads(msg)
+                            if 'status' in msg:
+                                if msg['status'] == previous_status:
+                                    continue
+                                self.log.write(msg['status'] + '\n')
+                                previous_status = msg['status']
+                            elif 'errorDetail' in msg:
+                                error_detail = "Error pushing image: %s\n" % (
+                                    msg['errorDetail']
+                                )
+                                self.log.write("\n" + error_detail)
+                                self.log.write((
+                                    "This could be because you are not "
+                                    "authenticated with the given Docker "
+                                    "registry (try 'docker login "
+                                    "<registry>')\n\n"
+                                ))
+                                raise BuildRunnerProcessingError(error_detail)
+                            else:
+                                self.log.write(str(msg) + '\n')
+            else:
+                self.log.write(
+                    '\nPush not requested\n'
+                )
+
         except BuildRunnerConfigurationError as brce:
             exit_explanation = str(brce)
             self.exit_code = os.EX_CONFIG
@@ -472,12 +526,37 @@ class BuildRunner(object):
         finally:
             self._write_artifact_manifest()
 
+            _docker_client = docker.new_client()
+            if self.cleanup:
+                self.log.write(
+                    'Removing local copy of generated images\n'
+                )
+                # cleanup all registered docker images
+                for _image in self.generated_images:
+                    try:
+                        _docker_client.remove_image(
+                            _image,
+                            noprune=False,
+                            force=True,
+                        )
+                    except Exception as _ex: #pylint: disable=broad-except
+                        self.log.write(
+                            'Error removing image %s: %s' % (
+                                _image,
+                                str(_ex),
+                            )
+                        )
+            else:
+                self.log.write(
+                    'Keeping generated images\n'
+                )
+
             # cleanup the source image
             if self._source_image:
                 self.log.write(
                     "Destroying source image %s\n" % self._source_image
                 )
-                docker.new_client().remove_image(
+                _docker_client.remove_image(
                     self._source_image,
                     noprune=False,
                     force=True,

@@ -58,6 +58,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--keep-images',
+        default=False,
+        action='store_true',
+        dest='keep_images',
+        #pylint: disable=C0301
+        help='keep generated images at the end of the build (images are by default deleted to prevent clutter on build machines)',
+    )
+
+    parser.add_argument(
         '--no-color',
         default=False,
         action='store_true',
@@ -84,7 +93,8 @@ def main():
             args.config_file,
             args.build_number,
             push=args.push,
-            colorize_log=not args.no_log_color
+            colorize_log=not args.no_log_color,
+            cleanup=not args.keep_images,
         )
         build_runner.run()
         if build_runner.exit_code:
