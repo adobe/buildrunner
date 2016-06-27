@@ -8,6 +8,7 @@ import os
 import sys
 
 from buildrunner import (
+    __version__,
     BuildRunner,
     BuildRunnerConfigurationError,
 )
@@ -67,6 +68,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--version',
+        default=False,
+        action='store_true',
+        dest='print_version',
+        #pylint: disable=C0301
+        help='print the current buildrunner version and exit',
+    )
+
+    parser.add_argument(
         '--no-color',
         default=False,
         action='store_true',
@@ -86,6 +96,12 @@ def parse_args():
 def main():
     """Main program execution."""
     args = parse_args()
+
+    # are we just printing the version?
+    if args.print_version:
+        print __version__
+        return os.EX_OK
+
     try:
         build_runner = BuildRunner(
             args.directory,

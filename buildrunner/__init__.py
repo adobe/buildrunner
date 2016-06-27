@@ -6,6 +6,7 @@ import codecs
 from collections import OrderedDict
 import copy
 import fnmatch
+import imp
 import json
 import os
 import shutil
@@ -33,6 +34,16 @@ from buildrunner.utils import (
     load_config,
 )
 from vcsinfo import detect_vcs
+
+
+__version__ = 'DEVELOPMENT'
+try:
+    _VERSION_FILE = os.path.join(os.path.dirname(__file__), 'version.py')
+    if os.path.exists(_VERSION_FILE):
+        _VERSION_MOD = imp.load_source('buildrunnerversion', _VERSION_FILE)
+        __version__ = _VERSION_MOD.__version__
+except: #pylint: disable=bare-except
+    pass
 
 
 DEFAULT_GLOBAL_CONFIG_FILE = '~/.buildrunner.yaml'
