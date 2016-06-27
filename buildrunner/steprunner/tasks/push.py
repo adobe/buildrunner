@@ -47,7 +47,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
     def run(self, context):
         self.step_runner.log.write(
-            'Pushing resulting image to "%s".\n' % self._repository
+            'Preparing resulting image for push to "%s".\n' % self._repository
         )
 
         # first see if a run task produced an image (via a post-build config)
@@ -76,6 +76,9 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         # number
         self._tags.append(self.step_runner.build_runner.build_id)
 
+        # add the image to the list of generated images for potential cleanup
+        self.step_runner.build_runner.generated_images.append(image_to_use)
+
         # tag the image
         for _tag in self._tags:
             self.step_runner.log.write(
@@ -91,49 +94,10 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 tag=_tag,
                 force=True,
             )
-
-        # see if we should push the image to a remote repository
-        if self.step_runner.build_runner.push:
-            # push the image
-            stream = self._docker_client.push(
-                self._repository,
-                stream=True,
-                insecure_registry=self._insecure_registry,
-            )
-            previous_status = None
-            for msg_str in stream:
-                for msg in msg_str.split("\n"):
-                    if msg:
-                        msg = json.loads(msg)
-                        if 'status' in msg:
-                            if msg['status'] == previous_status:
-                                continue
-                            self.step_runner.log.write(msg['status'] + '\n')
-                            previous_status = msg['status']
-                        elif 'errorDetail' in msg:
-                            error_detail = "Error pushing image: %s\n" % (
-                                msg['errorDetail']
-                            )
-                            self.step_runner.log.write("\n" + error_detail)
-                            self.step_runner.log.write((
-                                "This could be because you are not authenticated "
-                                "with the given Docker registry (try 'docker login "
-                                "<registry>')\n\n"
-                            ))
-                            raise BuildRunnerProcessingError(error_detail)
-                        else:
-                            self.step_runner.log.write(str(msg) + '\n')
-
-            # cleanup the image and tag
-            self._docker_client.remove_image(
-                image_to_use,
-                noprune=True,
-                force=True,
-            )
-        else:
-            self.step_runner.log.write(
-                'push not requested--not cleaning up image locally\n'
-            )
+            self.step_runner.build_runner.repo_tags_to_push.append((
+                "%s:%s" % (self._repository, _tag),
+                self._insecure_registry,
+            ))
 
         # add image as artifact
         self.step_runner.build_runner.add_artifact(
