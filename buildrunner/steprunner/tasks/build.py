@@ -96,29 +96,24 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 ]:
                     self.dockerfile = src_file
 
-        if not self.dockerfile:
-            raise BuildRunnerConfigurationError(
-                'Cannot find a Dockerfile in the given path '
-                'or inject configurations'
+        if self.dockerfile:
+            _dockerfile_abs_path = self.step_runner.build_runner.to_abs_path(
+                self.dockerfile,
             )
+            if os.path.exists(_dockerfile_abs_path):
+                self.dockerfile = _dockerfile_abs_path
+                if self.image_to_prepend_to_dockerfile:
+                    # need to load the contents of the Dockerfile so that we
+                    # can prepend the image
+                    with open(_dockerfile_abs_path, 'r') as _dockerfile:
+                        self.dockerfile = _dockerfile.read()
 
-        _dockerfile_abs_path = self.step_runner.build_runner.to_abs_path(
-            self.dockerfile,
-        )
-        if os.path.exists(_dockerfile_abs_path):
-            self.dockerfile = _dockerfile_abs_path
             if self.image_to_prepend_to_dockerfile:
-                # need to load the contents of the Dockerfile so that we
-                # can prepend the image
-                with open(_dockerfile_abs_path, 'r') as _dockerfile:
-                    self.dockerfile = _dockerfile.read()
-
-        if self.image_to_prepend_to_dockerfile:
-            # prepend the given image to the dockerfile
-            self.dockerfile = 'FROM %s\n%s' % (
-                self.image_to_prepend_to_dockerfile,
-                self.dockerfile
-            )
+                # prepend the given image to the dockerfile
+                self.dockerfile = 'FROM %s\n%s' % (
+                    self.image_to_prepend_to_dockerfile,
+                    self.dockerfile
+                )
 
 
     def run(self, context):
@@ -130,6 +125,12 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             ))
             context['image'] = DockerImporter(self._import).import_image()
             return
+
+        if not self.dockerfile:
+            raise BuildRunnerConfigurationError(
+                'Cannot find a Dockerfile in the given path '
+                'or inject configurations'
+            )
 
         self.step_runner.log.write('Running docker build\n')
         builder = DockerBuilder(
