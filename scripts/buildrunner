@@ -1,0 +1,18 @@
+#!/bin/bash
+
+env_vars="-e HOME=/$HOME"
+for var in $(env | egrep -i "^(DOCKER_HOST|DOCKER_TLS_VERIFY|DOCKER_CERT_PATH|BUILDRUNNER_)")
+do
+	var=$( echo "$var" | sed "s,=\([a-z]\):,=//\L\1,gi")
+        env_vars="$env_vars -e $var"
+done
+
+
+# stdbuf disables buffering
+docker run \
+        $env_vars \
+        -v /$HOME:$HOME \
+	-v /var/run/docker.sock:/var/run/docker.sock \
+        -w /`pwd` \
+        releng-docker-registry.dev.ut1.omniture.com/releng/buildrunner:latest \
+        stdbuf -oL buildrunner $@
