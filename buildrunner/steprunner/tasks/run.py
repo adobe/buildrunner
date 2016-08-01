@@ -365,6 +365,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         _volumes_from = [self._get_source_container()]
 
+        # attach the docker daemon container
+        daemon_container, daemon_env = self._dockerdaemonproxy.get_info()
+        if daemon_container:
+            _volumes_from.append(daemon_container)
+        if daemon_env:
+            for _var, _val in daemon_env.iteritems():
+                _env[_var] = _val
+
         # see if we need to map any service container volumes
         if 'volumes_from' in config:
             _volumes_from.extend(self._process_volumes_from(
@@ -515,6 +523,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
             self._sshagent.start(_keys)
 
+        # start the docker daemon proxy
+        self._dockerdaemonproxy = DockerDaemonProxy(
+            self._docker_client,
+            self.step_runner.log,
+        )
+        self._dockerdaemonproxy.start()
+
         # start any service containers
         if 'services' in self.config:
             for _name, _config in self.config['services'].iteritems():
@@ -581,11 +596,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     container_args['environment'][_var] = _val
 
         # attach the docker daemon container
-        self._dockerdaemonproxy = DockerDaemonProxy(
-            self._docker_client,
-            self.step_runner.log,
-        )
-        self._dockerdaemonproxy.start()
         daemon_container, daemon_env = self._dockerdaemonproxy.get_info()
         if daemon_container:
             container_args['volumes_from'].append(daemon_container)
