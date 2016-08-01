@@ -3,7 +3,11 @@
 env_vars="-e HOME=/$HOME"
 for var in $(env | egrep -i "^(DOCKER_HOST|DOCKER_TLS_VERIFY|DOCKER_CERT_PATH|BUILDRUNNER_)")
 do
-	var=$( echo "$var" | sed "s,=\([a-z]\):,=//\L\1,gi")
+	if [[ "$OS" = Windows* ]]
+	then
+		# Replace =c: with =//c
+		var=$( echo "$var" | sed "s,=\([a-z]\):,=//\L\1,gi" )
+	fi
         env_vars="$env_vars -e $var"
 done
 
