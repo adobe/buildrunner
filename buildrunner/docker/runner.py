@@ -35,7 +35,7 @@ class DockerRunner(object):
         # set to False, only pull the image if it can't be found locally
         found_image = False
         for image in self.docker_client.images():
-            for tag in image['RepoTags']:
+            for tag in image['RepoTags'] or []:
                 if tag == self.image_name:
                     found_image = True
                     break
