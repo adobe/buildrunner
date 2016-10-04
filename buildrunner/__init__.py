@@ -130,6 +130,7 @@ class BuildRunner(object):
             push=False,
             colorize_log=True,
             cleanup=False,
+            steps_to_run=None,
     ):
         """
         """
@@ -141,6 +142,7 @@ class BuildRunner(object):
         self.generated_images = []
         self.repo_tags_to_push = []
         self.colorize_log = colorize_log
+        self.steps_to_run = steps_to_run
 
         # set build time
         self.build_time = epoch_time()
@@ -463,12 +465,13 @@ class BuildRunner(object):
 
             # run each step
             for step_name, step_config in self.run_config['steps'].iteritems():
-                build_step_runner = BuildStepRunner(
-                    self,
-                    step_name,
-                    step_config,
-                )
-                build_step_runner.run()
+                if not self.steps_to_run or step_name in self.steps_to_run:
+                    build_step_runner = BuildStepRunner(
+                        self,
+                        step_name,
+                        step_config,
+                    )
+                    build_step_runner.run()
 
             self.log.write(
                 "\nFinalizing build\n________________________________________\n"
