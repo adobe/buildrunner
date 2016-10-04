@@ -68,6 +68,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        '-s', '--steps',
+        default=[],
+        dest='steps',
+        action='append',
+        #pylint: disable=C0301
+        help='only run the listed steps (use the argument multiple times or specify as comma-delimited)',
+    )
+
+    parser.add_argument(
         '--version',
         default=False,
         action='store_true',
@@ -90,6 +99,11 @@ def parse_args():
     # Only absolute directories can do a mount bind
     args.directory = os.path.realpath(args.directory)
 
+    _steps = []
+    for _step in args.steps:
+        _steps.extend(_step.split(','))
+    args.steps = _steps
+
     return args
 
 
@@ -111,6 +125,7 @@ def main():
             push=args.push,
             colorize_log=not args.no_log_color,
             cleanup=not args.keep_images,
+            steps_to_run=args.steps,
         )
         build_runner.run()
         if build_runner.exit_code:
