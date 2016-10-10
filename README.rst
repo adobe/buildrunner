@@ -42,7 +42,7 @@ on ``bash``, which can be found at `Git Bash <https://git-for-windows.github.io/
 Buildrunner can be run as a Docker container.  This works cross-platform and
 is the easiest way to keep up to date.
 
-To install, simply checkout this repo and add the ``scripts`` directory to your 
+To install, simply clone this repo and add the ``scripts`` directory to your 
 ``$PATH``.  ``scripts`` contains wrapper scripts that pass the appropriate
 context to the Docker container.  There is a `bash <scripts/buildrunner>`_ script
 and a Windows `batch file <scripts/buildrunner.bat>`_, which simply calls the bash
