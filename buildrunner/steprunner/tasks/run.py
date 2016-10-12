@@ -160,34 +160,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         # check if the file is directory, to copy recursive
                         is_dir = file_type.strip() == 'directory'
 
-                        file_type = ''
-                        archive_command = ''
-                        new_artifact_file = ''
-
-                        filename = os.path.basename(artifact_file)
-
                         if is_dir:
-                            file_type = "directory"
-                            output_file_name = filename + '.tar.gz'
-                            new_artifact_file = (
-                                '/stepresults/' +
-                                output_file_name.replace('"', '\\"')
+                            self._archive_dir(
+                                artifact_lister,
+                                properties,
+                                artifact_file,
                             )
-                            working_dir = ''
-                            if os.path.dirname(artifact_file):
-                                working_dir = (
-                                    ' -C "%s"' % os.path.dirname(
-                                        artifact_file,
-                                    ).replace('"', '\\"')
-                                )
-                            archive_command = (
-                                'tar -cvzf "' + new_artifact_file + '"' +
-                                working_dir + ' "' +
-                                filename.replace('"', '\\"') + '"'
-                            )
+
                         else:
-                            file_type = "file"
-                            output_file_name = filename
+                            output_file_name = os.path.basename(artifact_file)
                             new_artifact_file = (
                                 '/stepresults/' +
                                 output_file_name.replace('"', '\\"')
@@ -197,55 +178,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                                 '" "' + new_artifact_file +
                                 '"'
                             )
-
-                        self.step_runner.log.write(
-                            '- found {type} {name}\n'.format(
-                                type=file_type,
-                                name=filename,
-                            )
-                        )
-
-                        exit_code = artifact_lister.run(
-                            archive_command,
-                        )
-                        if exit_code != 0:
-                            raise Exception(
-                                "Error gathering artifact %s" % (
-                                    artifact_file,
-                                ),
-                            )
-
-                        # make sure the current user/group ids of our
-                        # process are set as the owner of the files
-                        exit_code = artifact_lister.run(
-                            'chown %d:%d "%s"' % (
-                                os.getuid(),
-                                os.getgid(),
-                                new_artifact_file,
-                            ),
-                        )
-                        if exit_code != 0:
-                            raise Exception(
-                                "Error gathering artifact %s" % (
-                                    artifact_file,
-                                ),
-                            )
-
-                        # add properties if directory
-                        new_properties = properties or dict()
-                        if is_dir:
-                            new_properties[
-                                'buildrunner.compressed.directory'
-                            ] = 'true'
-
-                        # register the artifact with the run controller
-                        self.step_runner.build_runner.add_artifact(
-                            os.path.join(
-                                self.step_runner.name,
+                            self._archive_file(
+                                artifact_lister,
+                                'file',
                                 output_file_name,
-                            ),
-                            new_properties,
-                        )
+                                archive_command,
+                                artifact_file,
+                                new_artifact_file,
+                                output_file_name,
+                                properties,
+                            )
 
                 #remove the stat output file
                 if os.path.exists(stat_output_file_local):
@@ -254,6 +196,162 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         finally:
             if artifact_lister:
                 artifact_lister.cleanup()
+
+
+    def _archive_dir(
+            self,
+            artifact_lister,
+            properties,
+            artifact_file,
+    ):
+        """
+        Archive the given directory.
+        """
+        if properties.pop('format', None) == 'uncompressed':
+            # recursively find all files in dir and add
+            # each one, passing any properties
+            properties
+
+            # find all files underneath the dir
+            find_output_file = "%s.out" % str(uuid.uuid4())
+            find_output_file_local = os.path.join(
+                self.step_runner.results_dir,
+                find_output_file,
+            )
+            find_exit_code = artifact_lister.run(
+                'find %s -type f> /stepresults/%s' % (
+                    artifact_file,
+                    find_output_file,
+                ),
+                stream=False,
+            )
+            if find_exit_code == 0:
+                with open(find_output_file_local, 'r') as output_fd:
+                    output = output_fd.read()
+                for _file in [_f.strip() for _f in output.split('\n')]:
+                    if not _file:
+                        continue
+
+                    output_file_name = _file
+                    new_artifact_file = (
+                        '/stepresults/' +
+                        output_file_name.replace('"', '\\"')
+                    )
+                    _dir_name = os.path.dirname(_file).replace('"', '\\"')
+                    archive_command = (
+                        'mkdir -p "/stepresults/' +
+                        _dir_name + '"; cp "' +
+                        _file.replace('"', '\\"') +
+                        '" "' + new_artifact_file +
+                        '"'
+                    )
+                    self._archive_file(
+                        artifact_lister,
+                        'file',
+                        _file,
+                        archive_command,
+                        _file,
+                        new_artifact_file,
+                        output_file_name,
+                        properties,
+                    )
+
+                #remove the find output file
+                if os.path.exists(find_output_file_local):
+                    os.remove(find_output_file_local)
+
+        else:
+            filename = os.path.basename(artifact_file)
+            output_file_name = filename + '.tar.gz'
+            new_artifact_file = (
+                '/stepresults/' +
+                output_file_name.replace('"', '\\"')
+            )
+            working_dir = ''
+            if os.path.dirname(artifact_file):
+                working_dir = (
+                    ' -C "%s"' % os.path.dirname(
+                        artifact_file,
+                    ).replace('"', '\\"')
+                )
+            archive_command = (
+                'tar -cvzf "' + new_artifact_file + '"' +
+                working_dir + ' "' +
+                filename.replace('"', '\\"') + '"'
+            )
+            new_properties = dict()
+            new_properties.update(properties)
+            new_properties[
+                'buildrunner.compressed.directory'
+            ] = 'true'
+            self._archive_file(
+                artifact_lister,
+                'directory',
+                filename,
+                archive_command,
+                artifact_file,
+                new_artifact_file,
+                output_file_name,
+                new_properties,
+            )
+
+
+
+    def _archive_file(
+            self,
+            artifact_lister,
+            file_type,
+            filename,
+            archive_command,
+            artifact_file,
+            new_artifact_file,
+            output_file_name,
+            properties,
+    ):
+        """
+        Archive the given file.
+        """
+        self.step_runner.log.write(
+            '- found {type} {name}\n'.format(
+                type=file_type,
+                name=filename,
+            )
+        )
+
+        exit_code = artifact_lister.run(
+            archive_command,
+        )
+        if exit_code != 0:
+            raise Exception(
+                "Error gathering artifact %s" % (
+                    artifact_file,
+                ),
+            )
+
+        # make sure the current user/group ids of our
+        # process are set as the owner of the files
+        exit_code = artifact_lister.run(
+            'chown %d:%d "%s"' % (
+                os.getuid(),
+                os.getgid(),
+                new_artifact_file,
+            ),
+        )
+        if exit_code != 0:
+            raise Exception(
+                "Error gathering artifact %s" % (
+                    artifact_file,
+                ),
+            )
+
+        # register the artifact with the run controller
+        self.step_runner.build_runner.add_artifact(
+            os.path.join(
+                self.step_runner.name,
+                output_file_name,
+            ),
+            properties,
+        )
 
 
     def _start_service_container(self, name, config):
