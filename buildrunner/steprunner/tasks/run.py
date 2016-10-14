@@ -207,12 +207,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Archive the given directory.
         """
-        if properties.pop('format', None) == 'uncompressed':
+        if properties and properties.pop('format', None) == 'uncompressed':
             # recursively find all files in dir and add
             # each one, passing any properties
-            properties
-
-            # find all files underneath the dir
             find_output_file = "%s.out" % str(uuid.uuid4())
             find_output_file_local = os.path.join(
                 self.step_runner.results_dir,
@@ -280,7 +277,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 filename.replace('"', '\\"') + '"'
             )
             new_properties = dict()
-            new_properties.update(properties)
+            if properties:
+                new_properties.update(properties)
             new_properties[
                 'buildrunner.compressed.directory'
             ] = 'true'
