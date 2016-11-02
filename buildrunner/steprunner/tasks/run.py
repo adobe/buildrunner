@@ -198,7 +198,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 # make sure the current user/group ids of our
                 # process are set as the owner of the files
                 exit_code = artifact_lister.run(
-                    'chown -R %d:%d /stepresults/*' % (
+                    'chown -R %d:%d /stepresults' % (
                         os.getuid(),
                         os.getgid(),
                     ),
