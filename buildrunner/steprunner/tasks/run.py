@@ -195,6 +195,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         finally:
             if artifact_lister:
+                # make sure the current user/group ids of our
+                # process are set as the owner of the files
+                exit_code = artifact_lister.run(
+                    'chown -R %d:%d /stepresults/*' % (
+                        os.getuid(),
+                        os.getgid(),
+                    ),
+                )
+                if exit_code != 0:
+                    raise Exception(
+                        "Error gathering artifacts--unable to change ownership"
+                    )
+
                 artifact_lister.cleanup()
 
 
@@ -318,22 +331,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         exit_code = artifact_lister.run(
             archive_command,
-        )
-        if exit_code != 0:
-            raise Exception(
-                "Error gathering artifact %s" % (
-                    artifact_file,
-                ),
-            )
-
-        # make sure the current user/group ids of our
-        # process are set as the owner of the files
-        exit_code = artifact_lister.run(
-            'chown %d:%d "%s"' % (
-                os.getuid(),
-                os.getgid(),
-                new_artifact_file,
-            ),
         )
         if exit_code != 0:
             raise Exception(
