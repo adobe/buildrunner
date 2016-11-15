@@ -526,6 +526,13 @@ within service container configuration::
             # is appropriate and we don't need to check upstream for changes.
             pull: true/false (defaults to true)
 
+            # A list of container names created within any service containr
+            # that buildrunner should clean up.  (Use if you call
+            # 'docker run --name <name>' within a service container.)
+            containers:
+              - container1
+              - container2
+
 Here is an example of a 'run' definition that simply runs the default command
 from the specified Docker image and archives the given artifacts::
 

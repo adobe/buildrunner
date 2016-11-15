@@ -456,6 +456,11 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             for key, value in config['env'].iteritems():
                 _env[key] = value
 
+        # make buildrunner aware of spawned containers
+        _containers = None
+        if 'containers' in config:
+            _containers = config['containers']
+
         _volumes_from = [self._get_source_container()]
 
         # attach the docker daemon container
@@ -519,6 +524,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             dns=_dns,
             dns_search=_dns_search,
             working_dir=_cwd,
+            containers=_containers,
         )
         self._service_links[cont_name] = name
 
