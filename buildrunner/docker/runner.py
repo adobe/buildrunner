@@ -9,6 +9,8 @@ import ssl
 import docker
 import six
 
+from docker.utils import compare_version
+
 from buildrunner.docker import (
     new_client,
     BuildRunnerContainerError,
@@ -95,6 +97,10 @@ class DockerRunner(object):
         if dns_search and isinstance(dns_search, six.string_types):
             dns_search = dns_search.split(',')
 
+        create_dns = dns
+        if compare_version('1.10', self.docker_client.api_version) >= 0:
+            create_dns = None
+
         # start the container
         self.container = self.docker_client.create_container(
             self.image_name,
@@ -108,7 +114,7 @@ class DockerRunner(object):
             user=user,
             working_dir=working_dir,
             hostname=hostname,
-            dns=dns,
+            dns=create_dns,
             host_config=docker.utils.create_host_config(binds=_binds),
         )
         self.docker_client.start(
