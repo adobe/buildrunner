@@ -420,6 +420,13 @@ the run step::
             EXPOSE 80
             CMD /runserver.sh
 
+        # A list of container names created within any run container
+        # that buildrunner should clean up.  (Use if you call
+        # 'docker run --name <name>' within a run container.)
+        containers:
+          - container1
+          - container2
+
 Service Containers
 ------------------
 
@@ -526,7 +533,7 @@ within service container configuration::
             # is appropriate and we don't need to check upstream for changes.
             pull: true/false (defaults to true)
 
-            # A list of container names created within any service containr
+            # A list of container names created within any service container
             # that buildrunner should clean up.  (Use if you call
             # 'docker run --name <name>' within a service container.)
             containers:
