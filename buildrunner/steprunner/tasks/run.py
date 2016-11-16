@@ -456,6 +456,11 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             for key, value in config['env'].iteritems():
                 _env[key] = value
 
+        # make buildrunner aware of spawned containers
+        _containers = None
+        if 'containers' in config:
+            _containers = config['containers']
+
         _volumes_from = [self._get_source_container()]
 
         # attach the docker daemon container
@@ -519,6 +524,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             dns=_dns,
             dns_search=_dns_search,
             working_dir=_cwd,
+            containers=_containers,
         )
         self._service_links[cont_name] = name
 
@@ -597,6 +603,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             'dns': None,
             'dns_search': None,
             'environment': _env_defaults,
+            'containers': None,
             'volumes_from': [_source_container],
             'volumes': {
                 self.step_runner.build_runner.build_results_dir: (
@@ -672,6 +679,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if 'env' in self.config:
             for key, value in self.config['env'].iteritems():
                 container_args['environment'][key] = value
+
+        # make buildrunner aware of spawned containers
+        if 'containers' in self.config:
+            container_args['containers'] = self.config['containers']
 
         # see if we need to map any service container volumes
         if 'volumes_from' in self.config:

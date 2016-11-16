@@ -32,6 +32,7 @@ class DockerRunner(object):
         self.container = None
         self.shell = None
         self.committed_image = None
+        self.containers = []
 
         # By default, pull the image.  If the pull_image parameter is
         # set to False, only pull the image if it can't be found locally
@@ -61,6 +62,7 @@ class DockerRunner(object):
             hostname=None,
             dns=None,
             dns_search=None,
+            containers=None,
     ): #pylint: disable=too-many-arguments
         """
         Kwargs:
@@ -70,6 +72,10 @@ class DockerRunner(object):
         if self.container:
             raise BuildRunnerContainerError('Container already started')
         self.shell = shell
+
+        # save any spawned containers
+        if containers:
+            self.containers = containers
 
         # prepare volumes
         _volumes = []
@@ -160,6 +166,16 @@ class DockerRunner(object):
                 force=True,
                 v=True,
             )
+            for c in self.containers:
+                try:
+                    self.docker_client.remove_container(
+                        c,
+                        force=True,
+                        v=True,
+                    )
+                except docker.errors.NotFound, e:
+                    print str(e)
+
         self.container = None
 
 
