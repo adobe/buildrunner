@@ -589,7 +589,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             if not open:
                time.sleep(1)
 
-        self.step_runner.log.write("Port %d is listening in container %s with ip:port %s\n" % (port, name, ip))
+        self.step_runner.log.write("Port %d is listening in container %s with ip %s\n" % (port, name, ip))
 
     def run(self, context):
         _run_image = self.config.get('image', context.get('image', None))
