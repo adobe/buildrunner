@@ -540,6 +540,13 @@ within service container configuration::
               - container1
               - container2
 
+            # Wait for particular ports to be open this container before moving on
+            # This allows dependant services to know that a service inside the
+            # container is running
+            wait_for:
+              - 80
+              - 9999
+
 Here is an example of a 'run' definition that simply runs the default command
 from the specified Docker image and archives the given artifacts::
 

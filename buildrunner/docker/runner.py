@@ -161,11 +161,6 @@ class DockerRunner(object):
         Cleanup the backing Docker container, stopping it if necessary.
         """
         if self.container:
-            self.docker_client.remove_container(
-                self.container['Id'],
-                force=True,
-                v=True,
-            )
             for c in self.containers:
                 try:
                     self.docker_client.remove_container(
@@ -175,6 +170,12 @@ class DockerRunner(object):
                     )
                 except docker.errors.NotFound, e:
                     print str(e)
+
+            self.docker_client.remove_container(
+                self.container['Id'],
+                force=True,
+                v=True,
+            )
 
         self.container = None
 
