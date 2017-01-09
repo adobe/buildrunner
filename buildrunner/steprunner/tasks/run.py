@@ -6,6 +6,8 @@ from collections import OrderedDict
 import os
 import threading
 import uuid
+import socket
+import time
 
 import buildrunner.docker
 from buildrunner.docker.daemon import DockerDaemonProxy
@@ -461,6 +463,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if 'containers' in config:
             _containers = config['containers']
 
+        # wait for ports on this container to be listening
+        # before moving on
+        _wait_for = []
+        if 'wait_for' in config:
+            _wait_for = config['wait_for']
+
         _volumes_from = [self._get_source_container()]
 
         # attach the docker daemon container
@@ -555,6 +563,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         service_management_thread.daemon = True
         service_management_thread.start()
 
+        # wait for listening ports on this container
+        for container_port in _wait_for:
+            self.wait(cont_name, container_port)
+
         self.step_runner.log.write(
             'Started service container "%s" (%.10s)\n' % (
                 name,
@@ -562,6 +574,22 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
         )
 
+    def wait(self, name, port):
+        """
+        Wait for listening port on named container
+        """
+        ip = self._docker_client.inspect_container(name)['NetworkSettings']['IPAddress']
+        open = False
+        
+        while not open:
+            self.step_runner.log.write("Waiting for port %d to be listening for connections in container %s with ip %s\n" % (port, name, ip))
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            open = sock.connect_ex((ip, port)) == 0
+            sock.close()
+            if not open:
+               time.sleep(1)
+
+        self.step_runner.log.write("Port %d is listening in container %s with ip %s\n" % (port, name, ip))
 
     def run(self, context):
         _run_image = self.config.get('image', context.get('image', None))

@@ -420,9 +420,9 @@ the run step::
             EXPOSE 80
             CMD /runserver.sh
 
-        # A list of container names created within any run container
+        # A list of container names or labels created within any run container
         # that buildrunner should clean up.  (Use if you call
-        # 'docker run --name <name>' within a run container.)
+        # 'docker run --name <name>' or 'docker run --label <label>' within a run container.)
         containers:
           - container1
           - container2
@@ -533,12 +533,19 @@ within service container configuration::
             # is appropriate and we don't need to check upstream for changes.
             pull: true/false (defaults to true)
 
-            # A list of container names created within any service container
+            # A list of container names or labels created within any run container
             # that buildrunner should clean up.  (Use if you call
-            # 'docker run --name <name>' within a service container.)
+            # 'docker run --name <name>' or 'docker run --label <label>' within a run container.)
             containers:
               - container1
               - container2
+
+            # Wait for ports to be open this container before moving on.
+            # This allows dependent services to know that a service inside the
+            # container is running.
+            wait_for:
+              - 80
+              - 9999
 
 Here is an example of a 'run' definition that simply runs the default command
 from the specified Docker image and archives the given artifacts::
