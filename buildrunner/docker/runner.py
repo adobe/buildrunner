@@ -36,12 +36,24 @@ class DockerRunner(object):
 
         # By default, pull the image.  If the pull_image parameter is
         # set to False, only pull the image if it can't be found locally
+        #
+        # Pull all images to ensure we get the hashes for intermediate images
         found_image = False
-        for image in self.docker_client.images():
-            for tag in image['RepoTags'] or []:
-                if tag == self.image_name:
-                    found_image = True
-                    break
+        for image in self.docker_client.images(all=True):
+            if image["Id"].startswith("sha256:" + self.image_name):
+                # If the image name is simply a hash, it refers to an intermediate
+                # image.  We don't want to "pull" these, as the hash won't exist
+                # as a valid upstream repoistory/image
+                found_image = True
+                pull_image = False
+            else:
+                for tag in image['RepoTags'] or []:
+                    if tag == self.image_name:
+                        found_image = True
+                        break
+            if found_image:
+                # No need to continue once we've found the image
+                break
 
         if pull_image or not found_image:
             self.docker_client.pull(self.image_name)
