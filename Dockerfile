@@ -5,7 +5,6 @@ COPY . /buildrunner-source
 RUN useradd -m buildrunner \
     && apt-get update \
     && apt-get -y install python-dev libffi-dev libssl-dev \
-    && pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ vcsinfo \
     && pip install cryptography \
     && cd /buildrunner-source \
     && pip install -r requirements.txt \
