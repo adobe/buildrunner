@@ -1,40 +1,62 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2014-2017 Adobe
 """
+import imp
 import os
+import subprocess
 
 from setuptools import setup, find_packages
-import vcsinfo
+
 
 _VERSION = '0.5'
 
 _SOURCE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
-
-try:
-    # calculate the version
-    VCS = vcsinfo.detect_vcs(_SOURCE_DIR)
-    _VERSION += '.%s' % VCS.number
-    if VCS.modified > 0:
-        _VERSION += '.%s' % VCS.modified
-
-    # write the version file
-    _BUILDRUNNER_DIR = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'buildrunner',
-    )
-    if os.path.exists(_BUILDRUNNER_DIR):
-        with open(os.path.join(_BUILDRUNNER_DIR, 'version.py'), 'w') as _ver:
-            _ver.write("__version__ = '%s'\n" % _VERSION)
-except vcsinfo.VCSUnsupported:
-    _VERSION += '.DEVELOPMENT'
+_BUILDRUNNER_DIR = os.path.join(_SOURCE_DIR, 'buildrunner')
+_VERSION_FILE = os.path.join(_BUILDRUNNER_DIR, 'version.py')
 
 
-#pylint: disable=C0301
+def get_version():
+    """
+    Call out to the git command line to get the current commit "number".
+    """
+    _version = _VERSION
+
+    try:
+        cmd = subprocess.Popen(
+            args=[
+                'git',
+                'rev-list',
+                '--count',
+                'HEAD',
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout = cmd.communicate()[0]
+        if cmd.returncode == 0:
+            _version += '.%s' % stdout.strip()
+
+            # write the version file
+            if os.path.exists(_BUILDRUNNER_DIR):
+                with open(_VERSION_FILE, 'w') as _ver:
+                    _ver.write("__version__ = '%s'\n" % _version)
+    except: #pylint: disable=bare-except
+        pass
+
+    if os.path.exists(_VERSION_FILE):
+        version_mod = imp.load_source('buildrunnerversion', _VERSION_FILE)
+        _version = version_mod.__version__
+    else:
+        _version += '.DEVELOPMENT'
+
+    return _version
+
+
 setup(
     name='buildrunner',
-    version=_VERSION,
+    version=get_version(),
     author='***REMOVED***',
     author_email="***REMOVED***",
     license="Adobe",
@@ -56,12 +78,16 @@ setup(
     },
     install_requires=[
         'PyYAML==3.11',
+        'vcsinfo==0.1.25',
         'requests==2.9.1',
         'paramiko==1.16.0',
         'pycrypto==2.6.1',
         'docker-py==1.3.1',
-        'vcsinfo>=0.1.23',
         'fabric==1.10.1',
         'Jinja2==2.7.3',
     ],
+    dependency_links=[
+        'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.25/vcsinfo-0.1.25.tar.gz#egg=vcsinfo-0.1.25', #pylint: disable=line-too-long
+    ],
 )
+

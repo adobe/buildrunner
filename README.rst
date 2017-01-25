@@ -51,15 +51,14 @@ script.
 **2. Pip**
 
 If you wish to install buildrunner directly on your local machine, install via
-pip, pointing at the Release Engineering internal pypi server. This is best
-done when installing into a virtual environment using virtualenv. The following
-commands will create a new virtual environment, activate it, and install
-BuildRunner within it::
+pip, pointing at the Release Engineering internal pypi server (hosted on the
+corporate artifactory instance). This is best done when installing into a
+virtual environment using virtualenv. The following commands will create a new
+virtual environment, activate it, and install BuildRunner within it::
 
   virtualenv buildrunner
   source buildrunner/bin/activate
-  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ vcsinfo
-  pip install -i https://pypi.dev.ut1.omniture.com/releng/pypi/ buildrunner
+  pip install -i https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple buildrunner
 
 The buildrunner executable is now available at buildrunner/bin/buildrunner and
 can be added to your path.
