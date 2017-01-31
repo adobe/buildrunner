@@ -447,6 +447,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _dns = None
         if 'dns' in config:
             _dns = config['dns']
+            # If the dns host is set to a string and that string is a reference to a running service
+            # container, pull the ip address out of the service container.
+            if isinstance(_dns, basestring) and _dns in self._service_runners:
+                ip = self._service_runners[_dns].get_ip()
+                if ip is not None:
+                    _dns = [ip]
 
         # determine if a dns_search domain is specified
         _dns_search = None
@@ -698,6 +704,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # determine if a dns host is specified
         if 'dns' in self.config:
             container_args['dns'] = self.config['dns']
+            # If the dns host is set to a string and that string is a reference to a running service
+            # container, pull the ip address out of the service container.
+            if isinstance(container_args['dns'], basestring) and container_args['dns'] in self._service_runners:
+                ip = self._service_runners[container_args['dns']].get_ip()
+                if ip is not None:
+                    container_args['dns'] = [ip]
 
         # determine if a dns_search domain is specified
         if 'dns_search' in self.config:

@@ -286,6 +286,21 @@ class DockerRunner(object):
             pass
         return status
 
+    def get_ip(self):
+        """
+        Return the ip address of the running container
+        """
+        ip = None
+        try:
+            if self.is_running():
+                inspection = self.docker_client.inspect_container(
+                    self.container['Id'],
+                )
+                ip = inspection.get('NetworkSettings', {}).get('IPAddress', None)
+        except docker.errors.APIError:
+            pass
+        return ip
+
 
     def is_running(self):
         """
