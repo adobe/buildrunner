@@ -460,6 +460,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             _dns_search = config['dns_search']
 
         # set service specific environment variables
+        _env['BUILDRUNNER_STEP_ID'] = self.step_runner.id
         if 'env' in config:
             for key, value in config['env'].iteritems():
                 _env[key] = value
@@ -716,6 +717,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             container_args['dns_search'] = self.config['dns_search']
 
         # set step specific environment variables
+        container_args['environment']['BUILDRUNNER_STEP_ID'] = self.step_runner.id
         if 'env' in self.config:
             for key, value in self.config['env'].iteritems():
                 container_args['environment'][key] = value
