@@ -133,17 +133,17 @@ class DockerRunner(object):
             working_dir=working_dir,
             hostname=hostname,
             dns=create_dns,
-            host_config=docker.utils.create_host_config(binds=_binds),
+            host_config=self.docker_client.create_host_config(
+                binds=_binds,
+                links=links,
+                port_bindings=ports,
+                volumes_from=volumes_from,
+                dns=dns,
+                dns_search=dns_search
+            )
         )
-        self.docker_client.start(
-            self.container['Id'],
-            binds=_binds,
-            links=links,
-            port_bindings=ports,
-            volumes_from=volumes_from,
-            dns=dns,
-            dns_search=dns_search,
-        )
+
+        self.docker_client.start(self.container['Id'])
 
         # run any supplied provisioners
         if provisioners:
