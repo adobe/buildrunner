@@ -137,7 +137,6 @@ class BuildRunner(object):
         """
         self.build_dir = build_dir
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
-        self.working_dir = os.path.join(self.build_results_dir, '.working')
         self.push = push
         self.cleanup = cleanup
         self.generated_images = []
@@ -472,10 +471,6 @@ class BuildRunner(object):
 
             #create a new results dir
             os.mkdir(self.build_results_dir)
-            os.mkdir(self.working_dir)
-            # the working directory needs open permissions in the case where it
-            # is mounted on a vm filesystem with different user ids
-            os.chmod(self.working_dir, 0777)
 
             self._init_log()
 
