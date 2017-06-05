@@ -11,7 +11,7 @@ import docker
 from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
 
 
-DOCKER_API_VERSION = '1.19'
+DOCKER_API_VERSION = 'auto'
 DOCKER_DEFAULT_DOCKERD_URL = 'unix:///var/run/docker.sock'
 
 
@@ -65,7 +65,7 @@ def new_client(
         if url_parts.scheme == 'tcp':
             _dockerd_url = urlparse.urlunparse(('https',) + url_parts[1:])
 
-    return docker.Client(
+    return docker.APIClient(
         base_url=_dockerd_url,
         version=DOCKER_API_VERSION,
         tls=tls_config,

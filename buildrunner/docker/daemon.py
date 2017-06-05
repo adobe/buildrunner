@@ -77,11 +77,11 @@ class DockerDaemonProxy(object):
             'busybox',
             command='/bin/sh',
             volumes=_volumes,
+            host_config=self.docker_client.create_host_config(
+                binds=_binds
+            )
         )['Id']
-        self.docker_client.start(
-            self._daemon_container,
-            binds=_binds,
-        )
+        self.docker_client.start(self._daemon_container)
         self.log.write(
             "Created Docker daemon container %.10s\n" % self._daemon_container
         )

@@ -82,7 +82,7 @@ setup(
         'requests==2.9.1',
         'paramiko==1.16.0',
         'pycrypto==2.6.1',
-        'docker-py==1.3.1',
+        'docker==2.3.0',
         'fabric==1.10.1',
         'Jinja2==2.7.3',
     ],
