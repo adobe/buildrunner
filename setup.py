@@ -8,7 +8,7 @@ import subprocess
 from setuptools import setup, find_packages
 
 
-_VERSION = '0.5'
+_VERSION = '0.6'
 
 _SOURCE_DIR = os.path.dirname(
     os.path.abspath(__file__)
