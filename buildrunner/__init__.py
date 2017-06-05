@@ -194,6 +194,7 @@ class BuildRunner(object):
                 'Could not find a "steps" attribute in config'
             )
 
+        self.tmp_files = []
         self.artifacts = OrderedDict()
 
         self.exit_code = None
@@ -285,9 +286,19 @@ class BuildRunner(object):
         local_files = self.global_config['local-files']
         for local_alias, local_file in local_files.iteritems():
             if file_alias == local_alias:
-                return os.path.realpath(
+                local_path = os.path.realpath(
                     os.path.expanduser(os.path.expandvars(local_file))
                 )
+                if os.path.exists(local_path):
+                    return local_path
+                else:
+                    # need to put the contents in a tmp file and return the path
+                    _fileobj = tempfile.NamedTemporaryFile(delete=False)
+                    _fileobj.write(local_file)
+                    tmp_path = os.path.realpath(_fileobj.name)
+                    _fileobj.close()
+                    self.tmp_files.append(tmp_path)
+                    return tmp_path
 
         return None
 
@@ -587,5 +598,10 @@ class BuildRunner(object):
                     "Destroying source archive\n"
                 )
                 os.remove(self._source_archive)
+
+            # remove any temporary files that we created
+            for tmp_file in self.tmp_files:
+                if os.path.exists(tmp_file):
+                    os.remove(tmp_file)
 
             self._exit_message_and_close_log(exit_explanation)

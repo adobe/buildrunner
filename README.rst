@@ -99,6 +99,7 @@ they are used::
   # step attribute below).
   ssh-keys:
   - file: /path/to/ssh/private/key.pem
+    <or>
     key: |
       -----INLINE KEY-----
       ...
@@ -107,11 +108,13 @@ they are used::
       - 'my-github-key'
 
   # The 'local-files' global configuration consists of a map where each key
-  # is a file alias and the value is the path where the file resides on the
-  # local server (see the "local-files" configuration example of the "run" step
-  # attribute below).
+  # is a file alias and the value is either the path where the file resides on
+  # the local server OR the contents of the file. See the "local-files"
+  # configuration example of the "run" step attribute below.
   local-files:
     digitalmarketing.mvn.settings: '/Users/tomkinso/.m2/settings.xml'
+    some.other.file.alias: |
+      The contents of the file...
 
   # The 'caches-root' global configuration specifies the directory to use for
   # build caches. The default directory is ~/.buildrunner/caches.
