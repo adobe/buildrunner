@@ -27,6 +27,7 @@ from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
+from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
 from buildrunner.utils import (
     ConsoleLogger,
@@ -220,8 +221,8 @@ class BuildRunner(object):
 
     def get_ssh_keys_from_aliases(self, key_aliases):
         """
-        Given a list of key aliases lookup the private key file and passphrase
-        from the global config.
+        Given a list of key aliases return Paramiko key objects based on keys
+        registered in the global config.
         """
         ssh_keys = []
         if not key_aliases:
@@ -233,34 +234,40 @@ class BuildRunner(object):
             )
 
         ssh_keys = self.global_config['ssh-keys']
-        _key_files = {}
+        _keys = []
         _matched_aliases = []
         for key_info in ssh_keys:
-            if 'file' not in key_info:
+            if 'aliases' not in key_info and not key_info['aliases']:
                 continue
-            _key_file = os.path.realpath(
-                os.path.expanduser(os.path.expandvars(key_info['file']))
-            )
 
             _password = None
             if 'password' in key_info:
                 _password = key_info['password']
 
-            if 'aliases' not in key_info and not key_info['aliases']:
-                continue
             for alias in key_aliases:
                 if alias in key_info['aliases']:
                     _matched_aliases.append(alias)
-                    if _key_file not in _key_files:
-                        _key_files[_key_file] = _password
+                    if 'file' in key_info:
+                        _key_file = os.path.realpath(
+                            os.path.expanduser(
+                                os.path.expandvars(key_info['file'])
+                            )
+                        )
+                        _keys.append(
+                            load_ssh_key_from_file(_key_file, _password)
+                        )
+                    elif 'key' in key_info:
+                        _keys.append(
+                            load_ssh_key_from_str(key_info['key'], _password)
+                        )
 
         for alias in key_aliases:
             if alias not in _matched_aliases:
                 raise BuildRunnerConfigurationError(
-                    "Could not find SSH key matching alias '%s'" % alias
+                    "Could not find valid SSH key matching alias '%s'" % alias
                 )
 
-        return _key_files
+        return _keys
 
 
     def get_local_files_from_alias(self, file_alias):

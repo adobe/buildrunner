@@ -91,13 +91,17 @@ they are used::
       - alias2
 
   # The 'ssh-keys' global configuration is a list of ssh key configurations.
-  # The file attribute specifies the path to a local ssh private key. If the
-  # private key is password protected the password attribute specifies the
-  # password. The alias attribute is a list of aliases assigned to the given
-  # key (see the "ssh-keys" configuration example of the "run" step attribute
-  # below).
+  # The file attribute specifies the path to a local ssh private key. The key
+  # attribute provides a ASCII-armored private key. Only one or the other is
+  # required. If the private key is password protected the password attribute
+  # specifies the password. The alias attribute is a list of aliases assigned
+  # to the given key (see the "ssh-keys" configuration example of the "run"
+  # step attribute below).
   ssh-keys:
   - file: /path/to/ssh/private/key.pem
+    key: |
+      -----INLINE KEY-----
+      ...
     password: <password if needed>
     aliases:
       - 'my-github-key'

@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import fcntl
 import os
 from select import select
+import StringIO
 import struct
 import threading
 import time
@@ -36,34 +37,56 @@ SSH_AGENT_PROXY_BUILD_CONTEXT = os.path.join(
 )
 
 
-def get_ssh_keys(keys):
+def load_ssh_key_from_file(key_file, passwd):
     """
     Load the given keys into paramiko PKey objects.
     """
-    ssh_keys = []
-    for _key, _passwd in keys.iteritems():
-        # load the paramiko key file
+    try:
+        return RSAKey.from_private_key_file(key_file, passwd)
+    except PasswordRequiredException:
+        raise BuildRunnerConfigurationError(
+            "Key at %s requires a password" % key_file
+        )
+    except SSHException:
         try:
-            rsa_key = RSAKey.from_private_key_file(_key, _passwd)
-            ssh_keys.append(rsa_key)
+            return DSSKey.from_private_key_file(key_file, passwd)
         except PasswordRequiredException:
             raise BuildRunnerConfigurationError(
-                "Key at %s requires a password" % _key
+                "Key at %s requires a password" % key_file
             )
         except SSHException:
-            try:
-                dss_key = DSSKey.from_private_key_file(_key, _passwd)
-                ssh_keys.append(dss_key)
-            except PasswordRequiredException:
-                raise BuildRunnerConfigurationError(
-                    "Key at %s requires a password" % _key
-                )
-            except SSHException:
-                raise BuildRunnerConfigurationError(
-                    "Unable to load key at %s" % _key
-                )
+            raise BuildRunnerConfigurationError(
+                "Unable to load key at %s" % key_file
+            )
 
-    return ssh_keys
+
+def load_ssh_key_from_str(key_str, passwd):
+    """
+    Load the given keys into paramiko PKey objects.
+    """
+    try:
+        return RSAKey.from_private_key(
+            StringIO.StringIO(key_str),
+            passwd
+        )
+    except PasswordRequiredException:
+        raise BuildRunnerConfigurationError(
+            "Provided key requires a password"
+        )
+    except SSHException:
+        try:
+            return DSSKey.from_private_key_file(
+                StringIO.StringIO(key_str),
+                passwd,
+            )
+        except PasswordRequiredException:
+            raise BuildRunnerConfigurationError(
+                "Provided key requires a password"
+            )
+        except SSHException:
+            raise BuildRunnerConfigurationError(
+                "Unable to load provided key"
+            )
 
 
 class DockerSSHAgentProxy(object):
@@ -112,30 +135,37 @@ class DockerSSHAgentProxy(object):
             password (or null if not required)
         """
         # load the keys
-        _pkkeys = get_ssh_keys(keys)
-        if not _pkkeys:
-            raise BuildRunnerConfigurationError("Unable to load private keys")
+        if not keys:
+            raise BuildRunnerConfigurationError("Invalid private keys")
 
         # create and start the Docker container
         self._ssh_agent_container = self.docker_client.create_container(
             self.get_ssh_agent_image(),
             command=[
-                '%s %s' % (_pkkeys[0].get_name(), _pkkeys[0].get_base64()),
+                '%s %s' % (keys[0].get_name(), keys[0].get_base64()),
             ],
+            host_config=self.docker_client.create_host_config(
+                publish_all_ports=True,
+            )
         )['Id']
         self.docker_client.start(
             self._ssh_agent_container,
-            publish_all_ports=True,
         )
         self.log.write(
             "Created ssh-agent container %.10s\n" % self._ssh_agent_container
         )
 
         _ssh_host = 'localhost'
-        # See if buildrunner is executing from a container.  If so, hit the newly created container directly on port 22
+        # See if buildrunner is executing from a container.  If so, hit the
+        # newly created container directly on port 22
         if os.environ.get('BUILDRUNNER_CONTAINER'):
-            _ssh_container = self.docker_client.inspect_container(self._ssh_agent_container)
-            _ssh_host = _ssh_container.get("NetworkSettings", {}).get("IPAddress", _ssh_host)
+            _ssh_container = self.docker_client.inspect_container(
+                self._ssh_agent_container
+            )
+            _ssh_host = _ssh_container.get(
+                "NetworkSettings",
+                {}
+            ).get("IPAddress", _ssh_host)
             _ssh_port = 22
         else:
             # get the Docker server ip address and ssh port exposed by this
@@ -144,7 +174,10 @@ class DockerSSHAgentProxy(object):
             if p_data and 'unix' not in p_data.scheme and p_data.hostname:
                 if p_data.hostname != 'localunixsocket':
                     _ssh_host = p_data.hostname
-            _ssh_port_info = self.docker_client.port(self._ssh_agent_container, 22)
+            _ssh_port_info = self.docker_client.port(
+                self._ssh_agent_container,
+                22,
+            )
             if not _ssh_port_info or 'HostPort' not in _ssh_port_info[0]:
                 raise BuildRunnerProcessingError(
                     "Unable to find port for ssh-agent container"
@@ -157,7 +190,7 @@ class DockerSSHAgentProxy(object):
         self._ssh_client = SSHClient()
         self._ssh_client.set_missing_host_key_policy(MissingHostKeyPolicy())
         #pylint: disable=W0212
-        self._ssh_client._agent = CustomSSHAgent(_pkkeys)
+        self._ssh_client._agent = CustomSSHAgent(keys)
         self._ssh_client.connect(
             _ssh_host,
             port=_ssh_port,
