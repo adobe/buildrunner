@@ -348,7 +348,14 @@ the run step::
           - 8.8.4.4
 
         # A custom dns search path to use in the run container.
-        dns-search: mydomain.com
+        dns_search: mydomain.com
+
+        # Add entries to the hosts file
+        # The keys are the hostnames.  The values can be either
+        # ip addresses or references to service containers.
+        extra_hosts:
+          "www1.test.com": "192.168.0.1"
+          "www2.test.com": "192.168.0.2"
 
         # A map specifying additional environment variables to be injected into
         # the container. Keys are the variable names and values are variable
@@ -501,6 +508,13 @@ within service container configuration::
 
             # A custom dns search path to use in the service container.
             dns-search: mydomain.com
+
+            # Add entries to the hosts file
+            # The keys are the hostnames.  The values can be either
+            # ip addresses or references to other service containers.
+            extra_hosts:
+              "www1.test.com": "192.168.0.1"
+              "www2.test.com": "192.168.0.2"
 
             # A map specifying additional environment variables to be injected
             # into the container. Keys are the variable names and values are

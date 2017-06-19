@@ -74,6 +74,7 @@ class DockerRunner(object):
             hostname=None,
             dns=None,
             dns_search=None,
+            extra_hosts=None,
             containers=None,
     ): #pylint: disable=too-many-arguments
         """
@@ -139,7 +140,8 @@ class DockerRunner(object):
                 port_bindings=ports,
                 volumes_from=volumes_from,
                 dns=dns,
-                dns_search=dns_search
+                dns_search=dns_search,
+                extra_hosts=extra_hosts
             )
         )
 
