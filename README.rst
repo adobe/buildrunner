@@ -91,23 +91,30 @@ they are used::
       - alias2
 
   # The 'ssh-keys' global configuration is a list of ssh key configurations.
-  # The file attribute specifies the path to a local ssh private key. If the
-  # private key is password protected the password attribute specifies the
-  # password. The alias attribute is a list of aliases assigned to the given
-  # key (see the "ssh-keys" configuration example of the "run" step attribute
-  # below).
+  # The file attribute specifies the path to a local ssh private key. The key
+  # attribute provides a ASCII-armored private key. Only one or the other is
+  # required. If the private key is password protected the password attribute
+  # specifies the password. The alias attribute is a list of aliases assigned
+  # to the given key (see the "ssh-keys" configuration example of the "run"
+  # step attribute below).
   ssh-keys:
   - file: /path/to/ssh/private/key.pem
+    <or>
+    key: |
+      -----INLINE KEY-----
+      ...
     password: <password if needed>
     aliases:
       - 'my-github-key'
 
   # The 'local-files' global configuration consists of a map where each key
-  # is a file alias and the value is the path where the file resides on the
-  # local server (see the "local-files" configuration example of the "run" step
-  # attribute below).
+  # is a file alias and the value is either the path where the file resides on
+  # the local server OR the contents of the file. See the "local-files"
+  # configuration example of the "run" step attribute below.
   local-files:
     digitalmarketing.mvn.settings: '/Users/tomkinso/.m2/settings.xml'
+    some.other.file.alias: |
+      The contents of the file...
 
   # The 'caches-root' global configuration specifies the directory to use for
   # build caches. The default directory is ~/.buildrunner/caches.

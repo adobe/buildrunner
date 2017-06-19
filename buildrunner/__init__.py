@@ -27,6 +27,7 @@ from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
+from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
 from buildrunner.utils import (
     ConsoleLogger,
@@ -136,7 +137,6 @@ class BuildRunner(object):
         """
         self.build_dir = build_dir
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
-        self.working_dir = os.path.join(self.build_results_dir, '.working')
         self.push = push
         self.cleanup = cleanup
         self.generated_images = []
@@ -193,6 +193,7 @@ class BuildRunner(object):
                 'Could not find a "steps" attribute in config'
             )
 
+        self.tmp_files = []
         self.artifacts = OrderedDict()
 
         self.exit_code = None
@@ -220,8 +221,8 @@ class BuildRunner(object):
 
     def get_ssh_keys_from_aliases(self, key_aliases):
         """
-        Given a list of key aliases lookup the private key file and passphrase
-        from the global config.
+        Given a list of key aliases return Paramiko key objects based on keys
+        registered in the global config.
         """
         ssh_keys = []
         if not key_aliases:
@@ -233,34 +234,40 @@ class BuildRunner(object):
             )
 
         ssh_keys = self.global_config['ssh-keys']
-        _key_files = {}
+        _keys = []
         _matched_aliases = []
         for key_info in ssh_keys:
-            if 'file' not in key_info:
+            if 'aliases' not in key_info and not key_info['aliases']:
                 continue
-            _key_file = os.path.realpath(
-                os.path.expanduser(os.path.expandvars(key_info['file']))
-            )
 
             _password = None
             if 'password' in key_info:
                 _password = key_info['password']
 
-            if 'aliases' not in key_info and not key_info['aliases']:
-                continue
             for alias in key_aliases:
                 if alias in key_info['aliases']:
                     _matched_aliases.append(alias)
-                    if _key_file not in _key_files:
-                        _key_files[_key_file] = _password
+                    if 'file' in key_info:
+                        _key_file = os.path.realpath(
+                            os.path.expanduser(
+                                os.path.expandvars(key_info['file'])
+                            )
+                        )
+                        _keys.append(
+                            load_ssh_key_from_file(_key_file, _password)
+                        )
+                    elif 'key' in key_info:
+                        _keys.append(
+                            load_ssh_key_from_str(key_info['key'], _password)
+                        )
 
         for alias in key_aliases:
             if alias not in _matched_aliases:
                 raise BuildRunnerConfigurationError(
-                    "Could not find SSH key matching alias '%s'" % alias
+                    "Could not find valid SSH key matching alias '%s'" % alias
                 )
 
-        return _key_files
+        return _keys
 
 
     def get_local_files_from_alias(self, file_alias):
@@ -278,9 +285,19 @@ class BuildRunner(object):
         local_files = self.global_config['local-files']
         for local_alias, local_file in local_files.iteritems():
             if file_alias == local_alias:
-                return os.path.realpath(
+                local_path = os.path.realpath(
                     os.path.expanduser(os.path.expandvars(local_file))
                 )
+                if os.path.exists(local_path):
+                    return local_path
+                else:
+                    # need to put the contents in a tmp file and return the path
+                    _fileobj = tempfile.NamedTemporaryFile(delete=False)
+                    _fileobj.write(local_file)
+                    tmp_path = os.path.realpath(_fileobj.name)
+                    _fileobj.close()
+                    self.tmp_files.append(tmp_path)
+                    return tmp_path
 
         return None
 
@@ -454,10 +471,6 @@ class BuildRunner(object):
 
             #create a new results dir
             os.mkdir(self.build_results_dir)
-            os.mkdir(self.working_dir)
-            # the working directory needs open permissions in the case where it
-            # is mounted on a vm filesystem with different user ids
-            os.chmod(self.working_dir, 0777)
 
             self._init_log()
 
@@ -580,5 +593,10 @@ class BuildRunner(object):
                     "Destroying source archive\n"
                 )
                 os.remove(self._source_archive)
+
+            # remove any temporary files that we created
+            for tmp_file in self.tmp_files:
+                if os.path.exists(tmp_file):
+                    os.remove(tmp_file)
 
             self._exit_message_and_close_log(exit_explanation)
