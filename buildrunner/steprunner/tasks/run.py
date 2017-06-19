@@ -446,18 +446,21 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # determine if a dns host is specified
         _dns = None
         if 'dns' in config:
-            _dns = config['dns']
             # If the dns host is set to a string and that string is a reference to a running service
             # container, pull the ip address out of the service container.
-            if isinstance(_dns, basestring) and _dns in self._service_runners:
-                ip = self._service_runners[_dns].get_ip()
-                if ip is not None:
-                    _dns = [ip]
+            _dns = [self._resolve_service_ip(config['dns'])]
 
         # determine if a dns_search domain is specified
         _dns_search = None
         if 'dns_search' in config:
             _dns_search = config['dns_search']
+
+        # determine if any extra hosts were provided
+        _extra_hosts = None
+        if 'extra_hosts' in config:
+            _extra_hosts = {}
+            for extra_host, extra_host_ip in config['extra_hosts'].iteritems():
+                _extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
 
         # set service specific environment variables
         _env['BUILDRUNNER_STEP_ID'] = self.step_runner.id
@@ -538,6 +541,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             hostname=_hostname,
             dns=_dns,
             dns_search=_dns_search,
+            extra_hosts=_extra_hosts,
             working_dir=_cwd,
             containers=_containers,
         )
@@ -598,6 +602,18 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         self.step_runner.log.write("Port %d is listening in container %s with ip %s\n" % (port, name, ip))
 
+    def _resolve_service_ip(self, service_name):
+       """
+       If service_name represents a running service, return it's ip address.
+       Otherwise, return the service_name
+       """
+       rval = service_name
+       if isinstance(service_name, basestring) and service_name in self._service_runners:
+           ip = self._service_runners[service_name].get_ip()
+           if ip is not None:
+               rval = ip
+       return rval
+
     def run(self, context):
         _run_image = self.config.get('image', context.get('image', None))
         if not _run_image:
@@ -637,6 +653,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             'provisioners': None,
             'dns': None,
             'dns_search': None,
+            'extra_hosts': None,
             'environment': _env_defaults,
             'containers': None,
             'volumes_from': [_source_container],
@@ -705,17 +722,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # determine if a dns host is specified
         if 'dns' in self.config:
-            container_args['dns'] = self.config['dns']
             # If the dns host is set to a string and that string is a reference to a running service
             # container, pull the ip address out of the service container.
-            if isinstance(container_args['dns'], basestring) and container_args['dns'] in self._service_runners:
-                ip = self._service_runners[container_args['dns']].get_ip()
-                if ip is not None:
-                    container_args['dns'] = [ip]
+            container_args['dns'] = [self._resolve_service_ip(self.config['dns'])]
 
         # determine if a dns_search domain is specified
         if 'dns_search' in self.config:
             container_args['dns_search'] = self.config['dns_search']
+
+        # determine additional hosts to add
+        if 'extra_hosts' in self.config:
+            container_args['extra_hosts'] = {}
+            for extra_host, extra_host_ip in self.config['extra_hosts'].iteritems():
+                container_args['extra_hosts'][extra_host] = self._resolve_service_ip(extra_host_ip)
 
         # set step specific environment variables
         container_args['environment']['BUILDRUNNER_STEP_ID'] = self.step_runner.id
