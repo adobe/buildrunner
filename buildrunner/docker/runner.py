@@ -220,7 +220,7 @@ class DockerRunner(object):
         create_res = self.docker_client.exec_create(
             self.container['Id'],
             [self.shell, '-c', cmd],
-            tty=True,
+            tty=False,
         )
         output_buffer = self.docker_client.exec_start(
             create_res,
