@@ -656,6 +656,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             'extra_hosts': None,
             'environment': _env_defaults,
             'containers': None,
+            'ports': None,
             'volumes_from': [_source_container],
             'volumes': {
                 self.step_runner.build_runner.build_results_dir: (
@@ -803,6 +804,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 container_meta_logger.write(
                     "Mounting cache dir %s -> %s\n" % (cache_name, cache_path)
                 )
+
+        # only expose ports for a run step if the flag is set
+        if self.step_runner.build_runner.publish_ports and 'ports' in self.config:
+            container_args['ports'] = self.config['ports']
 
         exit_code = None
         try:

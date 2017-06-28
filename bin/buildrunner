@@ -77,6 +77,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--publish-ports',
+        default=False,
+        action='store_true',
+        dest='publish_ports',
+        #pylint: disable=C0301
+        help='publish ports defined on a run step, this should never be used on a build server',
+    )
+
+    parser.add_argument(
         '--version',
         default=False,
         action='store_true',
@@ -126,6 +135,7 @@ def main():
             colorize_log=not args.no_log_color,
             cleanup=not args.keep_images,
             steps_to_run=args.steps,
+            publish_ports=args.publish_ports,
         )
         build_runner.run()
         if build_runner.exit_code:
