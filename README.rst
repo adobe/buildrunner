@@ -383,6 +383,11 @@ the run step::
         caches:
           maven: "/root/.m2/repository"
 
+        # A map specifying ports to expose, this is only used when the
+        # --publish-ports parameter is passed to buildrunner
+        ports:
+          <container port>: <host port>
+
         # A list specifying service containers (see below) whose exposed
         # volumes should be mapped into the run container's file system.
         volumes_from:
@@ -655,6 +660,16 @@ The configuration may also specify additional tags to add to the image::
       push:
         repository: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***
         tags: [ 'latest' ]
+
+Publishing Ports
+================
+
+In order to publish ports listed in the 'run' step attribute (not on a service
+container), you must pass the --publish-ports argument to buildrunner.
+
+This must never be used on a shared server such as a build server as it could
+cause port mapping conflicts.
+
 
 Remote Builds (the 'remote' step attribute)
 ===========================================
