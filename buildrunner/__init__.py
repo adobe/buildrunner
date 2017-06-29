@@ -132,6 +132,7 @@ class BuildRunner(object):
             colorize_log=True,
             cleanup=False,
             steps_to_run=None,
+            publish_ports=False,
     ):
         """
         """
@@ -143,6 +144,7 @@ class BuildRunner(object):
         self.repo_tags_to_push = []
         self.colorize_log = colorize_log
         self.steps_to_run = steps_to_run
+        self.publish_ports = publish_ports
 
         # set build time
         self.build_time = epoch_time()
