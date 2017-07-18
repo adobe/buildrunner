@@ -18,5 +18,5 @@ docker run \
         -v /$HOME:$HOME \
 	-v //var/run/docker.sock:/var/run/docker.sock \
         -w /`pwd` \
-        releng-docker-registry.dev.ut1.omniture.com/releng/buildrunner:latest \
+        ***REMOVED***/releng/buildrunner:latest \
         stdbuf -oL buildrunner $@

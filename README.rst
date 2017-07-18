@@ -552,7 +552,7 @@ from the specified Docker image and archives the given artifacts::
   steps:
     package:
       run:
-        image: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***:latest
+        image: ***REMOVED***/***REMOVED***:latest
         artifacts:
           omtr_tmp/artifacts/*.x86_64.rpm: {platform: 'centos-6-x86_64'}
 
@@ -624,7 +624,7 @@ repository is defined::
   steps:
     build-my-container:
       build: .
-      push: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***
+      push: ***REMOVED***/***REMOVED***
 
 The configuration may also specify additional tags to add to the image::
 
@@ -632,7 +632,7 @@ The configuration may also specify additional tags to add to the image::
     build-my-container:
       build: .
       push:
-        repository: releng-docker-registry.dev.ut1.omniture.com/***REMOVED***
+        repository: ***REMOVED***/***REMOVED***
         tags: [ 'latest' ]
 
 Remote Builds (the 'remote' step attribute)
