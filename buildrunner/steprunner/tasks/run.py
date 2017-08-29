@@ -395,6 +395,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         service_logger = ContainerLogger.for_service_container(
             self.step_runner.log,
             name,
+            timestamps=not self.step_runner.build_runner.disable_timestamps,
         )
 
         # setup custom env variables
@@ -630,10 +631,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         container_logger = ContainerLogger.for_build_container(
             self.step_runner.log,
             self.step_runner.name,
+            timestamps=not self.step_runner.build_runner.disable_timestamps,
         )
         container_meta_logger = ContainerLogger.for_build_container(
             self.step_runner.log,
             self.step_runner.name,
+            timestamps=not self.step_runner.build_runner.disable_timestamps,
         )
 
         # container defaults

@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import codecs
 from collections import OrderedDict
 from datetime import datetime
+from time import strftime, gmtime
 import os
 import sys
 import uuid
@@ -129,19 +130,24 @@ class ContainerLogger(object):
     This class is not thread safe, but since each container gets its own that
     is ok.
     """
-    def __init__(self, console_logger, name, color):
+    def __init__(self, console_logger, name, color, timestamps=True):
         self.console_logger = console_logger
         self.name = name
         self.line_prefix = '[' + name + '] '
         self.color = color
+        self.timestamps = timestamps
         self._buffer = []
 
+    def _get_timestamp(self):
+        if self.timestamps:
+            return '[' + strftime("%H:%M:%S", gmtime()) + '] '
+        return ''
 
     def _write_buffer(self):
         """
         Write the contents of the buffer to the log.
         """
-        _line = self.line_prefix + ''.join(self._buffer)
+        _line = self._get_timestamp() + self.line_prefix + ''.join(self._buffer)
         del self._buffer[:]
         self.console_logger.write(
             _line,
@@ -172,7 +178,7 @@ class ContainerLogger(object):
     LOGGERS = {}
 
     @classmethod
-    def for_build_container(cls, console_logger, name):
+    def for_build_container(cls, console_logger, name, timestamps=True):
         """
         Return a ContainerLogger for a build container.
         """
@@ -183,12 +189,13 @@ class ContainerLogger(object):
                 console_logger,
                 name,
                 color,
+                timestamps=timestamps,
             )
         return cls.LOGGERS[name_idx]
 
 
     @classmethod
-    def for_service_container(cls, console_logger, name):
+    def for_service_container(cls, console_logger, name, timestamps=True):
         """
         Return a ContainerLogger for a service container.
         """
@@ -198,6 +205,7 @@ class ContainerLogger(object):
                 console_logger,
                 name,
                 color,
+                timestamps=timestamps,
             )
         return cls.LOGGERS[name]
 
