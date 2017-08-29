@@ -133,6 +133,7 @@ class BuildRunner(object):
             cleanup=False,
             steps_to_run=None,
             publish_ports=False,
+            disable_timestamps=False,
     ):
         """
         """
@@ -145,6 +146,7 @@ class BuildRunner(object):
         self.colorize_log = colorize_log
         self.steps_to_run = steps_to_run
         self.publish_ports = publish_ports
+        self.disable_timestamps = disable_timestamps
 
         # set build time
         self.build_time = epoch_time()

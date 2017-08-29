@@ -86,6 +86,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--disable-timestamps',
+        default=False,
+        action='store_true',
+        dest='disable_timestamps',
+        #pylint: disable=C0301
+        help='disables printing of timestamps in the logging output',
+    )
+
+    parser.add_argument(
         '--version',
         default=False,
         action='store_true',
