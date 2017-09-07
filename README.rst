@@ -48,6 +48,12 @@ context to the Docker container.  There is a `bash <scripts/buildrunner>`_ scrip
 and a Windows `batch file <scripts/buildrunner.bat>`_, which simply calls the bash
 script.
 
+NOTE TO WINDOWS USERS: This is the recommended method for Windows users, however,
+you must make sure that you are using the 
+`bash shell <https://www.laptopmag.com/articles/use-bash-shell-windows-10>`_
+enhancements for Windows or that you have something installed that enables the use
+of "sh", or else this method will not work.
+
 **2. Pip**
 
 If you wish to install buildrunner directly on your local machine, install via
