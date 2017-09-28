@@ -1,0 +1,38 @@
+#!/bin/bash
+
+env_vars="-e HOME=/$HOME"
+for var in $(env | egrep -i "^(DOCKER_HOST|DOCKER_TLS_VERIFY|DOCKER_CERT_PATH|BUILDRUNNER_)")
+do
+	if [[ "$OS" = Windows* ]]
+	then
+		# Replace =c: with =//c
+		var=$( echo "$var" | sed "s,=\([a-z]\):,=//\L\1,gi" )
+	fi
+        env_vars="$env_vars -e $var"
+done
+
+CONFIG_FILE=$HOME/.docker/config.json
+SHADOW_CONFIG_FILE=$(dirname $CONFIG_FILE)/.buildrunner-config/config.json.$(date +"%s")
+
+CONFIG_OVERRIDE_OPTION=""
+if [ "$(which python)" ]
+then
+	mkdir -p $(dirname $SHADOW_CONFIG_FILE)
+	python $(dirname ${BASH_SOURCE[0]})/resolve-config.py $CONFIG_FILE > $SHADOW_CONFIG_FILE
+	CONFIG_OVERRIDE_OPTION="-v /${SHADOW_CONFIG_FILE}:$CONFIG_FILE"
+fi
+
+# stdbuf disables buffering
+docker run \
+        $env_vars \
+        -v /$HOME:$HOME \
+	-v //var/run/docker.sock:/var/run/docker.sock \
+	$CONFIG_OVERRIDE_OPTION \
+	-w /`pwd` \
+        ***REMOVED***/releng/buildrunner:latest \
+        stdbuf -oL buildrunner $@
+
+# Remove the shadow config file, if it exists
+rm -f $SHADOW_CONFIG_FILE
+# Try to clear out any older config files that might exists due to process failure
+find $(dirname $SHADOW_CONFIG_FILE) -iname 'config.json.*' -type f -mmin +5 -delete 1>/dev/null 2>&1
