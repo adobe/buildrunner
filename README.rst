@@ -54,6 +54,12 @@ you must make sure that you are using the
 enhancements for Windows or that you have something installed that enables the use
 of "sh", or else this method will not work.
 
+NOTE TO MAC USERS: If you are using the docker version of buildrunner and are getting the error
+```docker-credential-osxkeychain not installed or not available in PATH```, you can do one of 2 things:
+
+1. If the authentication information for the docker registry in question is in your ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
+2. Use this `bash <scripts/buildrunnerOSXCredStore>`_ script along with this `python <scripts/resolve-config.py>`_ script - this will pull the docker credentials from the OSX keychain and inject them into the docker container
+
 **2. Pip**
 
 If you wish to install buildrunner directly on your local machine, install via
