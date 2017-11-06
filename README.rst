@@ -91,7 +91,7 @@ to map remote hosts and local files to aliases defined in the project build
 configuration.
 
 The following example configuration explains what options are available and how
-they are used::
+they are used when put into the '~/.buildrunner.yaml' file::
 
   # The 'build-servers' global configuration consists of a map where each key
   # is a server user@host string and the value is a list of host aliases that
