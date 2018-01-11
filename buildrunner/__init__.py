@@ -130,7 +130,8 @@ class BuildRunner(object):
             build_number=None,
             push=False,
             colorize_log=True,
-            cleanup=False,
+            cleanup_images=False,
+            cleanup_step_artifacts=False,
             steps_to_run=None,
             publish_ports=False,
             disable_timestamps=False,
@@ -140,7 +141,8 @@ class BuildRunner(object):
         self.build_dir = build_dir
         self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
         self.push = push
-        self.cleanup = cleanup
+        self.cleanup_images = cleanup_images
+        self.cleanup_step_artifacts = cleanup_step_artifacts
         self.generated_images = []
         self.repo_tags_to_push = []
         self.colorize_log = colorize_log
@@ -429,8 +431,16 @@ class BuildRunner(object):
                 self.build_results_dir,
                 'artifacts.json',
             )
+            # preserve contents of artifacts.json between steps run separately
+            if os.path.exists(artifact_manifest):
+                with open(artifact_manifest, 'r') as _af:
+                    data = json.load(_af, object_pairs_hook=OrderedDict)
+                    artifacts = OrderedDict(data.items() + self.artifacts.items())
+            else:
+                artifacts = self.artifacts
+
             with open(artifact_manifest, 'w') as _af:
-                json.dump(self.artifacts, _af, indent=2)
+                json.dump(artifacts, _af, indent=2)
 
 
     def _exit_message_and_close_log(self, exit_explanation):
@@ -469,12 +479,13 @@ class BuildRunner(object):
         exit_explanation = None
         try:
             # cleanup existing results dir (if needed)
-            if os.path.exists(self.build_results_dir):
+            if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
                 print 'Cleaning existing results directory "%s"' % RESULTS_DIR
                 shutil.rmtree(self.build_results_dir)
 
-            #create a new results dir
-            os.mkdir(self.build_results_dir)
+            if not os.path.exists(self.build_results_dir):
+                #create a new results dir
+                os.mkdir(self.build_results_dir)
 
             self._init_log()
 
@@ -558,7 +569,7 @@ class BuildRunner(object):
             self._write_artifact_manifest()
 
             _docker_client = docker.new_client()
-            if self.cleanup:
+            if self.cleanup_images:
                 self.log.write(
                     'Removing local copy of generated images\n'
                 )

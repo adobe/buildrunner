@@ -68,6 +68,15 @@ def parse_args():
     )
 
     parser.add_argument(
+        '--keep-step-artifacts',
+        default=False,
+        action='store_true',
+        dest='keep_step_artifacts',
+        # pylint: disable=C0301
+        help='keep artifacts generated for each step of the build (step artifacts are by default deleted to prevent clutter on build machines)',
+    )
+
+    parser.add_argument(
         '-s', '--steps',
         default=[],
         dest='steps',
@@ -142,7 +151,8 @@ def main():
             args.build_number,
             push=args.push,
             colorize_log=not args.no_log_color,
-            cleanup=not args.keep_images,
+            cleanup_images=not args.keep_images,
+            cleanup_step_artifacts=not args.keep_step_artifacts,
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,
         )

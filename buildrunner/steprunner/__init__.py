@@ -43,7 +43,9 @@ class BuildStepRunner(object):
             self.build_runner.build_results_dir,
             self.name,
         )
-        os.mkdir(self.results_dir)
+        if not os.path.exists(self.results_dir):
+            os.mkdir(self.results_dir)
+
         self.log = self.build_runner.log
 
         # generate a unique step id
