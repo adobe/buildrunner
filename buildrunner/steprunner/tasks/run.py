@@ -482,6 +482,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         _volumes_from = [self._get_source_container()]
 
+        # attach the ssh agent to the service container
+        if self._sshagent:
+            ssh_container, ssh_env = self._sshagent.get_info()
+            if ssh_container:
+                _volumes_from.append(ssh_container)
+            if ssh_env:
+                for _var, _val in ssh_env.iteritems():
+                    _env[_var] = _val
+
         # attach the docker daemon container
         daemon_container, daemon_env = self._dockerdaemonproxy.get_info()
         if daemon_container:
