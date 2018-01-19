@@ -7,6 +7,13 @@ import ssl
 import urlparse
 
 import docker
+try:
+    # Newer API
+    Client = docker.client.Client
+except:
+    # Older API
+    Client = docker.APIClient
+
 
 from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
 
@@ -65,7 +72,7 @@ def new_client(
         if url_parts.scheme == 'tcp':
             _dockerd_url = urlparse.urlunparse(('https',) + url_parts[1:])
 
-    return docker.APIClient(
+    return Client(
         base_url=_dockerd_url,
         version=DOCKER_API_VERSION,
         tls=tls_config,
