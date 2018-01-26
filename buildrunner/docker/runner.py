@@ -76,6 +76,7 @@ class DockerRunner(object):
             dns_search=None,
             extra_hosts=None,
             containers=None,
+            systemd=None
     ): #pylint: disable=too-many-arguments
         """
         Kwargs:
@@ -93,6 +94,17 @@ class DockerRunner(object):
         # prepare volumes
         _volumes = []
         _binds = {}
+
+        security_opt = None
+        command = shell
+        if systemd:
+            # If we are running in a systemd context,
+            # the following 3 settings are necessary to
+            # allow services to run.
+            volumes["/sys/fs/cgroup"] = "/sys/fs/cgroup:ro"
+            security_opt = ["seccomp=unconfined"]
+            command = "/usr/sbin/init"
+
         if volumes:
             for key, value in volumes.iteritems():
                 to_bind = value
@@ -124,7 +136,7 @@ class DockerRunner(object):
         self.container = self.docker_client.create_container(
             self.image_name,
             name=name,
-            command=shell,
+            command=command,
             volumes=_volumes,
             ports=_port_list,
             stdin_open=True,
@@ -141,7 +153,8 @@ class DockerRunner(object):
                 volumes_from=volumes_from,
                 dns=dns,
                 dns_search=dns_search,
-                extra_hosts=extra_hosts
+                extra_hosts=extra_hosts,
+                security_opt=security_opt
             )
         )
 
