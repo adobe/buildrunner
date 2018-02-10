@@ -434,8 +434,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 service_logger,
             )
 
-        systemd = self.is_systemd(config, _image)
-
         # determine if a user is specified
         _user = None
         if 'user' in config:
@@ -485,7 +483,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _volumes_from = [self._get_source_container()]
 
         # attach the ssh agent to the service container
-        if self._sshagent and config.get('inject-ssh-agent', False):
+        if self._sshagent:
             ssh_container, ssh_env = self._sshagent.get_info()
             if ssh_container:
                 _volumes_from.append(ssh_container)
@@ -556,7 +554,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             extra_hosts=_extra_hosts,
             working_dir=_cwd,
             containers=_containers,
-            systemd=systemd
         )
         self._service_links[cont_name] = name
 
@@ -691,9 +688,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     self.config['ssh-keys'],
                 )
             )
-
-        # Figure out if we should be running systemd
-        container_args["systemd"] = self.is_systemd(self.config, _run_image)
 
         # start the docker daemon proxy
         self._dockerdaemonproxy = DockerDaemonProxy(
@@ -838,7 +832,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 links=self._service_links,
                 **container_args
             )
-
             self.step_runner.log.write(
                 'Started build container %.10s\n' % container_id
             )
@@ -954,12 +947,3 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 force=True,
                 v=True,
             )
-
-    def is_systemd(self, config, image):
-        if 'systemd' in config:
-            return config.get('systemd', False)
-        else:
-            labels = self._docker_client.inspect_image(image).get('Config', {}).get('Labels', {})
-            if 'BUILDRUNNER_SYSTEMD' in labels:
-                return labels.get('BUILDRUNNER_SYSTEMD', False)
-        return False
