@@ -435,17 +435,6 @@ the run step::
         # is appropriate and we don't need to check upstream for changes.
         pull: true/false (defaults to true)
 
-        # systemd doesn't play well with docker, but our base development
-        # environment is transitioning to Cent 7, which uses systemd.
-        # Use this setting to tell buildrunner to set the necessary docker
-        # flags to get systemd to work properly:
-        # - /usr/sbin/init needs to run as pid 1
-        # - /sys/fs/cgroup needs to be mounted as readonly (-v /sys/fs/cgroup:/sys/fs/cgroup:ro)
-        # - The security setting seccomp=unconfined must be set (--security-opt seccomp=unconfined)
-        # If this is ommitted, the image will be inspected for the label 'BUILDRUNNER_SYSTEMD'.
-        # If found, systemd=true will be assumed.
-        systemd: true/false
-
         # The post-build attribute commits the resulting run container as an
         # image and allows additional Docker build processing to occur. This is
         # useful for adding Docker configuration, such as EXPOSE and CMD
@@ -581,9 +570,6 @@ within service container configuration::
             # is appropriate and we don't need to check upstream for changes.
             pull: true/false (defaults to true)
 
-            # See above
-            systemd: true/false
-
             # A list of container names or labels created within any run container
             # that buildrunner should clean up.  (Use if you call
             # 'docker run --name <name>' or 'docker run --label <label>' within a run container.)
@@ -597,13 +583,6 @@ within service container configuration::
             wait_for:
               - 80
               - 9999
-
-            # If ssh-keys are specified in the run step, an ssh agent will be started
-            # and mounted inside the running docker container.  If inject-ssh-agent
-            # is set to true, the agent will be mounted inside the service container
-            # also.  This isn't enabled by default as there is the theoretical
-            # (though unlikely) possibility that a this access could be exploited.
-            inject-ssh-agent: true/false (defaults to false)
 
 Here is an example of a 'run' definition that simply runs the default command
 from the specified Docker image and archives the given artifacts::
