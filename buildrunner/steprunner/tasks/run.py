@@ -483,7 +483,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _volumes_from = [self._get_source_container()]
 
         # attach the ssh agent to the service container
-        if self._sshagent:
+        if self._sshagent and config.get('inject-ssh-agent', False):
             ssh_container, ssh_env = self._sshagent.get_info()
             if ssh_container:
                 _volumes_from.append(ssh_container)
@@ -554,6 +554,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             extra_hosts=_extra_hosts,
             working_dir=_cwd,
             containers=_containers,
+            systemd=self.is_systemd(config, _image, service_logger)
+
         )
         self._service_links[cont_name] = name
 
@@ -828,10 +830,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 _run_image,
                 pull_image=self.config.get('pull', True),
             )
+            # Figure out if we should be running systemd.  Has to happen after docker pull
+            container_args["systemd"] = self.is_systemd(self.config, _run_image, self.step_runner.log)
+
             container_id = self.runner.start(
                 links=self._service_links,
                 **container_args
             )
+
             self.step_runner.log.write(
                 'Started build container %.10s\n' % container_id
             )
@@ -947,3 +953,18 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 force=True,
                 v=True,
             )
+
+    def is_systemd(self, config, image, logger):
+        rval = False
+        if 'systemd' in config:
+            rval = config.get('systemd', False)
+        else:
+            labels = self._docker_client.inspect_image(image).get('Config', {}).get('Labels', {})
+            if labels and 'BUILDRUNNER_SYSTEMD' in labels:
+                rval = labels.get('BUILDRUNNER_SYSTEMD', False)
+
+        # Labels will be set as the string value.  Make sure we handle '0' and 'False'
+        if rval and rval != '0' and rval != 'False':
+            return True
+        else:
+            return False
