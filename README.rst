@@ -116,6 +116,8 @@ they are used when put into the '~/.buildrunner.yaml' file::
       -----INLINE KEY-----
       ...
     password: <password if needed>
+    # If set, prompt for the ssh key password.  Ignored if password is set.
+    prompt-password: True/False (defaults to False)
     aliases:
       - 'my-github-key'
 

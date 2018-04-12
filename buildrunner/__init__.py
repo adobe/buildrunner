@@ -16,6 +16,7 @@ import tarfile
 import tempfile
 import threading
 import uuid
+import getpass
 
 import jinja2
 import requests
@@ -247,18 +248,28 @@ class BuildRunner(object):
                 continue
 
             _password = None
+            _prompt_for_password = False
             if 'password' in key_info:
                 _password = key_info['password']
+            else:
+                _prompt_for_password = key_info.get('prompt-password', False);
 
             for alias in key_aliases:
                 if alias in key_info['aliases']:
                     _matched_aliases.append(alias)
+
+                    # Prompt for password if necessary.  Only once per key
+                    if _prompt_for_password:
+                        _password = getpass.getpass("SSH Key Password (" + alias + "): ")
+                        _prompt_for_password = False
+
                     if 'file' in key_info:
                         _key_file = os.path.realpath(
                             os.path.expanduser(
                                 os.path.expandvars(key_info['file'])
                             )
                         )
+
                         _keys.append(
                             load_ssh_key_from_file(_key_file, _password)
                         )
