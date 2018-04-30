@@ -40,10 +40,10 @@ class DockerRunner(object):
         # Pull all images to ensure we get the hashes for intermediate images
         found_image = False
         for image in self.docker_client.images(all=True):
-            if image["Id"].startswith("sha256:" + self.image_name):
+            if image["Id"].startswith("sha256:" + self.image_name) or image["Id"] == self.image_name:
                 # If the image name is simply a hash, it refers to an intermediate
-                # image.  We don't want to "pull" these, as the hash won't exist
-                # as a valid upstream repoistory/image
+                # or imported image.  We don't want to "pull" these, as the hash
+                # won't exist as a valid upstream repoistory/image
                 found_image = True
                 pull_image = False
             else:
