@@ -79,38 +79,48 @@ class DockerBuilder(object):
 
         # monitor output for logs and status
         exit_code = 0
+        msg_buffer = ''
         for msg_str in stream:
             for msg in msg_str.split("\n"):
                 if msg:
-                    msg = json.loads(msg)
-                    if 'stream' in msg:
+                    msg_buffer += msg
+                    try:
+                        # there is a limit on the chars returned in the stream
+                        # generator, so if we don't have a valid json message
+                        # here we get the next msg and append to the current
+                        # one
+                        json_msg = json.loads(msg_buffer)
+                        msg_buffer = ''
+                    except ValueError:
+                        continue
+                    if 'stream' in json_msg:
                         # capture intermediate containers for cleanup later
                         # the command line 'docker build' has a '--force-rm' option,
                         # but that isn't available in the python client
                         container_match = re.search(
                             r' ---> Running in ([0-9a-f]+)',
-                            msg['stream'],
+                            json_msg['stream'],
                         )
                         if container_match:
                             self.intermediate_containers.append(
                                 container_match.group(1)
                             )
-    
+
                         # capture the resulting image
                         image_match = re.search(
                             r'Successfully built ([0-9a-f]+)',
-                            msg['stream'],
+                            json_msg['stream'],
                         )
                         if image_match:
                             self.image = image_match.group(1)
-    
+
                         if console:
-                            console.write(msg['stream'])
-                    if 'error' in msg:
+                            console.write(json_msg['stream'])
+                    if 'error' in json_msg:
                         exit_code = 1
-                        if 'errorDetail' in msg:
-                            if 'message' in msg['errorDetail'] and console:
-                                console.write(msg['errorDetail']['message'])
+                        if 'errorDetail' in json_msg:
+                            if 'message' in json_msg['errorDetail'] and console:
+                                console.write(json_msg['errorDetail']['message'])
                                 console.write('\n')
 
         return exit_code
