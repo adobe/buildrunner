@@ -96,7 +96,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         return _volumes_from
 
 
-    def _retrieve_artifacts(self):
+    def _retrieve_artifacts(self, console=None):
         """
         Gather artifacts from the build container and place in the
         step-specific results dir.
@@ -137,12 +137,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     stat_output_file,
                 )
                 exit_code = artifact_lister.run(
-                    'stat -c "%%n%s%%F" %s > /stepresults/%s' % (
+                    'stat -c "%%n%s%%F" %s >/stepresults/%s' % (
                         FILE_INFO_DELIMITER,
                         pattern,
                         stat_output_file,
                     ),
-                    stream=False,
+                    console=console,
+                    stream=True,
                 )
 
                 # if the command was successful we found something
@@ -204,6 +205,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         os.getuid(),
                         os.getgid(),
                     ),
+                    console=console,
                 )
                 if exit_code != 0:
                     raise Exception(
@@ -231,7 +233,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 find_output_file,
             )
             find_exit_code = artifact_lister.run(
-                'find %s -type f> /stepresults/%s' % (
+                'find %s -type f >/stepresults/%s' % (
                     artifact_file,
                     find_output_file,
                 ),
@@ -880,7 +882,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # gather artifacts to results dir even if run has bad exit code
         if 'artifacts' in self.config:
-            self._retrieve_artifacts()
+            self._retrieve_artifacts(container_logger)
 
         # if we have an unsuccessful exit code abort
         if exit_code != 0:

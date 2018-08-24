@@ -146,6 +146,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             )
             if exit_code != 0 or not builder.image:
                 raise BuildRunnerProcessingError('Error building image')
+        except Exception as exc:
+            self.step_runner.log.write('ERROR: {0}\n'.format(exc))
         finally:
             builder.cleanup()
         context['image'] = builder.image

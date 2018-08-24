@@ -223,6 +223,14 @@ class DockerRunner(object):
         """
         Run the given command in the container.
         """
+        if isinstance(cmd, six.string_types):
+            cmdv = [self.shell, '-c', cmd]
+        elif hasattr(cmd, 'next'):
+            cmdv = cmd
+        else:
+            raise TypeError('Unhandle command type: {0}:{1}'.format(type(cmd), cmd))
+        #if console is None:
+        #    raise Exception('No console!')
         if not self.container:
             raise BuildRunnerContainerError('Container has not been started')
         if not self.shell:
@@ -232,16 +240,23 @@ class DockerRunner(object):
 
         create_res = self.docker_client.exec_create(
             self.container['Id'],
-            [self.shell, '-c', cmd],
+            cmdv,
             tty=False,
         )
         output_buffer = self.docker_client.exec_start(
             create_res,
             stream=stream,
         )
-        for line in output_buffer:
+        if isinstance(output_buffer, six.string_types):
             if console:
-                console.write(line)
+                console.write(output_buffer)
+        elif hasattr(output_buffer, 'next'):
+            for line in output_buffer:
+                if console:
+                    console.write(line)
+        else:
+            if console:
+                console.write('WARNING: Unexpected output object: {0}'.format(output_buffer))
         inspect_res = self.docker_client.exec_inspect(create_res)
         if 'ExitCode' in inspect_res:
             return inspect_res['ExitCode']
