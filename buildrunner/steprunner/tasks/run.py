@@ -96,7 +96,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         return _volumes_from
 
 
-    def _retrieve_artifacts(self):
+    def _retrieve_artifacts(self, console=None):
         """
         Gather artifacts from the build container and place in the
         step-specific results dir.
@@ -137,12 +137,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     stat_output_file,
                 )
                 exit_code = artifact_lister.run(
-                    'stat -c "%%n%s%%F" %s > /stepresults/%s' % (
+                    'stat -c "%%n%s%%F" %s >/stepresults/%s' % (
                         FILE_INFO_DELIMITER,
                         pattern,
                         stat_output_file,
                     ),
-                    stream=False,
+                    console=console,
+                    stream=True,
                 )
 
                 # if the command was successful we found something
@@ -204,6 +205,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         os.getuid(),
                         os.getgid(),
                     ),
+                    console=console,
                 )
                 if exit_code != 0:
                     raise Exception(
@@ -231,7 +233,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 find_output_file,
             )
             find_exit_code = artifact_lister.run(
-                'find %s -type f> /stepresults/%s' % (
+                'find %s -type f >/stepresults/%s' % (
                     artifact_file,
                     find_output_file,
                 ),
@@ -512,7 +514,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if 'files' in config:
             for f_alias, f_path in config['files'].iteritems():
                 # lookup file from alias
-                f_local = self.step_runner.build_runner.get_local_files_from_alias( #pylint: disable=line-too-long
+                f_local = self.step_runner.build_runner.get_local_files_from_alias(
                     f_alias,
                 )
                 if not f_local or not os.path.exists(f_local):
@@ -601,30 +603,32 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Wait for listening port on named container
         """
-        ip = self._docker_client.inspect_container(name)['NetworkSettings']['IPAddress']
-        open = False
-        
-        while not open:
-            self.step_runner.log.write("Waiting for port %d to be listening for connections in container %s with ip %s\n" % (port, name, ip))
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            open = sock.connect_ex((ip, port)) == 0
-            sock.close()
-            if not open:
-               time.sleep(1)
+        ipaddr = self._docker_client.inspect_container(name)['NetworkSettings']['IPAddress']
+        sopen = False
 
-        self.step_runner.log.write("Port %d is listening in container %s with ip %s\n" % (port, name, ip))
+        while not sopen:
+            self.step_runner.log.write(
+                "Waiting for port %d to be listening for connections in container %s with IP address %s\n" % (port, name, ipaddr)
+            )
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sopen = sock.connect_ex((ipaddr, port)) == 0
+            sock.close()
+            if not sopen:
+                time.sleep(1)
+
+        self.step_runner.log.write("Port %d is listening in container %s with IP address %s\n" % (port, name, ipaddr))
 
     def _resolve_service_ip(self, service_name):
-       """
-       If service_name represents a running service, return it's ip address.
-       Otherwise, return the service_name
-       """
-       rval = service_name
-       if isinstance(service_name, basestring) and service_name in self._service_runners:
-           ip = self._service_runners[service_name].get_ip()
-           if ip is not None:
-               rval = ip
-       return rval
+        """
+        If service_name represents a running service, return it's IP address.
+        Otherwise, return the service_name
+        """
+        rval = service_name
+        if isinstance(service_name, basestring) and service_name in self._service_runners:
+            ipaddr = self._service_runners[service_name].get_ip()
+            if ipaddr is not None:
+                rval = ipaddr
+        return rval
 
     def run(self, context):
         _run_image = self.config.get('image', context.get('image', None))
@@ -788,7 +792,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if 'files' in self.config:
             for f_alias, f_path in self.config['files'].iteritems():
                 # lookup file from alias
-                f_local = self.step_runner.build_runner.get_local_files_from_alias( #pylint: disable=line-too-long
+                f_local = self.step_runner.build_runner.get_local_files_from_alias(
                     f_alias,
                 )
                 if not f_local or not os.path.exists(f_local):
@@ -880,7 +884,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # gather artifacts to results dir even if run has bad exit code
         if 'artifacts' in self.config:
-            self._retrieve_artifacts()
+            self._retrieve_artifacts(container_logger)
 
         # if we have an unsuccessful exit code abort
         if exit_code != 0:
@@ -964,7 +968,4 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 rval = labels.get('BUILDRUNNER_SYSTEMD', False)
 
         # Labels will be set as the string value.  Make sure we handle '0' and 'False'
-        if rval and rval != '0' and rval != 'False':
-            return True
-        else:
-            return False
+        return bool(rval and rval != '0' and rval != 'False')

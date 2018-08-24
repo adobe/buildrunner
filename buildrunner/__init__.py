@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import codecs
 from collections import OrderedDict
 import copy
+import errno
 import fnmatch
 import imp
 import json
@@ -159,7 +160,7 @@ class BuildRunner(object):
         if not self.build_number:
             self.build_number = self.build_time
 
-        self.log = None
+        self._log = None
 
         self.vcs = detect_vcs(self.build_dir)
         self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
@@ -206,7 +207,7 @@ class BuildRunner(object):
         self.exit_code = None
         self._source_image = None
         self._source_archive = None
-        self.log_file = None
+        self._log_file = None
 
 
     def get_build_server_from_alias(self, host):
@@ -252,7 +253,7 @@ class BuildRunner(object):
             if 'password' in key_info:
                 _password = key_info['password']
             else:
-                _prompt_for_password = key_info.get('prompt-password', False);
+                _prompt_for_password = key_info.get('prompt-password', False)
 
             for alias in key_aliases:
                 if alias in key_info['aliases']:
@@ -402,12 +403,12 @@ class BuildRunner(object):
         """
         if not self._source_image:
             self.log.write('Creating source image\n')
-            source_builder = DockerBuilder(
-                inject={
-                    self.get_source_archive_path(): 'source.tar',
-                    SOURCE_DOCKERFILE: "Dockerfile",
-                },
-            )
+            source_archive_path = self.get_source_archive_path()
+            inject = {
+                source_archive_path: 'source.tar',
+                SOURCE_DOCKERFILE: "Dockerfile",
+            }
+            source_builder = DockerBuilder(inject=inject)
             exit_code = source_builder.build(
                 nocache=True,
             )
@@ -417,17 +418,31 @@ class BuildRunner(object):
         return self._source_image
 
 
-    def _init_log(self):
+    @property
+    def log(self):
         """
         create the log file and open for writing
         """
-        log_file_path = os.path.join(self.build_results_dir, 'build.log')
-        self.log_file = open(log_file_path, 'w')
-        self.log = ConsoleLogger(self.colorize_log, self.log_file)
+        try:
+            os.makedirs(self.build_results_dir)
+        except OSError as exc:
+            if exc.errno != errno.EEXIST:
+                sys.stderr.write('ERROR: {0}\n'.format(str(exc)))
+                sys.exit(os.EX_UNAVAILABLE)
+
+        try:
+            log_file_path = os.path.join(self.build_results_dir, 'build.log')
+            self._log_file = open(log_file_path, 'w')
+            self._log = ConsoleLogger(self.colorize_log, self._log_file)
+        except Exception as exc: #pylint: disable=broad-except
+            sys.stderr.write('ERROR: failed to initialize ConsoleLogger: {0}\n'.format(str(exc)))
+            self._log = sys.stderr
+
         self.add_artifact(
             os.path.basename(log_file_path),
             {'type': 'log'},
         )
+        return self._log
 
 
     def _write_artifact_manifest(self):
@@ -436,8 +451,7 @@ class BuildRunner(object):
         to the artifacts manifest.
         """
         if self.artifacts:
-            if self.log:
-                self.log.write('\nWriting artifact properties\n')
+            self.log.write('\nWriting artifact properties\n')
             artifact_manifest = os.path.join(
                 self.build_results_dir,
                 'artifacts.json',
@@ -465,15 +479,14 @@ class BuildRunner(object):
         else:
             exit_message = '\nBuild SUCCESS.'
 
-        if self.log_file:
+        if self._log_file:
             try:
-                if self.log:
-                    if exit_explanation:
-                        self.log.write('\n' + exit_explanation + '\n')
-                    self.log.write(exit_message + '\n')
+                if exit_explanation:
+                    self.log.write('\n' + exit_explanation + '\n')
+                self.log.write(exit_message + '\n')
             finally:
                 # close the log_file
-                self.log_file.close()
+                self._log_file.close()
         else:
             if exit_explanation:
                 print '\n%s' % exit_explanation
@@ -497,8 +510,6 @@ class BuildRunner(object):
             if not os.path.exists(self.build_results_dir):
                 #create a new results dir
                 os.mkdir(self.build_results_dir)
-
-            self._init_log()
 
             self.get_source_archive_path()
 
