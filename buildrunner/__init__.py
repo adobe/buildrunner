@@ -253,7 +253,7 @@ class BuildRunner(object):
             if 'password' in key_info:
                 _password = key_info['password']
             else:
-                _prompt_for_password = key_info.get('prompt-password', False);
+                _prompt_for_password = key_info.get('prompt-password', False)
 
             for alias in key_aliases:
                 if alias in key_info['aliases']:
@@ -404,7 +404,7 @@ class BuildRunner(object):
         if not self._source_image:
             self.log.write('Creating source image\n')
             source_archive_path = self.get_source_archive_path()
-            inject={
+            inject = {
                 source_archive_path: 'source.tar',
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
@@ -434,7 +434,7 @@ class BuildRunner(object):
             log_file_path = os.path.join(self.build_results_dir, 'build.log')
             self._log_file = open(log_file_path, 'w')
             self._log = ConsoleLogger(self.colorize_log, self._log_file)
-        except Exception as exc:
+        except Exception as exc: #pylint: disable=broad-except
             sys.stderr.write('ERROR: failed to initialize ConsoleLogger: {0}\n'.format(str(exc)))
             self._log = sys.stderr
 
