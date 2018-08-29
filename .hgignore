@@ -1,0 +1,12 @@
+syntax: glob
+.git
+*~
+vendor*
+build
+dist
+*.egg-info
+*.egg
+*.pyc
+.idea
+buildrunner/version.py
+buildrunner.results
