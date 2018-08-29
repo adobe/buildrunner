@@ -261,7 +261,7 @@ class BuildRunner(object):
 
                     # Prompt for password if necessary.  Only once per key
                     if _prompt_for_password:
-                        _password = getpass.getpass("SSH Key Password (" + alias + "): ")
+                        _password = getpass.getpass("Password for SSH Key ({0}): ".format(alias))
                         _prompt_for_password = False
 
                     if 'file' in key_info:
