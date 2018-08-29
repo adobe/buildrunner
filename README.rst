@@ -52,7 +52,12 @@ NOTE TO WINDOWS USERS: This is the recommended method for Windows users, however
 you must make sure that you are using the 
 `bash shell <https://www.laptopmag.com/articles/use-bash-shell-windows-10>`_
 enhancements for Windows or that you have something installed that enables the use
-of "sh", or else this method will not work.
+of "sh", or else this method will not work. 
+If you are using WSL and the hyper-v installtion of docker:
+
+1. Click on the "Expose deamon on tcp://localhost:2375 without tls" from inside of the docker settings 
+2. Use the pip install method inside of the WSL subsystem
+3. Export your docker host "DOCKER_HOST=tcp://localhost:2375" inside of WSL
 
 NOTE TO MAC USERS: If you are using the docker version of buildrunner and are getting the error
 ```docker-credential-osxkeychain not installed or not available in PATH```, you can do one of 2 things:
