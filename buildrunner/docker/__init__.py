@@ -32,7 +32,7 @@ def new_client(
         tls=False,
         tls_verify=False,
         cert_path=None,
-        timeout=300,
+        timeout=600,
 ):
     """
     Return a newly configured Docker client.
