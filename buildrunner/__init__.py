@@ -413,7 +413,8 @@ class BuildRunner(object):
                 nocache=True,
             )
             if exit_code != 0 or not source_builder.image:
-                raise BuildRunnerProcessingError('Error building source image')
+                raise BuildRunnerProcessingError(('Error building source image ({0}), ' +
+                    'this may be a transient docker error if no output is available above').format(exit_code))
             self._source_image = source_builder.image
         return self._source_image
 
