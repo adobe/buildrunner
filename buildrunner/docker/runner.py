@@ -128,25 +128,18 @@ class DockerRunner(object):
         if dns_search and isinstance(dns_search, six.string_types):
             dns_search = dns_search.split(',')
 
-        create_dns = dns
-        if compare_version('1.10', self.docker_client.api_version) >= 0:
-            create_dns = None
-
-        # start the container
-        self.container = self.docker_client.create_container(
-            self.image_name,
-            name=name,
-            command=command,
-            volumes=_volumes,
-            ports=_port_list,
-            stdin_open=True,
-            tty=True,
-            environment=environment,
-            user=user,
-            working_dir=working_dir,
-            hostname=hostname,
-            dns=create_dns,
-            host_config=self.docker_client.create_host_config(
+        kwargs = {
+            'name': name,
+            'command': command,
+            'volumes': _volumes,
+            'ports': _port_list,
+            'stdin_open': True,
+            'tty': True,
+            'environment': environment,
+            'user': user,
+            'working_dir': working_dir,
+            'hostname': hostname,
+            'host_config': self.docker_client.create_host_config(
                 binds=_binds,
                 links=links,
                 port_bindings=ports,
@@ -156,8 +149,13 @@ class DockerRunner(object):
                 extra_hosts=extra_hosts,
                 security_opt=security_opt
             )
-        )
+        }
 
+        if compare_version('1.10', self.docker_client.api_version) < 0:
+            kwargs['dns'] = dns
+
+        # start the container
+        self.container = self.docker_client.create_container(self.image_name, **kwargs)
         self.docker_client.start(self.container['Id'])
 
         # run any supplied provisioners
