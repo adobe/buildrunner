@@ -157,7 +157,7 @@ the central or a private Docker image registry for use in other builds or to
 run services in other environments.
 
 Build definitions are found in the root of your source tree, either in a file
-named 'buildrunner.yaml' or 'gauntlet.yaml'. The build definition is simply a
+named 'buildrunner.yaml'. The build definition is simply a
 yaml map defining 'steps'. Each step is given a custom name and must contain
 either 'build' and/or 'run' attributes (optionally containing a 'push'
 attribute) or a 'remote' attribute::
@@ -182,6 +182,24 @@ in a step-specific results directory. To use artifacts generated from a
 previous step in a subsequent one you would reference them using the previous
 step name. (NOTE: Artifacts from previous steps are not available within remote
 builds)
+
+Jinja Templating
+================
+
+The 'buildrunner.yaml' file is processed as a 
+`Jinja template <http://jinja.pocoo.org/>`_, meaning the build definition can be 
+modified dynamically before it is run. In addition to the environment variables 
+listed below in "Running Containers" and the standard Jinja methods, the list 
+below contains available variables and methods.
+
+- CONFIG_FILE = the full path to the current file being processed 
+  (buildrunner.yaml) 
+- CONFIG_DIR = the full path to the directory containing the current file
+  being processed
+- read_yaml_file = a method to read an arbitrary file in the current
+  workspace as yaml and use the contents in the script, note that the file
+  is processed using Jinja as well and that the file must exist before 
+  buildrunner is run or else this method will fail
 
 Standard Docker Builds (the 'build' step attribute)
 ===================================================
@@ -288,6 +306,7 @@ every run container:
   build number information)
 - BUILDRUNNER_BUILD_TIME = the "unix" time or "epoch" time of the build (in
   seconds)
+- VCSINFO_NAME = the VCS repository name without a path
 - VCSINFO_BRANCH = the VCS branch
 - VCSINFO_NUMBER = the VCS commit number
 - VCSINFO_ID = the VCS commit id
