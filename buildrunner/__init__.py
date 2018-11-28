@@ -80,6 +80,7 @@ class BuildRunner(object):
             'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
             'BUILDRUNNER_BUILD_ID': str(self.build_id),
             'BUILDRUNNER_BUILD_TIME': str(self.build_time),
+            'VCSINFO_NAME': str(self.vcs.name),
             'VCSINFO_BRANCH': str(self.vcs.branch),
             'VCSINFO_NUMBER': str(self.vcs.number),
             'VCSINFO_ID': str(self.vcs.id),
@@ -98,6 +99,18 @@ class BuildRunner(object):
         return context
 
 
+    def _read_yaml_file(self, filename):
+        """
+        Reads a file in the local workspace as Jinja-templated 
+        YAML and returns the contents.
+        Throws an error on failure.
+        """
+        with codecs.open(filename, 'r', encoding='utf-8') as _file:
+            jtemplate = jinja2.Template(_file.read())
+        config_context = copy.deepcopy(self.env)
+        return load_config(StringIO(jtemplate.render(config_context)))
+
+
     def _load_config(self, cfg_file, ctx=None):
         """
         Load a config file templating it with Jinja and parsing the YAML.
@@ -113,6 +126,7 @@ class BuildRunner(object):
         config_context.update({
             'CONFIG_FILE': cfg_file,
             'CONFIG_DIR': os.path.dirname(cfg_file),
+            'read_yaml_file': self._read_yaml_file,
         })
 
         if ctx:
