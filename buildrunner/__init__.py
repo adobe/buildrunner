@@ -45,7 +45,7 @@ try:
     if os.path.exists(_VERSION_FILE):
         _VERSION_MOD = imp.load_source('buildrunnerversion', _VERSION_FILE)
         __version__ = _VERSION_MOD.__version__
-except: #pylint: disable=bare-except
+except:  # pylint: disable=bare-except
     pass
 
 
@@ -56,13 +56,14 @@ RESULTS_DIR = 'buildrunner.results'
 
 
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
+
+
 class BuildRunner(object):
     """
     Class used to manage running a build.
     """
 
     CONTEXT_ENV_PREFIXES = ['BUILDRUNNER_', 'VCSINFO_', 'PACKAGER_', 'GAUNTLET_']
-
 
     def _get_config_context(self, ctx=None):
         """
@@ -98,7 +99,6 @@ class BuildRunner(object):
 
         return context
 
-
     def _read_yaml_file(self, filename):
         """
         Reads a file in the local workspace as Jinja-templated 
@@ -109,7 +109,6 @@ class BuildRunner(object):
             jtemplate = jinja2.Template(_file.read())
         config_context = copy.deepcopy(self.env)
         return load_config(StringIO(jtemplate.render(config_context)))
-
 
     def _load_config(self, cfg_file, ctx=None):
         """
@@ -136,7 +135,6 @@ class BuildRunner(object):
         config = load_config(StringIO(config_contents))
 
         return config
-
 
     def __init__(
             self,
@@ -223,7 +221,6 @@ class BuildRunner(object):
         self._source_archive = None
         self._log_file = None
 
-
     def get_build_server_from_alias(self, host):
         """
         Given a host alias string determine the actual build server host value
@@ -239,7 +236,6 @@ class BuildRunner(object):
                 return _host
 
         return host
-
 
     def get_ssh_keys_from_aliases(self, key_aliases):
         """
@@ -301,7 +297,6 @@ class BuildRunner(object):
 
         return _keys
 
-
     def get_local_files_from_alias(self, file_alias):
         """
         Given a file alias lookup the local file path from the global config.
@@ -333,7 +328,6 @@ class BuildRunner(object):
 
         return None
 
-
     def get_cache_path(self, cache_name):
         """
         Given a cache name determine the local file path.
@@ -349,7 +343,6 @@ class BuildRunner(object):
             os.makedirs(cache_dir)
         return cache_dir
 
-
     def to_abs_path(self, path):
         """
         Convert a path to an absolute path (if it isn't one already).
@@ -362,13 +355,11 @@ class BuildRunner(object):
             _path,
         )
 
-
     def add_artifact(self, artifact_file, properties):
         """
         Register a build artifact to be included in the artifacts manifest.
         """
         self.artifacts[artifact_file] = properties
-
 
     def get_source_archive_path(self):
         """
@@ -409,7 +400,6 @@ class BuildRunner(object):
                     _fileobj.close()
         return self._source_archive
 
-
     def get_source_image(self):
         """
         Get and/or create the base image source containers will be created
@@ -427,38 +417,38 @@ class BuildRunner(object):
                 nocache=True,
             )
             if exit_code != 0 or not source_builder.image:
-                raise BuildRunnerProcessingError(('Error building source image ({0}), ' +
-                    'this may be a transient docker error if no output is available above').format(exit_code))
+                raise BuildRunnerProcessingError(('Error building source image ({0}), this may be a transient docker ' +
+                                                  'error if no output is available above').format(exit_code))
             self._source_image = source_builder.image
         return self._source_image
-
 
     @property
     def log(self):
         """
         create the log file and open for writing
         """
-        try:
-            os.makedirs(self.build_results_dir)
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                sys.stderr.write('ERROR: {0}\n'.format(str(exc)))
-                sys.exit(os.EX_UNAVAILABLE)
+        if self._log is None:
+            try:
+                os.makedirs(self.build_results_dir)
+            except OSError as exc:
+                if exc.errno != errno.EEXIST:
+                    sys.stderr.write('ERROR: {0}\n'.format(str(exc)))
+                    sys.exit(os.EX_UNAVAILABLE)
 
-        try:
-            log_file_path = os.path.join(self.build_results_dir, 'build.log')
-            self._log_file = open(log_file_path, 'w')
-            self._log = ConsoleLogger(self.colorize_log, self._log_file)
-        except Exception as exc: #pylint: disable=broad-except
-            sys.stderr.write('ERROR: failed to initialize ConsoleLogger: {0}\n'.format(str(exc)))
-            self._log = sys.stderr
+            try:
+                log_file_path = os.path.join(self.build_results_dir, 'build.log')
+                self._log_file = open(log_file_path, 'w')
+                self._log = ConsoleLogger(self.colorize_log, self._log_file)
 
-        self.add_artifact(
-            os.path.basename(log_file_path),
-            {'type': 'log'},
-        )
+                self.add_artifact(
+                    os.path.basename(log_file_path),
+                    {'type': 'log'},
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                sys.stderr.write('ERROR: failed to initialize ConsoleLogger: {0}\n'.format(str(exc)))
+                self._log = sys.stderr
+
         return self._log
-
 
     def _write_artifact_manifest(self):
         """
@@ -482,13 +472,11 @@ class BuildRunner(object):
             with open(artifact_manifest, 'w') as _af:
                 json.dump(artifacts, _af, indent=2)
 
-
     def _exit_message_and_close_log(self, exit_explanation):
         """
         Determine the exit message, output to the log or stdout, close log if
         open.
         """
-        exit_message = None
         if self.exit_code:
             exit_message = '\nBuild ERROR.'
         else:
@@ -507,7 +495,6 @@ class BuildRunner(object):
                 print '\n%s' % exit_explanation
             print exit_message
 
-
     def run(self):
         """
         Run the build.
@@ -523,7 +510,7 @@ class BuildRunner(object):
                 shutil.rmtree(self.build_results_dir)
 
             if not os.path.exists(self.build_results_dir):
-                #create a new results dir
+                # create a new results dir
                 os.mkdir(self.build_results_dir)
 
             self.get_source_archive_path()
@@ -618,7 +605,7 @@ class BuildRunner(object):
                             noprune=False,
                             force=True,
                         )
-                    except Exception as _ex: #pylint: disable=broad-except
+                    except Exception as _ex:  # pylint: disable=broad-except
                         self.log.write(
                             'Error removing image %s: %s' % (
                                 _image,
