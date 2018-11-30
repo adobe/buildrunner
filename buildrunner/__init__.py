@@ -101,7 +101,7 @@ class BuildRunner(object):
 
     def _read_yaml_file(self, filename):
         """
-        Reads a file in the local workspace as Jinja-templated 
+        Reads a file in the local workspace as Jinja-templated
         YAML and returns the contents.
         Throws an error on failure.
         """
@@ -317,14 +317,14 @@ class BuildRunner(object):
                 )
                 if os.path.exists(local_path):
                     return local_path
-                else:
-                    # need to put the contents in a tmp file and return the path
-                    _fileobj = tempfile.NamedTemporaryFile(delete=False)
-                    _fileobj.write(local_file)
-                    tmp_path = os.path.realpath(_fileobj.name)
-                    _fileobj.close()
-                    self.tmp_files.append(tmp_path)
-                    return tmp_path
+
+                # need to put the contents in a tmp file and return the path
+                _fileobj = tempfile.NamedTemporaryFile(delete=False)
+                _fileobj.write(local_file)
+                tmp_path = os.path.realpath(_fileobj.name)
+                _fileobj.close()
+                self.tmp_files.append(tmp_path)
+                return tmp_path
 
         return None
 
@@ -417,8 +417,10 @@ class BuildRunner(object):
                 nocache=True,
             )
             if exit_code != 0 or not source_builder.image:
-                raise BuildRunnerProcessingError(('Error building source image ({0}), this may be a transient docker ' +
-                                                  'error if no output is available above').format(exit_code))
+                raise BuildRunnerProcessingError((
+                    'Error building source image ({0}), this may be a transient docker'
+                    ' error if no output is available above'
+                ).format(exit_code))
             self._source_image = source_builder.image
         return self._source_image
 
