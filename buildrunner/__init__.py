@@ -141,6 +141,7 @@ class BuildRunner(object):
             build_dir,
             global_config_file=None,
             run_config_file=None,
+            run_config=None,
             build_number=None,
             push=False,
             colorize_log=True,
@@ -192,21 +193,24 @@ class BuildRunner(object):
             self.global_config = self._load_config(_global_config_file)
 
         # load run configuration
-        _run_config_file = None
-        if run_config_file:
-            _run_config_file = self.to_abs_path(run_config_file)
+        if run_config:
+            self.run_config = run_config
         else:
-            for name_to_try in DEFAULT_RUN_CONFIG_FILES:
-                _to_try = self.to_abs_path(name_to_try)
-                if os.path.exists(_to_try):
-                    _run_config_file = _to_try
-                    break
+            _run_config_file = None
+            if run_config_file:
+                _run_config_file = self.to_abs_path(run_config_file)
+            else:
+                for name_to_try in DEFAULT_RUN_CONFIG_FILES:
+                    _to_try = self.to_abs_path(name_to_try)
+                    if os.path.exists(_to_try):
+                        _run_config_file = _to_try
+                        break
 
-        if not _run_config_file or not os.path.exists(_run_config_file):
-            raise BuildRunnerConfigurationError(
-                'Cannot find build configuration file'
-            )
-        self.run_config = self._load_config(_run_config_file)
+            if not _run_config_file or not os.path.exists(_run_config_file):
+                raise BuildRunnerConfigurationError(
+                    'Cannot find build configuration file'
+                )
+            self.run_config = self._load_config(_run_config_file)
 
         if 'steps' not in self.run_config:
             raise BuildRunnerConfigurationError(
