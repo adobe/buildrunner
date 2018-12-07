@@ -146,9 +146,9 @@ def main():
     try:
         build_runner = BuildRunner(
             args.directory,
-            args.global_config_file,
-            args.config_file,
-            args.build_number,
+            global_config_file=args.global_config_file,
+            run_config_file=args.config_file,
+            build_number=args.build_number,
             push=args.push,
             colorize_log=not args.no_log_color,
             cleanup_images=not args.keep_images,

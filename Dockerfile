@@ -2,17 +2,24 @@ FROM python:2.7
 
 COPY . /buildrunner-source
 
-RUN                                                             \
-    set -ex;                                                    \
-    useradd -m buildrunner;                                     \
-    apt-get update;                                             \
-    apt-get -y install python-dev libffi-dev libssl-dev;        \
-    pip install cryptography;                                   \
-    cd /buildrunner-source;                                     \
-    pip install -r requirements.txt;                            \
-    python setup.py install;                                    \
-    rm -rf /buildrunner-source;                                 \
-    apt-get clean all
+ENV PIP_DEFAULT_TIMEOUT 60
+
+RUN								\
+    set -ex;							\
+    useradd -m buildrunner;					\
+    apt-get update;						\
+    apt-get -y install						\
+        libffi-dev						\
+        libssl-dev						\
+        libyaml-dev						\
+        python-cryptography					\
+        python-dev						\
+    ;								\
+    cd /buildrunner-source;					\
+    pip install -r requirements.txt;				\
+    python setup.py install;					\
+    rm -rf /buildrunner-source;					\
+    apt-get clean all;
 
 #RUN \
 #    set -ex; \
