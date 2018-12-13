@@ -173,14 +173,11 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                         else:
                             output_file_name = os.path.basename(artifact_file)
-                            new_artifact_file = (
-                                '/stepresults/' +
-                                output_file_name.replace('"', '\\"')
-                            )
+                            new_artifact_file = '/stepresults/' + output_file_name
                             archive_command = (
-                                'cp "' + artifact_file.replace('"', '\\"') +
-                                '" "' + new_artifact_file +
-                                '"'
+                                'cp',
+                                artifact_file,
+                                new_artifact_file,
                             )
                             self._archive_file(
                                 artifact_lister,
@@ -250,17 +247,27 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         continue
 
                     output_file_name = _file
-                    new_artifact_file = (
-                        '/stepresults/' +
-                        output_file_name.replace('"', '\\"')
-                    )
-                    _dir_name = os.path.dirname(_file).replace('"', '\\"')
+                    new_artifact_file = '/stepresults/' + output_file_name
+                    _dir_name = os.path.dirname(_file)
                     archive_command = (
-                        'mkdir -p "/stepresults/' +
-                        _dir_name + '"; cp "' +
-                        _file.replace('"', '\\"') +
-                        '" "' + new_artifact_file +
-                        '"'
+                        'mkdir',
+                        '-p',
+                        '/stepresults/' + _dir_name,
+                    )
+                    exit_code = artifact_lister.run(
+                        archive_command,
+                        log=self.step_runner.log,
+                    )
+                    if exit_code != 0:
+                        raise Exception(
+                            "Error gathering artifact %s" % (
+                                artifact_file,
+                            ),
+                        )
+                    archive_command = (
+                        'cp',
+                        _file,
+                        new_artifact_file,
                     )
                     self._archive_file(
                         artifact_lister,
@@ -280,22 +287,20 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         else:
             filename = os.path.basename(artifact_file)
             output_file_name = filename + '.tar.gz'
-            new_artifact_file = (
-                '/stepresults/' +
-                output_file_name.replace('"', '\\"')
-            )
-            working_dir = ''
+            new_artifact_file = '/stepresults/' + output_file_name
+            archive_command = [
+                'tar',
+                '-cvz',
+            ]
             if os.path.dirname(artifact_file):
-                working_dir = (
-                    ' -C "%s"' % os.path.dirname(
-                        artifact_file,
-                    ).replace('"', '\\"')
-                )
-            archive_command = (
-                'tar -cvzf "' + new_artifact_file + '"' +
-                working_dir + ' "' +
-                filename.replace('"', '\\"') + '"'
-            )
+                archive_command.extend((
+                    '-C', os.path.dirname(artifact_file),
+                ))
+            archive_command.extend((
+                '-f' + new_artifact_file,
+                filename,
+            ))
+
             new_properties = dict()
             if properties:
                 new_properties.update(properties)
