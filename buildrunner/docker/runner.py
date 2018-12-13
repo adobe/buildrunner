@@ -6,9 +6,9 @@ import base64
 import socket
 import ssl
 
-import docker
 import six
 
+import docker
 from docker.utils import compare_version
 
 from buildrunner.docker import (
@@ -193,7 +193,7 @@ class DockerRunner(object):
                         force=True,
                         v=True,
                     )
-                except docker.errors.NotFound, e:
+                except docker.errors.NotFound as e:
                     try:
                         container_ids = self.docker_client.containers(filters={'label':c}, quiet=True)
                         if container_ids:
@@ -204,9 +204,9 @@ class DockerRunner(object):
                                     v=True,
                                 )
                         else:
-                            print "Unable to find docker container with name or label '%s'" % (c)
-                    except docker.errors.NotFound, e:
-                        print "Unable to find docker container with name or label '%s'" % (c)
+                            print("Unable to find docker container with name or label '{}'".format(c))
+                    except docker.errors.NotFound as e:
+                        print("Unable to find docker container with name or label '{}'".format(c))
 
             self.docker_client.remove_container(
                 self.container['Id'],
@@ -217,16 +217,16 @@ class DockerRunner(object):
         self.container = None
 
 
-    def run(self, cmd, console=None, stream=True):
+    def run(self, cmd, console=None, stream=True, log=None, workdir=None):
         """
         Run the given command in the container.
         """
         if isinstance(cmd, six.string_types):
-            cmdv = [self.shell, '-c', cmd]
-        elif hasattr(cmd, 'next'):
+            cmdv = [self.shell, '-xc', cmd]
+        elif hasattr(cmd, 'next') or hasattr(cmd, '__next__') or hasattr(cmd, '__iter__'):
             cmdv = cmd
         else:
-            raise TypeError('Unhandle command type: {0}:{1}'.format(type(cmd), cmd))
+            raise TypeError('Unhandled command type: {0}:{1}'.format(type(cmd), cmd))
         #if console is None:
         #    raise Exception('No console!')
         if not self.container:
@@ -236,10 +236,14 @@ class DockerRunner(object):
                 'Cannot call run if container cmd not shell'
             )
 
+        if log:
+            log.write('Executing: {}\n'.format(cmdv))
+        
         create_res = self.docker_client.exec_create(
             self.container['Id'],
             cmdv,
             tty=False,
+            workdir=workdir,
         )
         output_buffer = self.docker_client.exec_start(
             create_res,
@@ -248,10 +252,14 @@ class DockerRunner(object):
         if isinstance(output_buffer, six.string_types):
             if console:
                 console.write(output_buffer)
+            if log:
+                log.write(output_buffer)
         elif hasattr(output_buffer, 'next'):
             for line in output_buffer:
                 if console:
                     console.write(line)
+                if log:
+                    log.write(line)
         else:
             if console:
                 console.write('WARNING: Unexpected output object: {0}'.format(output_buffer))

@@ -64,6 +64,7 @@ class BuildStepRunner(object):
         _context = {}
         try:
             for _task_name, _task_config in self.config.iteritems():
+                self.log.write('==> Running step: %s:%s\n' % (self.name, _task_name))
                 if _task_name in TASK_MAPPINGS:
                     _task = TASK_MAPPINGS[_task_name](self, _task_config)
                     _tasks.append(_task)

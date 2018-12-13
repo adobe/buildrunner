@@ -34,6 +34,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
     Class used to manage "run" build tasks.
     """
 
+    # Lightweight docker image for artifact management
+    ARTIFACT_LISTER_DOCKER_IMAGE = 'ubuntu:19.04'
+
+    TAR_COMPRESSION_ARG = {
+        'gz': '--gzip',
+        'bz2': '--bzip2',
+        'xz': '--xz',
+        'lzma': '--lzma',
+        'lzip': '--lzip',
+        'lzop': '--lzop',
+        'z': '-Z',
+    }
+
 
     def __init__(self, step_runner, config):
         super(RunBuildStepRunnerTask, self).__init__(step_runner, config)
@@ -115,7 +128,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         artifact_lister = None
         try:
             artifact_lister = DockerRunner(
-                'busybox:ubuntu-14.04',
+                self.ARTIFACT_LISTER_DOCKER_IMAGE,
             )
             #TODO: see if we can use archive commands to eliminate the need for
             #the /stepresults volume when we can move to api v1.20
@@ -144,6 +157,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     ),
                     console=console,
                     stream=True,
+                    log=self.step_runner.log,
                 )
 
                 # if the command was successful we found something
@@ -172,14 +186,11 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                         else:
                             output_file_name = os.path.basename(artifact_file)
-                            new_artifact_file = (
-                                '/stepresults/' +
-                                output_file_name.replace('"', '\\"')
-                            )
+                            new_artifact_file = '/stepresults/' + output_file_name
                             archive_command = (
-                                'cp "' + artifact_file.replace('"', '\\"') +
-                                '" "' + new_artifact_file +
-                                '"'
+                                'cp',
+                                artifact_file,
+                                new_artifact_file,
                             )
                             self._archive_file(
                                 artifact_lister,
@@ -206,6 +217,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         os.getgid(),
                     ),
                     console=console,
+                    log=self.step_runner.log,
                 )
                 if exit_code != 0:
                     raise Exception(
@@ -238,6 +250,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     find_output_file,
                 ),
                 stream=False,
+                log=self.step_runner.log,
             )
             if find_exit_code == 0:
                 with open(find_output_file_local, 'r') as output_fd:
@@ -247,17 +260,27 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         continue
 
                     output_file_name = _file
-                    new_artifact_file = (
-                        '/stepresults/' +
-                        output_file_name.replace('"', '\\"')
-                    )
-                    _dir_name = os.path.dirname(_file).replace('"', '\\"')
+                    new_artifact_file = '/stepresults/' + output_file_name
+                    _dir_name = os.path.dirname(_file)
                     archive_command = (
-                        'mkdir -p "/stepresults/' +
-                        _dir_name + '"; cp "' +
-                        _file.replace('"', '\\"') +
-                        '" "' + new_artifact_file +
-                        '"'
+                        'mkdir',
+                        '-p',
+                        '/stepresults/' + _dir_name,
+                    )
+                    exit_code = artifact_lister.run(
+                        archive_command,
+                        log=self.step_runner.log,
+                    )
+                    if exit_code != 0:
+                        raise Exception(
+                            "Error gathering artifact %s" % (
+                                artifact_file,
+                            ),
+                        )
+                    archive_command = (
+                        'cp',
+                        _file,
+                        new_artifact_file,
                     )
                     self._archive_file(
                         artifact_lister,
@@ -276,23 +299,42 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         else:
             filename = os.path.basename(artifact_file)
-            output_file_name = filename + '.tar.gz'
-            new_artifact_file = (
-                '/stepresults/' +
-                output_file_name.replace('"', '\\"')
-            )
-            working_dir = ''
-            if os.path.dirname(artifact_file):
-                working_dir = (
-                    ' -C "%s"' % os.path.dirname(
-                        artifact_file,
-                    ).replace('"', '\\"')
-                )
-            archive_command = (
-                'tar -cvzf "' + new_artifact_file + '"' +
-                working_dir + ' "' +
-                filename.replace('"', '\\"') + '"'
-            )
+            arch_props = {
+                'name': filename,
+                'compression': 'gz',
+                'type': 'tar',
+            }
+            arch_props.update(properties.get('archive', {}))
+
+            workdir = None
+            if 'tar' == arch_props['type']:
+                suffix = arch_props.get('suffix', '.{type}.{compression}'.format(**arch_props))
+                output_file_name = arch_props['name'] + suffix
+                new_artifact_file = '/stepresults/' + output_file_name
+                archive_command = [
+                    'tar',
+                    self.TAR_COMPRESSION_ARG.get(arch_props['compression'], '--auto-compress'),
+                    '--xform', 's|^{orig_dir}|{new_dir}|'.format(orig_dir=filename, new_dir=arch_props['name']),
+                    '-cv',
+                ]
+                if os.path.dirname(artifact_file):
+                    archive_command.extend((
+                        '-C', os.path.dirname(artifact_file),
+                    ))
+                archive_command.extend((
+                    '-f', new_artifact_file,
+                    filename,
+                ))
+
+            elif 'zip' == arch_props['type']:
+                output_file_name = '{name}.{type}'.format(**arch_props)
+                new_artifact_file = '/stepresults/' + output_file_name
+                archive_command = [
+                    'zip',
+                    new_artifact_file,
+                    artifact_file,
+                ]
+
             new_properties = dict()
             if properties:
                 new_properties.update(properties)
@@ -308,8 +350,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 new_artifact_file,
                 output_file_name,
                 new_properties,
+                workdir=workdir,
             )
-
 
 
     def _archive_file(
@@ -322,6 +364,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             new_artifact_file,
             output_file_name,
             properties,
+            workdir=None,
     ):
         """
         Archive the given file.
@@ -335,6 +378,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         exit_code = artifact_lister.run(
             archive_command,
+            log=self.step_runner.log,
+            workdir=workdir,
         )
         if exit_code != 0:
             raise Exception(
@@ -568,6 +613,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 exit_code = service_runner.run(
                     config['cmd'],
                     console=service_logger,
+                    log=self.step_runner.log,
                 )
                 if exit_code != 0:
                     service_logger.write(
@@ -608,8 +654,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         while not sopen:
             self.step_runner.log.write(
-                "Waiting for port %d to be listening for connections in container %s with IP address %s\n" % (port, name, ipaddr)
-            )
+                "Waiting for port %d to be listening for connections in container %s with IP address %s\n" % (
+                    port, name, ipaddr
+                ))
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sopen = sock.connect_ex((ipaddr, port)) == 0
             sock.close()
@@ -855,6 +902,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     exit_code = self.runner.run(
                         _cmd,
                         console=container_logger,
+                        log=self.step_runner.log,
                     )
                     container_meta_logger.write(
                         'Command "%s" exited with code %s\n' % (

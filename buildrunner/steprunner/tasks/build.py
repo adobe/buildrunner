@@ -36,52 +36,49 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
         self.nocache = False
         self.pull = True
         self._import = None
-        if is_dict(self.config):
-            if 'import' in self.config:
-                self._import = self.config['import']
-            elif all(prop not in self.config for prop in (
-                    'path',
-                    'dockerfile',
-                    'inject'
+
+        if not is_dict(self.config):
+            self.path = self.config
+            self.config = {}
+        else:
+            self._import = self.config.get('import', self._import)
+            self.path = self.config.get('path', self.path)
+            self.dockerfile = self.config.get('dockerfile', self.dockerfile)
+            self.no_cache = self.config.get('no-cache', self.nocache)
+            self.pull = self.config.get('pull', self.pull)
+
+            if not is_dict(self.config.get('inject', {})):
+                raise BuildRunnerConfigurationError(
+                    'Step %s:build:inject must be a collection/map/dictionary' % self.step_runner
+                )
+
+            for src_glob, dest_dir in self.config.get('inject', {}).iteritems():
+                src_glob = self.step_runner.build_runner.to_abs_path(
+                    src_glob,
+                )
+                for source_file in glob.glob(src_glob):
+                    self.to_inject[source_file] = os.path.join(
+                        '.',
+                        dest_dir,
+                        os.path.basename(source_file),
+                    )
+
+            if not self._import and not any((
+                    self.path, self.dockerfile, self.to_inject
             )):
                 raise BuildRunnerConfigurationError(
                     'Docker build context must specify a '
                     '"path", "dockerfile", or "inject" attribute'
                 )
 
-            if 'path' in self.config:
-                self.path = self.config['path']
-
-            if 'dockerfile' in self.config:
-                self.dockerfile = self.config['dockerfile']
-
-            if 'no-cache' in self.config:
-                self.nocache = self.config['no-cache']
-
-            if 'pull' in self.config:
-                self.pull = self.config['pull']
-
-            if 'inject' in self.config and is_dict(self.config['inject']):
-                for src_glob, dest_dir in self.config['inject'].iteritems():
-                    src_glob = self.step_runner.build_runner.to_abs_path(
-                        src_glob,
-                    )
-                    for source_file in glob.glob(src_glob):
-                        self.to_inject[source_file] = os.path.join(
-                            '.',
-                            dest_dir,
-                            os.path.basename(source_file),
-                        )
-        else:
-            self.path = self.config
-
         if self.path:
             self.path = self.step_runner.build_runner.to_abs_path(self.path)
 
         if self.path and not os.path.exists(self.path):
             raise BuildRunnerConfigurationError(
-                'Invalid build context path "%s"' % self.path
-            )
+                'Step %s:build:path:%s: Invalid build context path' % (
+                    self.step_runner, self.path
+                ))
 
         if not self.dockerfile:
             if self.path:
