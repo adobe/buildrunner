@@ -6,9 +6,9 @@ import base64
 import socket
 import ssl
 
-import docker
 import six
 
+import docker
 from docker.utils import compare_version
 
 from buildrunner.docker import (
@@ -222,11 +222,11 @@ class DockerRunner(object):
         Run the given command in the container.
         """
         if isinstance(cmd, six.string_types):
-            cmdv = [self.shell, '-c', cmd]
-        elif hasattr(cmd, 'next'):
+            cmdv = [self.shell, '-xc', cmd]
+        elif hasattr(cmd, 'next') or hasattr(cmd, '__next__') or hasattr(cmd, '__iter__'):
             cmdv = cmd
         else:
-            raise TypeError('Unhandle command type: {0}:{1}'.format(type(cmd), cmd))
+            raise TypeError('Unhandled command type: {0}:{1}'.format(type(cmd), cmd))
         #if console is None:
         #    raise Exception('No console!')
         if not self.container:
