@@ -34,6 +34,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
     Class used to manage "run" build tasks.
     """
 
+    # Lightweight docker image for artifact management
+    ARTIFACT_LISTER_DOCKER_IMAGE = 'ubuntu:19.04'
+
+    TAR_COMPRESSION_ARG = {
+        'gz': '--gzip',
+        'bz2': '--bzip2',
+        'xz': '--xz',
+        'lzma': '--lzma',
+        'lzip': '--lzip',
+        'lzop': '--lzop',
+        'z': '-Z',
+    }
+
 
     def __init__(self, step_runner, config):
         super(RunBuildStepRunnerTask, self).__init__(step_runner, config)
@@ -115,7 +128,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         artifact_lister = None
         try:
             artifact_lister = DockerRunner(
-                'busybox:ubuntu-14.04',
+                self.ARTIFACT_LISTER_DOCKER_IMAGE,
             )
             #TODO: see if we can use archive commands to eliminate the need for
             #the /stepresults volume when we can move to api v1.20
@@ -286,20 +299,41 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         else:
             filename = os.path.basename(artifact_file)
-            output_file_name = filename + '.tar.gz'
-            new_artifact_file = '/stepresults/' + output_file_name
-            archive_command = [
-                'tar',
-                '-cvz',
-            ]
-            if os.path.dirname(artifact_file):
+            arch_props = {
+                'name': filename,
+                'compression': 'gz',
+                'type': 'tar',
+            }
+            arch_props.update(properties.get('archive', {}))
+
+            workdir = None
+            if 'tar' == arch_props['type']:
+                suffix = arch_props.get('suffix', '.{type}.{compression}'.format(**arch_props))
+                output_file_name = arch_props['name'] + suffix
+                new_artifact_file = '/stepresults/' + output_file_name
+                archive_command = [
+                    'tar',
+                    self.TAR_COMPRESSION_ARG.get(arch_props['compression'], '--auto-compress'),
+                    '--xform', 's|^{orig_dir}|{new_dir}|'.format(orig_dir=filename, new_dir=arch_props['name']),
+                    '-cv',
+                ]
+                if os.path.dirname(artifact_file):
+                    archive_command.extend((
+                        '-C', os.path.dirname(artifact_file),
+                    ))
                 archive_command.extend((
-                    '-C', os.path.dirname(artifact_file),
+                    '-f', new_artifact_file,
+                    filename,
                 ))
-            archive_command.extend((
-                '-f' + new_artifact_file,
-                filename,
-            ))
+
+            elif 'zip' == arch_props['type']:
+                output_file_name = '{name}.{type}'.format(**arch_props)
+                new_artifact_file = '/stepresults/' + output_file_name
+                archive_command = [
+                    'zip',
+                    new_artifact_file,
+                    artifact_file,
+                ]
 
             new_properties = dict()
             if properties:
@@ -316,6 +350,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 new_artifact_file,
                 output_file_name,
                 new_properties,
+                workdir=workdir,
             )
 
 
@@ -619,8 +654,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         while not sopen:
             self.step_runner.log.write(
-                "Waiting for port %d to be listening for connections in container %s with IP address %s\n" % (port, name, ipaddr)
-            )
+                "Waiting for port %d to be listening for connections in container %s with IP address %s\n" % (
+                    port, name, ipaddr
+                ))
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sopen = sock.connect_ex((ipaddr, port)) == 0
             sock.close()
