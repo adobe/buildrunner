@@ -311,7 +311,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
 
 
-
     def _archive_file(
             self,
             artifact_lister,
@@ -322,6 +321,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             new_artifact_file,
             output_file_name,
             properties,
+            workdir=None,
     ):
         """
         Archive the given file.
@@ -335,6 +335,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         exit_code = artifact_lister.run(
             archive_command,
+            workdir=workdir,
         )
         if exit_code != 0:
             raise Exception(

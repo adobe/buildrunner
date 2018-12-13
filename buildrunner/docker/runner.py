@@ -217,7 +217,7 @@ class DockerRunner(object):
         self.container = None
 
 
-    def run(self, cmd, console=None, stream=True):
+    def run(self, cmd, console=None, stream=True, workdir=None):
         """
         Run the given command in the container.
         """
@@ -240,6 +240,7 @@ class DockerRunner(object):
             self.container['Id'],
             cmdv,
             tty=False,
+            workdir=workdir,
         )
         output_buffer = self.docker_client.exec_start(
             create_res,
