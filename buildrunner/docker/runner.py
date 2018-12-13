@@ -193,7 +193,7 @@ class DockerRunner(object):
                         force=True,
                         v=True,
                     )
-                except docker.errors.NotFound, e:
+                except docker.errors.NotFound as e:
                     try:
                         container_ids = self.docker_client.containers(filters={'label':c}, quiet=True)
                         if container_ids:
@@ -204,9 +204,9 @@ class DockerRunner(object):
                                     v=True,
                                 )
                         else:
-                            print "Unable to find docker container with name or label '%s'" % (c)
-                    except docker.errors.NotFound, e:
-                        print "Unable to find docker container with name or label '%s'" % (c)
+                            print("Unable to find docker container with name or label '{}'".format(c))
+                    except docker.errors.NotFound as e:
+                        print("Unable to find docker container with name or label '{}'".format(c))
 
             self.docker_client.remove_container(
                 self.container['Id'],

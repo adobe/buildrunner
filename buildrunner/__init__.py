@@ -498,8 +498,8 @@ class BuildRunner(object):
                 self._log_file.close()
         else:
             if exit_explanation:
-                print '\n%s' % exit_explanation
-            print exit_message
+                print('\n{}'.format(exit_explanation))
+            print(exit_message)
 
     def run(self):
         """
@@ -512,7 +512,7 @@ class BuildRunner(object):
         try:
             # cleanup existing results dir (if needed)
             if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
-                print 'Cleaning existing results directory "%s"' % RESULTS_DIR
+                print('Cleaning existing results directory "{}"'.format(RESULTS_DIR))
                 shutil.rmtree(self.build_results_dir)
 
             if not os.path.exists(self.build_results_dir):
