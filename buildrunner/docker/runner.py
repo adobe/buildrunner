@@ -217,7 +217,7 @@ class DockerRunner(object):
         self.container = None
 
 
-    def run(self, cmd, console=None, stream=True, workdir=None):
+    def run(self, cmd, console=None, stream=True, log=None, workdir=None):
         """
         Run the given command in the container.
         """
@@ -236,6 +236,9 @@ class DockerRunner(object):
                 'Cannot call run if container cmd not shell'
             )
 
+        if log:
+            log.write('Executing: {}\n'.format(cmdv))
+        
         create_res = self.docker_client.exec_create(
             self.container['Id'],
             cmdv,
@@ -249,10 +252,14 @@ class DockerRunner(object):
         if isinstance(output_buffer, six.string_types):
             if console:
                 console.write(output_buffer)
+            if log:
+                log.write(output_buffer)
         elif hasattr(output_buffer, 'next'):
             for line in output_buffer:
                 if console:
                     console.write(line)
+                if log:
+                    log.write(line)
         else:
             if console:
                 console.write('WARNING: Unexpected output object: {0}'.format(output_buffer))

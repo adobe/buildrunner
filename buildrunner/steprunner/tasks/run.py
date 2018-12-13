@@ -144,6 +144,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     ),
                     console=console,
                     stream=True,
+                    log=self.step_runner.log,
                 )
 
                 # if the command was successful we found something
@@ -206,6 +207,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         os.getgid(),
                     ),
                     console=console,
+                    log=self.step_runner.log,
                 )
                 if exit_code != 0:
                     raise Exception(
@@ -238,6 +240,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     find_output_file,
                 ),
                 stream=False,
+                log=self.step_runner.log,
             )
             if find_exit_code == 0:
                 with open(find_output_file_local, 'r') as output_fd:
@@ -335,6 +338,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         exit_code = artifact_lister.run(
             archive_command,
+            log=self.step_runner.log,
             workdir=workdir,
         )
         if exit_code != 0:
@@ -569,6 +573,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 exit_code = service_runner.run(
                     config['cmd'],
                     console=service_logger,
+                    log=self.step_runner.log,
                 )
                 if exit_code != 0:
                     service_logger.write(
@@ -856,6 +861,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     exit_code = self.runner.run(
                         _cmd,
                         console=container_logger,
+                        log=self.step_runner.log,
                     )
                     container_meta_logger.write(
                         'Command "%s" exited with code %s\n' % (
