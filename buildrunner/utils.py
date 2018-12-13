@@ -18,9 +18,20 @@ class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
     Custom loader class that preserves dictionary order.
     """
     pass
+
 OrderedLoader.add_constructor(
     yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
     lambda loader, node: OrderedDict(loader.construct_pairs(node)),
+)
+# Tell YAML how to dump the OrderedDict
+yaml.add_representer(
+    OrderedDict,
+    lambda dumper, data: dumper.represent_dict(data.iteritems()),
+)
+yaml.add_representer(
+    OrderedDict,
+    lambda dumper, data: dumper.represent_dict(data.iteritems()),
+    Dumper=yaml.SafeDumper
 )
 
 
