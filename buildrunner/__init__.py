@@ -132,7 +132,7 @@ class BuildRunner(object):
             config_context.update(ctx)
 
         config_contents = jtemplate.render(config_context)
-        config = load_config(StringIO(config_contents))
+        config = load_config(StringIO(config_contents), cfg_file)
 
         return config
 
@@ -193,10 +193,10 @@ class BuildRunner(object):
             self.global_config = self._load_config(_global_config_file)
 
         # load run configuration
+        _run_config_file = None
         if run_config:
             self.run_config = run_config
         else:
-            _run_config_file = None
             if run_config_file:
                 _run_config_file = self.to_abs_path(run_config_file)
             else:
@@ -212,9 +212,17 @@ class BuildRunner(object):
                 )
             self.run_config = self._load_config(_run_config_file)
 
-        if 'steps' not in self.run_config:
+        if not isinstance(self.run_config, dict) or 'steps' not in self.run_config:
             raise BuildRunnerConfigurationError(
-                'Could not find a "steps" attribute in config'
+                'Could not find a "steps" attribute in {}'.format(
+                    _run_config_file if _run_config_file else 'provided config'
+                )
+            )
+        if not self.run_config['steps'] or not isinstance(self.run_config['steps'], dict):
+            raise BuildRunnerConfigurationError(
+                'The "steps" attribute is not a non-empty dictionary in {}'.format(
+                    _run_config_file if _run_config_file else 'provided config'
+                )
             )
 
         self.tmp_files = []
