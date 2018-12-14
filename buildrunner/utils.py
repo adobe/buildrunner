@@ -12,6 +12,8 @@ import sys
 import uuid
 import yaml
 
+from buildrunner import BuildRunnerConfigurationError
+
 
 class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
     """
@@ -43,19 +45,25 @@ class IgnoreAliasesDumper(yaml.Dumper): #pylint: disable=too-many-ancestors
         return True
 
 
-def load_config(stream):
+def load_config(stream, cfg_file):
     """
     Load yaml while preserving the order of attributes in maps/dictionaries and
     removing any aliases.
     """
     # run the data through pyyaml again to remove any aliases
-    return yaml.load(
-        yaml.dump(
-            yaml.load(stream, OrderedLoader),
-            default_flow_style=False, Dumper=IgnoreAliasesDumper,
-        ),
-        Loader=OrderedLoader,
-    )
+    try:
+        return yaml.load(
+            yaml.dump(
+                yaml.load(stream, OrderedLoader),
+                default_flow_style=False, Dumper=IgnoreAliasesDumper,
+            ),
+            Loader=OrderedLoader,
+        )
+    except yaml.scanner.ScannerError as e:
+        raise BuildRunnerConfigurationError(
+            'The {} file contains malformed yaml, '
+            'please check the syntax and try again: {}'.format(cfg_file, e)
+        )
 
 
 def is_dict(obj):
