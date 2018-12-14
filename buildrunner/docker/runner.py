@@ -243,7 +243,7 @@ class DockerRunner(object):
             self.container['Id'],
             cmdv,
             tty=False,
-            workdir=workdir,
+            #workdir=workdir,
         )
         output_buffer = self.docker_client.exec_start(
             create_res,
