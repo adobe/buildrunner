@@ -20,6 +20,6 @@ try:
 
         del config['credsStore']
 
-    print json.dumps(config)
+    print(json.dumps(config))
 except:
-    print "{}"
+    print("{}")
