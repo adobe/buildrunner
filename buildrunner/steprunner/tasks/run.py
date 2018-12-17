@@ -304,7 +304,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 'compression': 'gz',
                 'type': 'tar',
             }
-            arch_props.update(properties.get('archive', {}))
+            if properties:
+                arch_props.update(properties.get('archive', {}))
 
             workdir = None
             if 'tar' == arch_props['type']:
