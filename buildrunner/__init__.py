@@ -108,7 +108,7 @@ class BuildRunner(object):
         with codecs.open(filename, 'r', encoding='utf-8') as _file:
             jtemplate = jinja2.Template(_file.read())
         config_context = copy.deepcopy(self.env)
-        return load_config(StringIO(jtemplate.render(config_context)))
+        return load_config(StringIO(jtemplate.render(config_context)), filename)
 
     def _load_config(self, cfg_file, ctx=None):
         """
