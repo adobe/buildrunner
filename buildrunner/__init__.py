@@ -99,6 +99,18 @@ class BuildRunner(object):
 
         return context
 
+    def _raise_exception_jinja(self):
+        """
+        Raises an exception from a jinja template.
+        """
+        raise Exception(message)
+
+    def _log_generated_file(self, file_name, file_contents):
+        if self.log_generated_files:
+            self.log.write('Generated contents of {}:\n'.format(file_name))
+            for line in file_contents.splitlines():
+                self.log.write('{}\n'.format(line))
+
     def _read_yaml_file(self, filename):
         """
         Reads a file in the local workspace as Jinja-templated
@@ -107,10 +119,12 @@ class BuildRunner(object):
         """
         with codecs.open(filename, 'r', encoding='utf-8') as _file:
             jtemplate = jinja2.Template(_file.read())
-        config_context = copy.deepcopy(self.env)
-        return load_config(StringIO(jtemplate.render(config_context)), filename)
+        context = copy.deepcopy(self.env)
+        file_contents = jtemplate.render(context)
+        self._log_generated_file(filename, file_contents)
+        return load_config(StringIO(file_contents), filename)
 
-    def _load_config(self, cfg_file, ctx=None):
+    def _load_config(self, cfg_file, ctx=None, log_file=True):
         """
         Load a config file templating it with Jinja and parsing the YAML.
 
@@ -119,19 +133,22 @@ class BuildRunner(object):
         """
 
         with codecs.open(cfg_file, 'r', encoding='utf-8') as _file:
-            jtemplate = jinja2.Template(_file.read())
+            jtemplate = jinja2.Template(_file.read(), extensions=['jinja2.ext.do'])
 
         config_context = copy.deepcopy(self.env)
         config_context.update({
             'CONFIG_FILE': cfg_file,
             'CONFIG_DIR': os.path.dirname(cfg_file),
             'read_yaml_file': self._read_yaml_file,
+            'raise': self._raise_exception_jinja,
         })
 
         if ctx:
             config_context.update(ctx)
 
         config_contents = jtemplate.render(config_context)
+        if log_file:
+            self._log_generated_file(cfg_file, config_contents)
         config = load_config(StringIO(config_contents), cfg_file)
 
         return config
@@ -150,6 +167,7 @@ class BuildRunner(object):
             steps_to_run=None,
             publish_ports=False,
             disable_timestamps=False,
+            log_generated_files=False,
     ):
         """
         """
@@ -164,6 +182,16 @@ class BuildRunner(object):
         self.steps_to_run = steps_to_run
         self.publish_ports = publish_ports
         self.disable_timestamps = disable_timestamps
+        self.log_generated_files = log_generated_files
+
+        self.tmp_files = []
+        self.artifacts = OrderedDict()
+
+        self.exit_code = None
+        self._source_image = None
+        self._source_archive = None
+        self._log_file = None
+        self._log = None
 
         # set build time
         self.build_time = epoch_time()
@@ -172,8 +200,6 @@ class BuildRunner(object):
         self.build_number = build_number
         if not self.build_number:
             self.build_number = self.build_time
-
-        self._log = None
 
         self.vcs = detect_vcs(self.build_dir)
         self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
@@ -190,7 +216,7 @@ class BuildRunner(object):
         )
         self.global_config = {}
         if _global_config_file and os.path.exists(_global_config_file):
-            self.global_config = self._load_config(_global_config_file)
+            self.global_config = self._load_config(_global_config_file, log_file=False)
 
         # load run configuration
         _run_config_file = None
@@ -224,14 +250,6 @@ class BuildRunner(object):
                     _run_config_file if _run_config_file else 'provided config'
                 )
             )
-
-        self.tmp_files = []
-        self.artifacts = OrderedDict()
-
-        self.exit_code = None
-        self._source_image = None
-        self._source_archive = None
-        self._log_file = None
 
     def get_build_server_from_alias(self, host):
         """
