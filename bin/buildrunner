@@ -121,6 +121,15 @@ def parse_args():
         help='disable colors when logging',
     )
 
+    parser.add_argument(
+        '--log-generated-files',
+        default=False,
+        action='store_true',
+        dest='log_generated_files',
+        #pylint: disable=C0301
+        help='logs the Jinja generated file contents',
+    )
+
     args = parser.parse_args()
 
     # Only absolute directories can do a mount bind
@@ -155,6 +164,7 @@ def main():
             cleanup_step_artifacts=not args.keep_step_artifacts,
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,
+            log_generated_files=args.log_generated_files,
         )
         build_runner.run()
         if build_runner.exit_code:
