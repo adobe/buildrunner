@@ -99,7 +99,7 @@ class BuildRunner(object):
 
         return context
 
-    def _raise_exception_jinja(self):
+    def _raise_exception_jinja(self, message):
         """
         Raises an exception from a jinja template.
         """
