@@ -285,7 +285,7 @@ class BuildRunner(object):
         _keys = []
         _matched_aliases = []
         for key_info in ssh_keys:
-            if 'aliases' not in key_info and not key_info['aliases']:
+            if 'aliases' not in key_info or not key_info['aliases']:
                 continue
 
             _password = None
