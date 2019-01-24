@@ -729,6 +729,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     ARTIFACTS_VOLUME_MOUNT + ':ro'
                 ),
             },
+            'cap_add': None,
+            'privileged': None
         }
 
         # see if we need to inject ssh keys
@@ -870,6 +872,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 container_meta_logger.write(
                     "Mounting cache dir %s -> %s\n" % (cache_name, cache_path)
                 )
+
+        # add any capabilities when the container runs
+        if 'cap_add' in self.config:
+            if type(self.config['cap_add']) is not list:
+                self.config['cap_add'] = [self.config['cap_add']]
+            container_args['cap_add'] = self.config['cap_add']
+
+        # allow privileged containers (used sparingly)
+        if 'privileged' in self.config:
+            container_args['privileged'] = self.config.get('privileged', False)
 
         # only expose ports for a run step if the flag is set
         if self.step_runner.build_runner.publish_ports and 'ports' in self.config:
