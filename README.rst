@@ -487,6 +487,7 @@ the run step::
         # on the host. Using privileged is rare, but there are good use cases
         # for this feature. see https://goo.gl/gTQrqW for more infromation on
         # setting these.
+        # Default: false
         privileged: true/false
 
         # The post-build attribute commits the resulting run container as an
