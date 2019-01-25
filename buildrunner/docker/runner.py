@@ -18,6 +18,7 @@ from buildrunner.docker import (
 from buildrunner.utils import tempfile
 
 class DockerRunner(object):
+
     """
     An object that manages and orchestrates the lifecycle and execution of a
     Docker container.
@@ -76,7 +77,9 @@ class DockerRunner(object):
             dns_search=None,
             extra_hosts=None,
             containers=None,
-            systemd=None
+            systemd=None,
+            cap_add=None,
+            privileged=False
     ): #pylint: disable=too-many-arguments
         """
         Kwargs:
@@ -147,7 +150,9 @@ class DockerRunner(object):
                 dns=dns,
                 dns_search=dns_search,
                 extra_hosts=extra_hosts,
-                security_opt=security_opt
+                security_opt=security_opt,
+                cap_add=cap_add,
+                privileged=privileged
             )
         }
 
@@ -238,7 +243,7 @@ class DockerRunner(object):
 
         if log:
             log.write('Executing: {}\n'.format(cmdv))
-        
+
         create_res = self.docker_client.exec_create(
             self.container['Id'],
             cmdv,

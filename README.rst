@@ -466,11 +466,29 @@ the run step::
         # Use this setting to tell buildrunner to set the necessary docker
         # flags to get systemd to work properly:
         # - /usr/sbin/init needs to run as pid 1
-        # - /sys/fs/cgroup needs to be mounted as readonly (-v /sys/fs/cgroup:/sys/fs/cgroup:ro)
-        # - The security setting seccomp=unconfined must be set (--security-opt seccomp=unconfined)
-        # If this is ommitted, the image will be inspected for the label 'BUILDRUNNER_SYSTEMD'.
+        # - /sys/fs/cgroup needs to be mounted as readonly
+        #   (-v /sys/fs/cgroup:/sys/fs/cgroup:ro)
+        # - The security setting seccomp=unconfined must be set
+        #   (--security-opt seccomp=unconfined)
+        # If this is ommitted, the image will be inspected for the label
+        # 'BUILDRUNNER_SYSTEMD'.
         # If found, systemd=true will be assumed.
         systemd: true/false
+
+        # Docker supports certain kernel capabilities, like 'SYS_ADMIN'.
+        # see https://goo.gl/gTQrqW for more infromation on setting these.
+        cap_add: 'SYS_ADMIN'
+        <or>
+        cap_add:
+          - 'SYS_ADMIN'
+          - 'SYS_RAWIO'
+
+        # Docker can run in a privileged mode. This allows access to all devices
+        # on the host. Using privileged is rare, but there are good use cases
+        # for this feature. see https://goo.gl/gTQrqW for more infromation on
+        # setting these.
+        # Default: false
+        privileged: true/false
 
         # The post-build attribute commits the resulting run container as an
         # image and allows additional Docker build processing to occur. This is
