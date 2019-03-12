@@ -35,6 +35,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
         self.image_to_prepend_to_dockerfile = image_to_prepend_to_dockerfile
         self.nocache = False
         self.pull = True
+        self.buildargs = {}
         self._import = None
 
         if not is_dict(self.config):
@@ -46,6 +47,14 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             self.dockerfile = self.config.get('dockerfile', self.dockerfile)
             self.no_cache = self.config.get('no-cache', self.nocache)
             self.pull = self.config.get('pull', self.pull)
+
+            if not is_dict(self.config.get('buildargs', self.buildargs)):
+                raise BuildRunnerConfigurationError(
+                    'Step %s:build:buildargs must be a collection/map/dictionary' % self.step_runner
+                )
+
+            for build_arg, build_value in self.config.get('buildargs', {}).iteritems():
+                self.buildargs[build_arg] = build_value
 
             if not is_dict(self.config.get('inject', {})):
                 raise BuildRunnerConfigurationError(
@@ -140,6 +149,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 console=self.step_runner.log,
                 nocache=self.nocache,
                 pull=self.pull,
+                buildargs=self.buildargs
             )
             if exit_code != 0 or not builder.image:
                 raise BuildRunnerProcessingError('Error building image')

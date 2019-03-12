@@ -50,7 +50,7 @@ class DockerBuilder(object):
         self.intermediate_containers = []
 
 
-    def build(self, console=None, nocache=False, rm=True, pull=True):
+    def build(self, console=None, nocache=False, rm=True, pull=True, buildargs={}):
         """
         Run a docker build using the configured context, constructing the
         context tar file if necessary.
@@ -75,6 +75,7 @@ class DockerBuilder(object):
             fileobj=_fileobj,
             rm=rm,
             pull=pull,
+            buildargs=buildargs
         )
 
         # monitor output for logs and status
