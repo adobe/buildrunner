@@ -53,8 +53,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                     'Step %s:build:buildargs must be a collection/map/dictionary' % self.step_runner
                 )
 
-            for build_arg, build_value in self.config.get('buildargs', {}).iteritems():
-                self.buildargs[build_arg] = build_value
+            self.buildargs = self.config.get('buildargs', self.buildargs)
 
             if not is_dict(self.config.get('inject', {})):
                 raise BuildRunnerConfigurationError(
