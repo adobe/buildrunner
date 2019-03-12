@@ -279,7 +279,7 @@ shows the different configuration options available::
         # with regularity.
         pull: true/false (defaults to true)
 
-        # Specify the build args that should be used when building your Dockerfile,
+        # Specify the build args that should be used when building your image,
         # similar to the --build-args flag used by Docker
         buildargs:
           BUILD_ARG_NAME_1: BUILD_ARG_VALUE_1
