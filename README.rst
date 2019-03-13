@@ -279,6 +279,12 @@ shows the different configuration options available::
         # with regularity.
         pull: true/false (defaults to true)
 
+        # Specify the build args that should be used when building your image,
+        # similar to the --build-args flag used by Docker
+        buildargs:
+          BUILD_ARG_NAME_1: BUILD_ARG_VALUE_1
+          BUILD_ARG_NAME_2: BUILD_ARG_VALUE_2
+
         # Instead of building import the given tar file as a Docker image. If
         # this value is present all other options are ignored and the resulting
         # image is passed to subsequent steps.
