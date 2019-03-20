@@ -45,7 +45,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             self._import = self.config.get('import', self._import)
             self.path = self.config.get('path', self.path)
             self.dockerfile = self.config.get('dockerfile', self.dockerfile)
-            self.no_cache = self.config.get('no-cache', self.nocache)
+            self.nocache = self.config.get('no-cache', self.nocache)
             self.pull = self.config.get('pull', self.pull)
 
             if not is_dict(self.config.get('buildargs', self.buildargs)):
