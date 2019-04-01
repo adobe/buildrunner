@@ -34,6 +34,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
         self.to_inject = {}
         self.image_to_prepend_to_dockerfile = image_to_prepend_to_dockerfile
         self.nocache = False
+        self.cache_from = []
         self.pull = True
         self.buildargs = {}
         self._import = None
@@ -54,6 +55,13 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 )
 
             self.buildargs = self.config.get('buildargs', self.buildargs)
+
+            if not isinstance(self.config.get('cache_from', self.cache_from), list):
+                raise BuildRunnerConfigurationError(
+                    'Step %s:build:cache_from must be a list' % self.step_runner
+                )
+
+            self.cache_from = self.config.get('cache_from', self.cache_from)
 
             if not is_dict(self.config.get('inject', {})):
                 raise BuildRunnerConfigurationError(
@@ -147,6 +155,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             exit_code = builder.build(
                 console=self.step_runner.log,
                 nocache=self.nocache,
+                cache_from=self.cache_from,
                 pull=self.pull,
                 buildargs=self.buildargs
             )
