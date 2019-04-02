@@ -11,6 +11,8 @@ import os
 import sys
 import uuid
 import yaml
+import glob
+import hashlib
 
 from buildrunner import BuildRunnerConfigurationError
 
@@ -98,6 +100,24 @@ def tempfile(prefix=None, suffix=None, temp_dir='/tmp'):
 
     return os.path.join(temp_dir, name)
 
+def hash_sha1(fileNameGlobs=[]):
+    """
+    Return the sha1 hash from the content of multiple files, represented by a list of globs
+    """
+    BLOCKSIZE = 2**16 # 65,536
+    hasher = hashlib.sha1()
+    for fileNameGlob in fileNameGlobs:
+        for fileName in glob.glob(fileNameGlob):
+            try:
+                # Use BLOCKSIZE to ensure python memory isn't too full
+                with open(fileName, 'rb') as openFile:
+                    buf = openFile.read(BLOCKSIZE)
+                    while len(buf) > 0:
+                        hasher.update(buf)
+                        buf = openFile.read(BLOCKSIZE)
+            except:
+                print "WARNING: Error reading file: %s" % fileName
+    return hasher.hexdigest()
 
 class ConsoleLogger(object):
     """
