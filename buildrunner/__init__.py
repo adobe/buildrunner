@@ -35,6 +35,7 @@ from buildrunner.utils import (
     ConsoleLogger,
     epoch_time,
     load_config,
+    hash_sha1
 )
 from vcsinfo import detect_vcs
 
@@ -133,7 +134,9 @@ class BuildRunner(object):
         """
 
         with codecs.open(cfg_file, 'r', encoding='utf-8') as _file:
-            jtemplate = jinja2.Template(_file.read(), extensions=['jinja2.ext.do'])
+            jenv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'), extensions=['jinja2.ext.do'])
+            jenv.filters['hash_sha1'] = hash_sha1
+            jtemplate = jenv.from_string(_file.read())
 
         config_context = copy.deepcopy(self.env)
         config_context.update({
