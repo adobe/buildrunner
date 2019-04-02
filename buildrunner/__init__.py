@@ -133,7 +133,7 @@ class BuildRunner(object):
         """
 
         with codecs.open(cfg_file, 'r', encoding='utf-8') as _file:
-            jtemplate = jinja2.Template(_file.read(), extensions=['jinja2.ext.do'])
+            jtemplate = jinja2.Environment(loader=jinja2.FileSystemLoader('.'), extensions=['jinja2.ext.do']).from_string(_file.read())
 
         config_context = copy.deepcopy(self.env)
         config_context.update({
