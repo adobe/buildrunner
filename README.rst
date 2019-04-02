@@ -274,13 +274,22 @@ shows the different configuration options available::
         # images but may not be desired when building images for publishing
         no-cache: true/false (defaults to false)
 
+        # Specify Docker images to consider as cache sources,
+        # similar to the --cache-from option used by Docker.
+        # Buildrunner will attempt to pull these images from the remote registry.
+        # If the pull is unsuccessful, buildrunner will still pass in the image name
+        # into --cache-from, allowing a cache check in the host machine cache
+        cache_from:
+          - my-images/image:PR-123
+          - my-images/image:latest
+
         # Whether to do a docker pull of the "FROM" image prior to the build.
         # This is critical if you are building from images that are changing
         # with regularity.
         pull: true/false (defaults to true)
 
         # Specify the build args that should be used when building your image,
-        # similar to the --build-args flag used by Docker
+        # similar to the --build-args option used by Docker
         buildargs:
           BUILD_ARG_NAME_1: BUILD_ARG_VALUE_1
           BUILD_ARG_NAME_2: BUILD_ARG_VALUE_2
