@@ -275,7 +275,10 @@ shows the different configuration options available::
         no-cache: true/false (defaults to false)
 
         # Specify Docker images to consider as cache sources,
-        # similar to the --cache-from option used by Docker
+        # similar to the --cache-from option used by Docker.
+        # Buildrunner will attempt to pull these images from the remote registry.
+        # If the pull is unsuccessful, buildrunner will still pass in the image name
+        # into --cache-from, allowing a cache check in the host machine cache
         cache_from:
           - my-images/image:PR-123
           - my-images/image:latest
