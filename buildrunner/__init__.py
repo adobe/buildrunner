@@ -217,6 +217,7 @@ class BuildRunner(object):
         _global_config_file = self.to_abs_path(
             global_config_file or DEFAULT_GLOBAL_CONFIG_FILE
         )
+        self.log.write("Attempting to load global configuration from {}\n".format(_global_config_file))
         self.global_config = {}
         if _global_config_file and os.path.exists(_global_config_file):
             self.global_config = self._load_config(_global_config_file, log_file=False)
@@ -229,6 +230,7 @@ class BuildRunner(object):
             if run_config_file:
                 _run_config_file = self.to_abs_path(run_config_file)
             else:
+                self.log.write("looking for run confuration\n")
                 for name_to_try in DEFAULT_RUN_CONFIG_FILES:
                     _to_try = self.to_abs_path(name_to_try)
                     if os.path.exists(_to_try):
@@ -541,7 +543,7 @@ class BuildRunner(object):
         try:
             # cleanup existing results dir (if needed)
             if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
-                print('Cleaning existing results directory "{}"'.format(RESULTS_DIR))
+                self.log.write('Cleaning existing results directory "{}"'.format(RESULTS_DIR))
                 shutil.rmtree(self.build_results_dir)
 
             if not os.path.exists(self.build_results_dir):
