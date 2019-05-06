@@ -207,6 +207,11 @@ class BuildRunner(object):
         self.vcs = detect_vcs(self.build_dir)
         self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
 
+        # cleanup existing results dir (if needed)
+        if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
+            shutil.rmtree(self.build_results_dir)
+            self.log.write('Cleaned existing results directory "{}"'.format(RESULTS_DIR))
+
         # default environment - must come *after* VCS detection
         base_context = {}
         if push:
@@ -217,6 +222,7 @@ class BuildRunner(object):
         _global_config_file = self.to_abs_path(
             global_config_file or DEFAULT_GLOBAL_CONFIG_FILE
         )
+        self.log.write("Attempting to load global configuration from {}\n".format(_global_config_file))
         self.global_config = {}
         if _global_config_file and os.path.exists(_global_config_file):
             self.global_config = self._load_config(_global_config_file, log_file=False)
@@ -229,6 +235,7 @@ class BuildRunner(object):
             if run_config_file:
                 _run_config_file = self.to_abs_path(run_config_file)
             else:
+                self.log.write("looking for run confuration\n")
                 for name_to_try in DEFAULT_RUN_CONFIG_FILES:
                     _to_try = self.to_abs_path(name_to_try)
                     if os.path.exists(_to_try):
@@ -462,6 +469,7 @@ class BuildRunner(object):
         """
         create the log file and open for writing
         """
+        print("build dir : " + self.build_results_dir)
         if self._log is None:
             try:
                 os.makedirs(self.build_results_dir)
@@ -539,10 +547,6 @@ class BuildRunner(object):
 
         exit_explanation = None
         try:
-            # cleanup existing results dir (if needed)
-            if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
-                print('Cleaning existing results directory "{}"'.format(RESULTS_DIR))
-                shutil.rmtree(self.build_results_dir)
 
             if not os.path.exists(self.build_results_dir):
                 # create a new results dir
@@ -611,12 +615,15 @@ class BuildRunner(object):
                 )
 
         except BuildRunnerConfigurationError as brce:
+            print 'config error'
             exit_explanation = str(brce)
             self.exit_code = os.EX_CONFIG
         except BuildRunnerProcessingError as brpe:
+            print 'processing error'
             exit_explanation = str(brpe)
             self.exit_code = 1
         except requests.exceptions.ConnectionError:
+            print 'connection error'
             exit_explanation = (
                 "Error communicating with the remote Docker daemon.\nCheck "
                 "that it is running and/or that the DOCKER_* environment "
