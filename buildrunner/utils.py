@@ -154,7 +154,6 @@ class ConsoleLogger(object):
             except UnicodeDecodeError as ude:
                 stream.write("\nERROR writing to log: %s\n" % str(ude))
 
-
     def flush(self):
         """
         Flush.
