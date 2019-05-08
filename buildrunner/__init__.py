@@ -469,7 +469,6 @@ class BuildRunner(object):
         """
         create the log file and open for writing
         """
-        print("build dir : " + self.build_results_dir)
         if self._log is None:
             try:
                 os.makedirs(self.build_results_dir)
