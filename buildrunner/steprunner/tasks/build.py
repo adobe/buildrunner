@@ -69,6 +69,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                     self._docker_client.pull(cache_from_image)
                     # If the pull is successful, add the image to be cleaned up at the end of the script
                     self.step_runner.build_runner.generated_images.append(cache_from_image)
+                    self.step_runner.log.write('Using cache_from image: %s\n' % cache_from_image)
                 except:
                     self.step_runner.log.write('WARNING: Unable to pull the cache_from image: %s\n' % cache_from_image)
 
