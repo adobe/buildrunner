@@ -235,7 +235,7 @@ class BuildRunner(object):
             if run_config_file:
                 _run_config_file = self.to_abs_path(run_config_file)
             else:
-                self.log.write("looking for run confuration\n")
+                self.log.write("looking for run configuration\n")
                 for name_to_try in DEFAULT_RUN_CONFIG_FILES:
                     _to_try = self.to_abs_path(name_to_try)
                     if os.path.exists(_to_try):
