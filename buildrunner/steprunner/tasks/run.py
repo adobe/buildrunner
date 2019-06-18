@@ -178,6 +178,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         is_dir = file_type.strip() == 'directory'
 
                         if is_dir:
+                            # directory => recursive copy
                             self._archive_dir(
                                 artifact_lister,
                                 properties,
@@ -189,6 +190,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                             new_artifact_file = '/stepresults/' + output_file_name
                             archive_command = (
                                 'cp',
+                                '-L',
                                 artifact_file,
                                 new_artifact_file,
                             )
@@ -279,6 +281,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         )
                     archive_command = (
                         'cp',
+                        '-r',
                         _file,
                         new_artifact_file,
                     )
