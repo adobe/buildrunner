@@ -419,9 +419,9 @@ the run step::
 
         # A map specifying files that should be injected into the container.
         # The map key is the alias referencing a given file (as configured in
-        # the "local-files" section of the global configuration file) and the
-        # value is the path the given file should be mounted at within the
-        # container.
+        # the "local-files" section of the global configuration file) or a
+	# relative path to a file in the build directory.  The value is the
+	# path the given file should be mounted at within the container.
         files:
           namespaced.file.alias1: "/path/to/readonly/file/or/dir"
           namespaced.file.alias2: "/path/to/readwrite/file/or/dir:rw"
