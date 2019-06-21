@@ -348,6 +348,11 @@ the run step::
   steps:
     my-build-step:
       run:
+        # xfail indicates whether the run operation is expected to fail.  The
+	# default is false - the operation is expected to succeed.  If xfail
+	# is true and the operation succeeds then it will result in a failure.
+        xfail: <boolean>
+
         # A map of additional containers that should be created and linked to
         # the primary run container. These can be used to bring up services
         # (such as databases) that are required to run the step. More details
