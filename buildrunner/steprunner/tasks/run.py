@@ -853,7 +853,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         self.step_runner.build_runner.build_dir,
                         f_alias
                     ))
-                    if not f_local.startswith(self.step_runner.build_runner.build_dir + os.path.sep):
+                    if (
+                        f_local != self.step_runner.build_runner.build_dir
+                        and not f_local.startswith(self.step_runner.build_runner.build_dir + os.path.sep)
+                    ):
                         raise BuildRunnerConfigurationError(
                             'Mount path of "%s" attempts to step out of source directory "%s"' % (
                                 f_alias, self.step_runner.build_runner.build_dir,
