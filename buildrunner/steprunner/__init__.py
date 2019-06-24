@@ -7,6 +7,7 @@ import traceback
 import uuid
 
 from buildrunner.errors import (
+    BuildRunnerError,
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
@@ -68,7 +69,15 @@ class BuildStepRunner(object):
                 if _task_name in TASK_MAPPINGS:
                     _task = TASK_MAPPINGS[_task_name](self, _task_config)
                     _tasks.append(_task)
-                    _task.run(_context)
+                    try:
+                        _task.run(_context)
+                    except BuildRunnerError as err:
+                        if not _task_config.get('xfail', False):
+                            raise
+                        else:
+                            self.log.write('Step "%s" failed with exception: %s\n    Ignoring due to XFAIL\n' % (
+                                self.name, str(err)
+                            ))
                 else:
                     raise BuildRunnerConfigurationError(
                         (

@@ -1,0 +1,29 @@
+# Test mounting a path from the build directory into the build
+# container
+
+steps:
+  test-build_dir_mount:
+    run:
+      image: ubuntu:latest
+      files:
+        .: /test_dir
+      cmds:
+        - |
+          set -eux
+          [ -d /test_dir ]
+
+
+  test-build_dir_mount-xfail:
+    run:
+      xfail: true
+      # This is expected to fail since relative paths outside of the build
+      # directory are forbidden.
+
+      image: ubuntu:latest
+      files:
+        # Just use this file as the test file
+        ..: /test_dir
+      cmds:
+        - |
+          set -eux
+          [ -d /test_dir ]

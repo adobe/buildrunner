@@ -348,6 +348,11 @@ the run step::
   steps:
     my-build-step:
       run:
+        # xfail indicates whether the run operation is expected to fail.  The
+        # default is false - the operation is expected to succeed.  If xfail
+        # is true and the operation succeeds then it will result in a failure.
+        xfail: <boolean>
+
         # A map of additional containers that should be created and linked to
         # the primary run container. These can be used to bring up services
         # (such as databases) that are required to run the step. More details
@@ -419,9 +424,9 @@ the run step::
 
         # A map specifying files that should be injected into the container.
         # The map key is the alias referencing a given file (as configured in
-        # the "local-files" section of the global configuration file) and the
-        # value is the path the given file should be mounted at within the
-        # container.
+        # the "local-files" section of the global configuration file) or a
+        # relative path to a file/directory in the build directory.  The value
+        # is the path the given file should be mounted at within the container.
         files:
           namespaced.file.alias1: "/path/to/readonly/file/or/dir"
           namespaced.file.alias2: "/path/to/readwrite/file/or/dir:rw"

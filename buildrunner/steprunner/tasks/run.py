@@ -178,6 +178,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         is_dir = file_type.strip() == 'directory'
 
                         if is_dir:
+                            # directory => recursive copy
                             self._archive_dir(
                                 artifact_lister,
                                 properties,
@@ -189,6 +190,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                             new_artifact_file = '/stepresults/' + output_file_name
                             archive_command = (
                                 'cp',
+                                '-L',
                                 artifact_file,
                                 new_artifact_file,
                             )
@@ -279,6 +281,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         )
                     archive_command = (
                         'cp',
+                        '-r',
                         _file,
                         new_artifact_file,
                     )
@@ -845,12 +848,27 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 f_local = self.step_runner.build_runner.get_local_files_from_alias(
                     f_alias,
                 )
-                if not f_local or not os.path.exists(f_local):
-                    raise BuildRunnerConfigurationError(
-                        "Cannot find valid local file for alias '%s'" % (
-                            f_alias,
+                if not f_local:
+                    f_local = os.path.realpath(os.path.join(
+                        self.step_runner.build_runner.build_dir,
+                        f_alias
+                    ))
+                    if (
+                        f_local != self.step_runner.build_runner.build_dir
+                        and not f_local.startswith(self.step_runner.build_runner.build_dir + os.path.sep)
+                    ):
+                        raise BuildRunnerConfigurationError(
+                            'Mount path of "%s" attempts to step out of source directory "%s"' % (
+                                f_alias, self.step_runner.build_runner.build_dir,
+                            )
                         )
-                    )
+
+                    if not os.path.exists(f_local):
+                        raise BuildRunnerConfigurationError(
+                            "Cannot find valid alias for files entry '%s' nor path at '%s'" % (
+                                f_alias, f_local,
+                            )
+                        )
 
                 if f_path[-3:] not in [':ro', ':rw']:
                     f_path = f_path + ':ro'

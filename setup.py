@@ -4,6 +4,7 @@ Copyright (C) 2014-2017 Adobe
 import imp
 import os
 import subprocess
+import unittest
 
 from setuptools import setup, find_packages
 
@@ -64,7 +65,7 @@ setup(
     description="",
     long_description="",
 
-    packages=find_packages(),
+    packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
     scripts=[
         'bin/buildrunner',
     ],
@@ -89,5 +90,6 @@ setup(
     dependency_links=[
         'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.30/vcsinfo-0.1.30.tar.gz#egg=vcsinfo-0.1.30', #pylint: disable=line-too-long
     ],
+    test_suite='tests',
 )
 
