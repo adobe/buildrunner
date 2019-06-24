@@ -8,5 +8,5 @@ import sys
 from buildrunner import cli
 
 
-if '__main__' == __name__:
+if __name__ == '__main__':
     sys.exit(cli.main(sys.argv))

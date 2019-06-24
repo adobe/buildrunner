@@ -175,5 +175,5 @@ def main(argv):
     return os.EX_OK
 
 
-if '__main__' == __name__:
+if __name__ == '__main__':
     sys.exit(main(sys.argv))
