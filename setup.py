@@ -78,18 +78,17 @@ setup(
         ],
     },
     install_requires=[
-        'PyYAML>=3.11',
-        'vcsinfo>=0.1.30',
+        'PyYAML==3.11',
+        'vcsinfo==0.1.30',
         'requests==2.9.1',
         'paramiko==1.16.0',
         'pycrypto==2.6.1',
         'docker==2.3.0',
         'fabric==1.10.1',
-        'Jinja2>=2.7.2',
+        'Jinja2==2.7.3',
     ],
     dependency_links=[
         'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.30/vcsinfo-0.1.30.tar.gz#egg=vcsinfo-0.1.30', #pylint: disable=line-too-long
     ],
     test_suite='tests',
 )
-
