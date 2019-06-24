@@ -8,5 +8,10 @@ dist
 *.egg
 *.pyc
 .idea
+
+.eggs
+
 buildrunner/version.py
+
 buildrunner.results
+curator.results

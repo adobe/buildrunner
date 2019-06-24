@@ -16,9 +16,9 @@ class Test_buildrunner_files(unittest.TestCase):
         test_dir = os.path.basename(os.path.dirname(__file__))
         top_dir_path = os.path.realpath(os.path.dirname(test_dir_path))
 
-        br_files = [f for f in os.listdir(test_dir) if f.endswith('.yaml')]
+        br_files = sorted([f for f in os.listdir(test_dir) if f.endswith('.yaml')])
         for br_file in br_files:
-            print('\ntesting file: {0}'.format(br_file))
+            print('\n>>>> Testing Buildrunner file: {0}'.format(br_file))
             self.assertEqual(
                 cli.main([
                     'buildrunner-test',

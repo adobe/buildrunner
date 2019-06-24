@@ -825,3 +825,12 @@ server::
 Namespacing aliases allows build configurations to be portable while also
 allowing builders to configure BuildRunner to talk to specific servers within
 their environment on a project by project basis.
+
+
+Testing
+=======
+
+The test suite is located in the `tests subdirectory <tests/README.rst>`_.
+These are not integrated into the main `buildrunner.yaml`_ - this is due to the
+test suite invoking ``docker`` which does not work well from inside a Docker
+container.  Consequently the test suite is invoked through the `Jenkinsfile`_.

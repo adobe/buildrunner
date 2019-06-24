@@ -1,0 +1,133 @@
+tags: &tags ['tag1', 'tag2']
+
+steps:
+
+  test:
+    build:
+      no-cache: true
+      dockerfile: |
+        FROM busybox:latest
+        RUN echo 'hi'
+        RUN echo 'hi'
+        RUN echo 'hi'
+        RUN echo 'hi'
+        RUN echo 'hi'
+        RUN echo 'hi'
+        RUN echo 'hi'
+        RUN echo 'hi'
+        RUN echo 'hi'
+    push:
+      repository: docker-mcdp-local.dr-uw2.adobeitc.com/mcdp/toddtest
+      tags: [latest]
+
+  artifacts:
+    run:
+      image: ***REMOVED***/releng/releng-java7-maven:latest
+      cmds: [
+        'echo "test" > test.txt',
+        'echo "success" > success.comment',
+        'echo "{{ BUILDRUNNER_BUILD_ID }}" > version.txt',
+        'mkdir bob; echo "{{ BUILDRUNNER_BUILD_ID }}" > bob/version.txt',
+      ]
+      caches:
+        test: '/test'
+      artifacts:
+        '/source/*.txt':
+        '/source/*.comment': { type: "pull-request-comment" }
+        '/source/TEST.md': { type: "pull-request-comment" }
+        '/source/bob': {prop1: 'hello'}
+
+  build-and-service-containers:
+    build:
+      dockerfile: |
+        FROM centos:7
+        RUN yum -y install curl
+    run:
+      services:
+        rabbitmq:
+          image: rabbitmq:3.4
+          hostname: rabbitmq
+          environment:
+            RABBITMQ_NODENAME: test-rabbitmq
+        web:
+          build: tests/webservicecontainer
+      cmds: [
+        'curl http://web:8080/hello'
+      ]
+
+#  run-docker:
+#    build:
+#      dockerfile: |
+#        FROM centos:7.2.1511
+#        RUN yum -y install docker
+#        RUN echo "" > /etc/sysconfig/docker
+#        RUN mkdir /bob && touch /bob/test
+#        VOLUME /bob
+#    run:
+#      cmds: [
+#        'env',
+#        'docker info',
+#        'docker run centos:7 hostname',
+#        'docker run --volumes-from $BUILDRUNNER_BUILD_CONTAINER centos:7 touch /bob/test2',
+#        'ls -al /bob',
+#      ]
+
+  run-post-build-path:
+    run:
+      image: centos:7
+      cmd: 'echo "hello" > /hello.txt'
+      post-build: tests/postbuildpath
+    push:
+      repository: ***REMOVED***/releng/testmodule-hello-path
+
+  run-post-build-inline:
+    run:
+      image: centos:7
+      cmd: 'echo "hello" > /hello.txt'
+      post-build:
+        dockerfile: |
+          RUN cat /hello.txt
+    push:
+      repository: ***REMOVED***/releng/testmodule-hello-inline
+
+  run-post-build-inject:
+    run:
+      image: centos:7
+      cmd: 'echo "hello" > /hello.txt'
+      post-build:
+              #        path: runservicecontainer # use a different container here to make sure inject overrides
+        inject:
+          'tests/postbuildpath/Dockerfile': '.'
+    push:
+      repository: ***REMOVED***/releng/testmodule-hello-inline
+      tags: *tags
+
+  archive-container-config:
+    run:
+      image: centos:7
+      cmd: 'echo "create marathon config here"'
+      artifacts:
+        'marathon.config': {'marathon.config': 'releng/testmodule'}
+        'flight-director.config': {type: 'flight-director-config', 'fd:repo': 'releng/testmodule'}
+
+  containerize:
+    build:
+      path: .
+      no-cache: true
+      inject:
+        'buildrunner.results/artifacts/*.txt': files
+    push:
+      repository: ***REMOVED***/releng/testmodule
+      tags: ['latest']
+
+  test-dir-archive:
+    run:
+      image: centos:7
+      cmds:
+        - 'mkdir bob; echo "hello" > bob/file1.txt; echo "hello" > bob/file2.txt'
+        - 'mkdir -p bob/bob2; echo "hello" > bob/bob2/file1.txt; echo "hello" > bob/bob2/file2.txt'
+        - 'mkdir -p bob/bob2/bob3; echo "hello" > bob/bob2/bob3/file1.txt; echo "hello" > bob/bob2/bob3/file2.txt'
+        - 'ls -alR bob'
+      artifacts:
+        'bob': {format: 'uncompressed', prop1: 'hello'}
+        'bob/bob2':
