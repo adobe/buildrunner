@@ -1,6 +1,8 @@
 def prContext = githubUtils.getPRContext()
-checkUtils.runPRCheck(prContext, statusContext:'Code Reviews', numApprovers:1,
-	approvers:['github:gauntlet*Approvers'])
+checkUtils.runPRCheck(
+    prContext, statusContext:'Code Reviews', numApprovers:1,
+    approvers:['github:gauntlet*Approvers']
+)
 githubUtils.mergeAfterChecksPass(prContext)
 
 // Add issue status comment

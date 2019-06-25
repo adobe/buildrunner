@@ -6,6 +6,7 @@ steps:
     run:
       image: ubuntu:latest
       files:
+        # Obvious directory that should succeed
         .: /test_dir
       cmds:
         - |
@@ -21,7 +22,7 @@ steps:
 
       image: ubuntu:latest
       files:
-        # Just use this file as the test file
+        # Obvious directory that should fail
         ..: /test_dir
       cmds:
         - |
