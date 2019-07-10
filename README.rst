@@ -430,6 +430,7 @@ the run step::
         files:
           namespaced.file.alias1: "/path/to/readonly/file/or/dir"
           namespaced.file.alias2: "/path/to/readwrite/file/or/dir:rw"
+          build/dir/file: "/path/to/build/dir/file"
 
         # A map specifying cache directories that should be mounted inside the
         # container. The cache directories are maintained between builds and can
