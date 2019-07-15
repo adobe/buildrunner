@@ -8,6 +8,7 @@ import copy
 import errno
 import fnmatch
 import imp
+import inspect
 import json
 import os
 import shutil
@@ -576,11 +577,16 @@ class BuildRunner(object):
                     self.log.write(
                         '\nPushing %s\n' % _repo_tag
                     )
-                    stream = _docker_client.push(
-                        _repo_tag,
-                        stream=True,
-                        insecure_registry=_insecure_registry,
-                    )
+
+                    # Newer Python Docker bindings drop support for the insecure_registry
+                    # option.  This test will optionally use it when it's available.
+                    push_kwargs = {
+                        'stream': True,
+                    }
+                    if 'insecure_registry' in inspect.getargspec(_docker_client.push).args:
+                        push_kwargs['insecure_registry'] = _insecure_registry
+
+                    stream = _docker_client.push(_repo_tag, **push_kwargs)
                     previous_status = None
                     for msg_str in stream:
                         for msg in msg_str.split("\n"):
