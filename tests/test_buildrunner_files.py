@@ -24,6 +24,7 @@ class Test_buildrunner_files(unittest.TestCase):
                     'buildrunner-test',
                     '-d', top_dir_path,
                     '-f', os.path.join(test_dir, br_file),
+                    '--push',
                 ]),
                 os.EX_OK,
             )

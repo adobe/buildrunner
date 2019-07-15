@@ -17,7 +17,7 @@ steps:
         RUN echo 'hi'
         RUN echo 'hi'
     push:
-      repository: docker-mcdp-local.dr-uw2.adobeitc.com/mcdp/toddtest
+      repository: ***REMOVED***/releng/test-buildrunner-build
       tags: [latest]
 
   artifacts:
@@ -78,7 +78,7 @@ steps:
       cmd: 'echo "hello" > /hello.txt'
       post-build: tests/postbuildpath
     push:
-      repository: ***REMOVED***/releng/testmodule-hello-path
+      repository: ***REMOVED***/releng/test-buildrunner-hello-path
 
   run-post-build-inline:
     run:
@@ -88,7 +88,7 @@ steps:
         dockerfile: |
           RUN cat /hello.txt
     push:
-      repository: ***REMOVED***/releng/testmodule-hello-inline
+      repository: ***REMOVED***/releng/test-buildrunner-hello-inline
 
   run-post-build-inject:
     run:
@@ -99,7 +99,7 @@ steps:
         inject:
           'tests/postbuildpath/Dockerfile': '.'
     push:
-      repository: ***REMOVED***/releng/testmodule-hello-inline
+      repository: ***REMOVED***/releng/test-buildrunner-hello-inline
       tags: *tags
 
   archive-container-config:
@@ -117,7 +117,7 @@ steps:
       inject:
         'buildrunner.results/artifacts/*.txt': files
     push:
-      repository: ***REMOVED***/releng/testmodule
+      repository: ***REMOVED***/releng/test-buildrunner
       tags: ['latest']
 
   test-dir-archive:
