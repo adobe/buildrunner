@@ -344,10 +344,8 @@ class BuildRunner(object):
         if not file_alias:
             return None
         if 'local-files' not in self.global_config:
-            raise BuildRunnerConfigurationError(
-                "File aliases specified but no 'local-files' "
-                "configuration in global build runner config"
-            )
+            self.log.write("No 'local-files' configuration in global build runner config")
+            return None
 
         local_files = self.global_config['local-files']
         for local_alias, local_file in local_files.iteritems():
