@@ -6,7 +6,7 @@ import argparse
 import os
 import sys
 
-from buildrunner import (
+from . import (
     __version__,
     BuildRunner,
     BuildRunnerConfigurationError,
