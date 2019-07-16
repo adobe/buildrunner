@@ -29,7 +29,6 @@ associated BuildRunner Jenkins plugin project located
 `here <https://***REMOVED***/***REMOVED***/buildrunner-plugin>`_
 for an example).
 
-============
 Installation
 ============
 
@@ -85,7 +84,6 @@ can be added to your path.
 If you run CentOS 6 or CentOS 7, buildrunner can be installed using packages
 published by RelEng.
 
-====================
 Global Configuration
 ====================
 
@@ -95,8 +93,11 @@ configuration files more portable, allowing specific BuildRunner installations
 to map remote hosts and local files to aliases defined in the project build
 configuration.
 
+Example Global Configuration
+----------------------------
+
 The following example configuration explains what options are available and how
-they are used when put into the '~/.buildrunner.yaml' file::
+they are used when put into the global configuration file::
 
   # The 'build-servers' global configuration consists of a map where each key
   # is a server user@host string and the value is a list of host aliases that
@@ -139,7 +140,18 @@ they are used when put into the '~/.buildrunner.yaml' file::
   # build caches. The default directory is ~/.buildrunner/caches.
   caches-root: ~/.buildrunner/caches
 
-==================
+Configuration Locations
+-----------------------
+
+Buildrunner reads the global configuration from files in the following order::
+
+  * /etc/buildrunner/buildrunner.yaml
+  * ${HOME}/.buildrunner.yaml
+  * ${PWD}/.buidrunner.yaml
+
+The configuration is read from each file in order. If a main section exists in
+more than one file, the last one read in is used.
+
 BuildRunner Builds
 ==================
 
