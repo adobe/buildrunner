@@ -9,7 +9,6 @@ import mock
 import buildrunner
 from buildrunner import cli
 
-
 class Test_buildrunner_files(unittest.TestCase):
 
 

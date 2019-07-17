@@ -63,7 +63,6 @@ setup(
     author_email="***REMOVED***",
     license="Adobe",
     url="https://***REMOVED***/***REMOVED***/buildrunner",
-    description="Docker-based build enviroment",
     long_description="",
 
     packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
