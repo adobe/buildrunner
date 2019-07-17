@@ -52,8 +52,7 @@ except:  # pylint: disable=bare-except
 
 
 DEFAULT_GLOBAL_CONFIG_FILES = ['/etc/buildrunner/buildrunner.yaml',
-                               '~/.buildrunner.yaml',
-                               '{0}/.buildrunner.yaml'.format(os.path.curdir)]
+                               '~/.buildrunner.yaml',]
 
 DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
 DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
@@ -144,9 +143,9 @@ class BuildRunner(object):
         """
 
         context = ctx or {}
-        for file in cfg_files:
-            if os.path.exists(file):
-                ctx = self._load_config(file, context, log_file=False)
+        for f in cfg_files:
+            if os.path.exists(f):
+                ctx = self._load_config(f, context, log_file=False)
                 context.update(ctx)
 
         context.update({'CONFIG_FILES': cfg_files})
@@ -247,13 +246,16 @@ class BuildRunner(object):
         self.env = self._get_config_context(base_context)
 
         # load global configuration
+        _gc_files = [i for i in DEFAULT_GLOBAL_CONFIG_FILES]
+        _gc_files.append(global_config_file or '{0}/.buildrunner.yaml'.format(self.build_dir))
+
         _global_config_files = self.to_abs_path(
-            global_config_file or DEFAULT_GLOBAL_CONFIG_FILES, return_list=True
+            _gc_files, return_list=True
         )
-        self.log.write("Attempting to load global configuration from {}\n".format(_global_config_files))
+
+        self.log.write("\nGlobal configuration is from: {}\n".format(', '.join(_global_config_files)))
         self.global_config = {}
-        if _global_config_files:
-            self.global_config = self._load_config_files(_global_config_files, log_file=False)
+        self.global_config = self._load_config_files(_global_config_files, log_file=False)
 
         # load run configuration
         _run_config_file = None
@@ -274,6 +276,7 @@ class BuildRunner(object):
                 raise BuildRunnerConfigurationError(
                     'Cannot find build configuration file'
                 )
+
             self.run_config = self._load_config(_run_config_file)
 
         if not isinstance(self.run_config, dict) or 'steps' not in self.run_config:
