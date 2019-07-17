@@ -655,15 +655,15 @@ class BuildRunner(object):
                 )
 
         except BuildRunnerConfigurationError as brce:
-            print 'config error'
+            print('config error')
             exit_explanation = str(brce)
             self.exit_code = os.EX_CONFIG
         except BuildRunnerProcessingError as brpe:
-            print 'processing error'
+            print('processing error')
             exit_explanation = str(brpe)
             self.exit_code = 1
         except requests.exceptions.ConnectionError:
-            print 'connection error'
+            print('connection error')
             exit_explanation = (
                 "Error communicating with the remote Docker daemon.\nCheck "
                 "that it is running and/or that the DOCKER_* environment "
