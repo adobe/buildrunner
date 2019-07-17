@@ -4,21 +4,22 @@ COPY . /buildrunner-source
 
 ENV PIP_DEFAULT_TIMEOUT 60
 
-RUN								\
-    set -ex;							\
-    useradd -m buildrunner;					\
-    apt-get update;						\
-    apt-get -y install						\
-        libffi-dev						\
-        libssl-dev						\
-        libyaml-dev						\
-        python-cryptography					\
-        python-dev						\
-    ;								\
-    cd /buildrunner-source;					\
-    pip install -r requirements.txt;				\
-    python setup.py install;					\
-    rm -rf /buildrunner-source;					\
+RUN                                         \
+    set -ex;                                \
+    useradd -m buildrunner;                 \
+    apt-get update;                         \
+    apt-get -y install                      \
+        libffi-dev                          \
+        libssl-dev                          \
+        libyaml-dev                         \
+        python-cryptography                 \
+        python-dev                          \
+    ;                                       \
+    cd /buildrunner-source;                 \
+    pip install -r requirements.txt         \
+                -r test_requirements.txt;   \
+    python setup.py install;                \
+    rm -rf /buildrunner-source;             \
     apt-get clean all;
 
 #RUN \
