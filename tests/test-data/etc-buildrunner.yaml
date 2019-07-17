@@ -1,0 +1,3 @@
+build-servers:
+  gauntlet@localhost:
+    - localhost

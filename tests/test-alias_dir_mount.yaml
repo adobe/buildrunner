@@ -1,0 +1,14 @@
+# Test mounting a path from the build directory into the build
+# container
+
+steps:
+  test-alias_dir_mount:
+    run:
+      image: ubuntu:latest
+      files:
+        # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
+        tmp: /tmp_dir
+      cmds:
+        - |
+          set -eux
+          [ -d /tmp_dir ]
