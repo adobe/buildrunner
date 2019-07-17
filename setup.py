@@ -22,7 +22,7 @@ def get_version():
     """
     Call out to the git command line to get the current commit "number".
     """
-    _version = _VERSION
+    _ver = _VERSION
 
     try:
         cmd = subprocess.Popen(
@@ -36,8 +36,9 @@ def get_version():
             stderr=subprocess.PIPE,
         )
         stdout = cmd.communicate()[0]
+        outdata = stdout.strip().decode('utf-8')
         if cmd.returncode == 0:
-            _version += '.%s' % stdout.strip()
+            _version = '{0}.{1}'.format(_ver, outdata)
 
             # write the version file
             if os.path.exists(_BUILDRUNNER_DIR):
