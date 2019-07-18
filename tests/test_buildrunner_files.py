@@ -5,8 +5,7 @@ import shutil
 import tempfile
 import unittest
 
-import buildrunner
-from buildrunner import cli
+import test_runner as tr
 
 class Test_buildrunner_files(unittest.TestCase):
 
@@ -21,7 +20,7 @@ class Test_buildrunner_files(unittest.TestCase):
         for br_file in br_files:
             print('\n>>>> Testing Buildrunner file: {0}'.format(br_file))
             self.assertEqual(
-                cli.test([
+                tr.run_tests([
                     'buildrunner-test',
                     '-d', top_dir_path,
                     '-f', os.path.join(test_dir, br_file),

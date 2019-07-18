@@ -175,41 +175,6 @@ def main(argv):
         return os.EX_CONFIG
     return os.EX_OK
 
-def test(argv, global_config_files=None):
-    """Main program execution."""
-    args = parse_args(argv)
-
-    # are we just printing the version?
-    if args.print_version:
-        print(__version__)
-        return os.EX_OK
-
-    if global_config_files:
-        buildrunner.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
-
-    try:
-        build_runner = BuildRunner(
-            args.directory,
-            global_config_file=args.global_config_file,
-            run_config_file=args.config_file,
-            build_number=args.build_number,
-            push=args.push,
-            colorize_log=not args.no_log_color,
-            cleanup_images=not args.keep_images,
-            cleanup_step_artifacts=not args.keep_step_artifacts,
-            steps_to_run=args.steps,
-            publish_ports=args.publish_ports,
-            log_generated_files=args.log_generated_files,
-        )
-
-        build_runner.run()
-        if build_runner.exit_code:
-            return build_runner.exit_code
-    except BuildRunnerConfigurationError as brce:
-        print(str(brce))
-        return os.EX_CONFIG
-    return os.EX_OK
-
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
