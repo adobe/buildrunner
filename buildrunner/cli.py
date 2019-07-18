@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 
+import buildrunner
 from . import (
     __version__,
     BuildRunner,
@@ -183,6 +184,9 @@ def test(argv, global_config_files=None):
         print(__version__)
         return os.EX_OK
 
+    if global_config_files:
+        buildrunner.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
+
     try:
         build_runner = BuildRunner(
             args.directory,
@@ -198,8 +202,6 @@ def test(argv, global_config_files=None):
             log_generated_files=args.log_generated_files,
         )
 
-        if global_config_files:
-            build_runner.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
         build_runner.run()
         if build_runner.exit_code:
             return build_runner.exit_code
