@@ -13,7 +13,7 @@ ssh-keys:
     - 'adobe-dma'
 
 local-files:
-  tmp: '/tmp'
+  tests: ./tests
 #  some.other.file.alias: |
 #    The contents of the file...
 

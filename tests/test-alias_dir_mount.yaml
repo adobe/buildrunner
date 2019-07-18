@@ -7,7 +7,7 @@ steps:
       image: ubuntu:latest
       files:
         # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
-        tmp: /tmp_dir
+        tests: /tmp_dir
       cmds:
         - |
           set -eux
