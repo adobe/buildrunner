@@ -63,6 +63,7 @@ setup(
     author_email="***REMOVED***",
     license="Adobe",
     url="https://***REMOVED***/***REMOVED***/buildrunner",
+    description="Docker-based build enviroment",
     long_description="",
 
     packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
@@ -86,11 +87,9 @@ setup(
         'docker>=2.3.0',
         'fabric==1.10.1',
         'Jinja2>=2.7.2',
-        'mock>=3.0.5',
     ],
     dependency_links=[
         'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.30/vcsinfo-0.1.30.tar.gz#egg=vcsinfo-0.1.30', #pylint: disable=line-too-long
     ],
     test_suite='tests',
-    tests_require = ['mock>=3.0.5']
 )
