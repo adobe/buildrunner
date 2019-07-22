@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 
+import buildrunner
 from . import (
     __version__,
     BuildRunner,
@@ -149,7 +150,7 @@ def main(argv):
 
     # are we just printing the version?
     if args.print_version:
-        print __version__
+        print(__version__)
         return os.EX_OK
 
     try:
@@ -170,7 +171,7 @@ def main(argv):
         if build_runner.exit_code:
             return build_runner.exit_code
     except BuildRunnerConfigurationError as brce:
-        print str(brce)
+        print(str(brce))
         return os.EX_CONFIG
     return os.EX_OK
 

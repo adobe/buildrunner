@@ -1,0 +1,22 @@
+# The 'ssh-keys' global configuration is a list of ssh key configurations.
+# The file attribute specifies the path to a local ssh private key. The key
+# attribute provides a ASCII-armored private key. Only one or the other is
+# required. If the private key is password protected the password attribute
+# specifies the password. The alias attribute is a list of aliases assigned
+# to the given key (see the "ssh-keys" configuration example of the "run"
+# step attribute below).
+ssh-keys:
+- file: ~/.ssh/adobe_rsa
+  prompt-password: True
+  aliases:
+    - 'adobe-github'
+    - 'adobe-dma'
+
+local-files:
+  tests: ./tests
+#  some.other.file.alias: |
+#    The contents of the file...
+
+# The 'caches-root' global configuration specifies the directory to use for
+# build caches. The default directory is ~/.buildrunner/caches.
+caches-root: ~/.buildrunner/caches

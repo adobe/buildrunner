@@ -79,9 +79,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 )
 
             for src_glob, dest_dir in self.config.get('inject', {}).iteritems():
-                src_glob = self.step_runner.build_runner.to_abs_path(
-                    src_glob,
-                )
+                src_glob = self.step_runner.build_runner.to_abs_path(src_glob)
                 for source_file in glob.glob(src_glob):
                     self.to_inject[source_file] = os.path.join(
                         '.',

@@ -51,7 +51,9 @@ except:  # pylint: disable=bare-except
     pass
 
 
-DEFAULT_GLOBAL_CONFIG_FILE = '~/.buildrunner.yaml'
+DEFAULT_GLOBAL_CONFIG_FILES = ['/etc/buildrunner/buildrunner.yaml',
+                               '~/.buildrunner.yaml',]
+
 DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
 DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
 RESULTS_DIR = 'buildrunner.results'
@@ -125,6 +127,30 @@ class BuildRunner(object):
         file_contents = jtemplate.render(context)
         self._log_generated_file(filename, file_contents)
         return load_config(StringIO(file_contents), filename)
+
+    def _load_config_files(self, cfg_files=[], ctx=None, log_file=True):
+        """
+        Load config files templating them with Jinja and parsing the YAML.
+
+        Args:
+            cfg_files (list):  List of configuration files
+            ctx (dict): context object to load into config_context
+            log_file (boolean): will write out the generated config to log(s)
+                Default: True
+
+        Returns:
+          multi-structure: configuration keys and values
+        """
+
+        context = ctx or {}
+        for f in cfg_files:
+            if os.path.exists(f):
+                ctx = self._load_config(f, context, log_file=False)
+                context.update(ctx)
+
+        context.update({'CONFIG_FILES': cfg_files})
+
+        return context
 
     def _load_config(self, cfg_file, ctx=None, log_file=True):
         """
@@ -220,13 +246,16 @@ class BuildRunner(object):
         self.env = self._get_config_context(base_context)
 
         # load global configuration
-        _global_config_file = self.to_abs_path(
-            global_config_file or DEFAULT_GLOBAL_CONFIG_FILE
+        _gc_files = [i for i in DEFAULT_GLOBAL_CONFIG_FILES]
+        _gc_files.append(global_config_file or '{0}/.buildrunner.yaml'.format(self.build_dir))
+
+        _global_config_files = self.to_abs_path(
+            _gc_files, return_list=True
         )
-        self.log.write("Attempting to load global configuration from {}\n".format(_global_config_file))
+
+        self.log.write("\nGlobal configuration is from: {}\n".format(', '.join(_global_config_files)))
         self.global_config = {}
-        if _global_config_file and os.path.exists(_global_config_file):
-            self.global_config = self._load_config(_global_config_file, log_file=False)
+        self.global_config = self._load_config_files(_global_config_files, log_file=False)
 
         # load run configuration
         _run_config_file = None
@@ -247,6 +276,7 @@ class BuildRunner(object):
                 raise BuildRunnerConfigurationError(
                     'Cannot find build configuration file'
                 )
+
             self.run_config = self._load_config(_run_config_file)
 
         if not isinstance(self.run_config, dict) or 'steps' not in self.run_config:
@@ -382,17 +412,24 @@ class BuildRunner(object):
             os.makedirs(cache_dir)
         return cache_dir
 
-    def to_abs_path(self, path):
+    def to_abs_path(self, path, return_list=False):
         """
         Convert a path to an absolute path (if it isn't one already).
         """
-        _path = os.path.expanduser(path)
-        if os.path.isabs(_path):
-            return _path
-        return os.path.join(
-            self.build_dir,
-            _path,
-        )
+
+        paths = path
+        if not isinstance(path, list):
+            paths = [path]
+
+        for i in xrange(len(paths)):
+            _path = os.path.expanduser(paths[i])
+            if os.path.isabs(_path):
+                paths[i] = _path
+            else:
+                paths[i] = os.path.join(self.build_dir, _path)
+        if return_list:
+            return paths
+        return paths[0]
 
     def add_artifact(self, artifact_file, properties):
         """
@@ -618,15 +655,15 @@ class BuildRunner(object):
                 )
 
         except BuildRunnerConfigurationError as brce:
-            print 'config error'
+            print('config error')
             exit_explanation = str(brce)
             self.exit_code = os.EX_CONFIG
         except BuildRunnerProcessingError as brpe:
-            print 'processing error'
+            print('processing error')
             exit_explanation = str(brpe)
             self.exit_code = 1
         except requests.exceptions.ConnectionError:
-            print 'connection error'
+            print('connection error')
             exit_explanation = (
                 "Error communicating with the remote Docker daemon.\nCheck "
                 "that it is running and/or that the DOCKER_* environment "
