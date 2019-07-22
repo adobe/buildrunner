@@ -158,6 +158,9 @@ class BuildRunner(object):
             cfg_path = os.path.realpath(os.path.expanduser(cfg))
             if os.path.exists(cfg_path):
                 ctx = self._load_config(cfg_path, context, log_file=log_file)
+                if ctx is None:
+                    # Empty config file
+                    continue
 
                 # Only allow MASTER_GLOBAL_CONFIG_FILE to specify arbitrary local-files for mounting
                 # - all other local-files must reside in the user's home directory.
