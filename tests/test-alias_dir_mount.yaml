@@ -2,12 +2,40 @@
 # container
 
 steps:
-  test-alias_dir_mount:
+  test-alias_dir_mount-tests:
     run:
       image: ubuntu:latest
       files:
         # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
         tests: /tmp_dir
+      cmds:
+        - |
+          set -eux
+          [ -d /tmp_dir ]
+
+
+  test-alias_dir_mount-homedir:
+    run:
+      image: ubuntu:latest
+      files:
+        # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
+        homedir: /tmp_dir
+      cmds:
+        - |
+          set -eux
+          [ -d /tmp_dir ]
+
+
+  test-alias_dir_mount-forbidden_slash-xfail:
+    run:
+      xfail: true
+      # Should be forbidden (viz. outside of the user's home directory,
+      # not owned by the user and not specified in the ``MASTER_GLOBAL_CONFIG_FILE``
+      # (``/etc/buildrunner/buildrunner.yaml``).
+      image: ubuntu:latest
+      files:
+        # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
+        forbidden_slash: /tmp_dir
       cmds:
         - |
           set -eux

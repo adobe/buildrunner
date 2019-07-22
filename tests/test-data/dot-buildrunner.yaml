@@ -14,6 +14,8 @@ ssh-keys:
 
 local-files:
   tests: ./tests
+  homedir: '~'
+  forbidden_slash: /
 #  some.other.file.alias: |
 #    The contents of the file...
 

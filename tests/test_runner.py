@@ -8,7 +8,7 @@ from buildrunner import (
     BuildRunnerConfigurationError,
 )
 
-def run_tests(argv, global_config_files=None):
+def run_tests(argv, master_config_file=None, global_config_files=None):
     args = cli.parse_args(argv)
 
     # are we just printing the version?
@@ -16,6 +16,14 @@ def run_tests(argv, global_config_files=None):
         print(__version__)
         return os.EX_OK
 
+    global_config_files = global_config_files or []
+    if master_config_file:
+        buildrunner.MASTER_GLOBAL_CONFIG_FILE = master_config_file
+        if (
+                not global_config_files
+                or master_config_file != global_config_files[0]
+        ):
+            global_config_files.insert(master_config_file)
     if global_config_files:
         buildrunner.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
 
