@@ -52,6 +52,6 @@ steps:
         - |
           set -eux
           ls -l /test_file
-          [ -f /test_file ]
+          [ -c /test_file ]
           echo foo >/test_file
           [ -z "$(cat /test_file)" ] && echo EMPTY
