@@ -7,6 +7,7 @@ from collections import OrderedDict
 import copy
 import errno
 import fnmatch
+import getpass
 import imp
 import inspect
 import json
@@ -18,7 +19,6 @@ import tarfile
 import tempfile
 import threading
 import uuid
-import getpass
 
 import jinja2
 import requests
@@ -51,8 +51,11 @@ except:  # pylint: disable=bare-except
     pass
 
 
-DEFAULT_GLOBAL_CONFIG_FILES = ['/etc/buildrunner/buildrunner.yaml',
-                               '~/.buildrunner.yaml',]
+MASTER_GLOBAL_CONFIG_FILE = '/etc/buildrunner/buildrunner.yaml'
+DEFAULT_GLOBAL_CONFIG_FILES = [
+    MASTER_GLOBAL_CONFIG_FILE,
+    '~/.buildrunner.yaml',
+]
 
 DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
 DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
@@ -110,6 +113,9 @@ class BuildRunner(object):
         raise Exception(message)
 
     def _log_generated_file(self, file_name, file_contents):
+        '''
+        Conditionally log the contents of a generated file.
+        '''
         if self.log_generated_files:
             self.log.write('Generated contents of {}:\n'.format(file_name))
             for line in file_contents.splitlines():
@@ -128,7 +134,7 @@ class BuildRunner(object):
         self._log_generated_file(filename, file_contents)
         return load_config(StringIO(file_contents), filename)
 
-    def _load_config_files(self, cfg_files=[], ctx=None, log_file=True):
+    def _load_config_files(self, cfg_files=None, ctx=None, log_file=True):
         """
         Load config files templating them with Jinja and parsing the YAML.
 
@@ -142,10 +148,47 @@ class BuildRunner(object):
           multi-structure: configuration keys and values
         """
 
+        cfg_files = cfg_files or []
+
+        username = getpass.getuser()
+        homedir = os.path.expanduser('~')
+
         context = ctx or {}
-        for f in cfg_files:
-            if os.path.exists(f):
-                ctx = self._load_config(f, context, log_file=False)
+        for cfg in cfg_files:
+            cfg_path = os.path.realpath(os.path.expanduser(cfg))
+            if os.path.exists(cfg_path):
+                ctx = self._load_config(cfg_path, context, log_file=log_file)
+                if ctx is None:
+                    # Empty config file
+                    continue
+
+                # Only allow MASTER_GLOBAL_CONFIG_FILE to specify arbitrary local-files for mounting
+                # - all other local-files must reside in the user's home directory.
+                scrubbed_local_files = {}
+                if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
+                    for fname, fpath in ctx.get('local-files', {}).items():
+                        if not isinstance(fpath, str):
+                            self.log.write(
+                                'Bad "local-files" entry in {0!r}:'
+                                '\n    {1!r}: {2!r}\n'.format(cfg_path, fname, fpath)
+                            )
+                            continue
+                        resolved_path = os.path.realpath(os.path.expanduser(fpath))
+                        if (
+                                resolved_path == homedir
+                                or resolved_path.startswith(homedir + os.path.sep)
+                                or os.stat(resolved_path).st_uid == os.getuid()
+                        ):
+                            scrubbed_local_files[fname] = resolved_path
+                        else:
+                            self.log.write(
+                                'Bad "local-files" entry in {0!r}:'
+                                '\n    User {1!r} is not allowed to mount {2!r}.'
+                                '\n    You may need an entry in {3!r}.'
+                                '\n'.format(cfg_path, username, resolved_path, MASTER_GLOBAL_CONFIG_FILE)
+                            )
+                ctx['local-files'] = scrubbed_local_files
+
                 context.update(ctx)
 
         context.update({'CONFIG_FILES': cfg_files})
@@ -246,7 +289,7 @@ class BuildRunner(object):
         self.env = self._get_config_context(base_context)
 
         # load global configuration
-        _gc_files = [i for i in DEFAULT_GLOBAL_CONFIG_FILES]
+        _gc_files = [gcf for gcf in DEFAULT_GLOBAL_CONFIG_FILES]
         _gc_files.append(global_config_file or '{0}/.buildrunner.yaml'.format(self.build_dir))
 
         _global_config_files = self.to_abs_path(
@@ -424,9 +467,9 @@ class BuildRunner(object):
         for i in xrange(len(paths)):
             _path = os.path.expanduser(paths[i])
             if os.path.isabs(_path):
-                paths[i] = _path
+                paths[i] = os.path.realpath(_path)
             else:
-                paths[i] = os.path.join(self.build_dir, _path)
+                paths[i] = os.path.realpath(os.path.join(self.build_dir, _path))
         if return_list:
             return paths
         return paths[0]

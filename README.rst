@@ -127,12 +127,19 @@ they are used when put into the global configuration file::
     aliases:
       - 'my-github-key'
 
-  # The 'local-files' global configuration consists of a map where each key
+  # The "local-files" global configuration consists of a map where each key
   # is a file alias and the value is either the path where the file resides on
   # the local server OR the contents of the file. See the "local-files"
-  # configuration example of the "run" step attribute below.
+  # configuration example of the "run" step attribute below.  Entries in the
+  # master global configuration may specify any "local-files" alias while
+  # user configuration files may only specify "local-files" aliases that
+  # are in the user's home directory or a path owned by the user.  Home
+  # directory expansions (e.g. ``~``, ``~/foo``, ``~username`` and
+  # ``~username/foo``) are honored.  The ``~`` and ``~/foo`` cases will map
+  # to the home directory of the user executing buildrunner.
+  # NOTE: remember to quote ``~`` in YAML files!
   local-files:
-    digitalmarketing.mvn.settings: '/Users/tomkinso/.m2/settings.xml'
+    digitalmarketing.mvn.settings: '~/.m2/settings.xml'
     some.other.file.alias: |
       The contents of the file...
 
@@ -143,14 +150,19 @@ they are used when put into the global configuration file::
 Configuration Locations
 -----------------------
 
-Buildrunner reads the global configuration from files in the following order::
+Buildrunner reads the global configuration from files in the following order:
 
-  * /etc/buildrunner/buildrunner.yaml
-  * ${HOME}/.buildrunner.yaml
-  * ${PWD}/.buidrunner.yaml
+* ``/etc/buildrunner/buildrunner.yaml``
+* ``${HOME}/.buildrunner.yaml``
+* ``${PWD}/.buidrunner.yaml``
 
-The configuration is read from each file in order. If a main section exists in
-more than one file, the last one read in is used.
+The configuration is read from each file in order. If a main section
+exists in more than one file, the last one read in is used.  Some
+entries, such as "local-files" will be handled differently when
+appearing in the master configuration file
+(``/etc/buildrunner/buildrunner.yaml`` vs. other configuration files
+that can be manipulated by users).
+
 
 BuildRunner Builds
 ==================

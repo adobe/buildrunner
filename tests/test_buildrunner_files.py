@@ -20,14 +20,18 @@ class Test_buildrunner_files(unittest.TestCase):
         for br_file in br_files:
             print('\n>>>> Testing Buildrunner file: {0}'.format(br_file))
             self.assertEqual(
-                tr.run_tests([
-                    'buildrunner-test',
-                    '-d', top_dir_path,
-                    '-f', os.path.join(test_dir, br_file),
-                    '--push',
-                ],
-                global_config_files = ['{0}/test-data/etc-buildrunner.yaml'.format(test_dir_path),
-                                       '{0}/test-data/dot-buildrunner.yaml'.format(test_dir_path)]
+                tr.run_tests(
+                    [
+                        'buildrunner-test',
+                        '-d', top_dir_path,
+                        '-f', os.path.join(test_dir, br_file),
+                        '--push',
+                    ],
+                    master_config_file = '{0}/test-data/etc-buildrunner.yaml'.format(test_dir_path),
+                    global_config_files = [
+                        '{0}/test-data/etc-buildrunner.yaml'.format(test_dir_path),
+                        '{0}/test-data/dot-buildrunner.yaml'.format(test_dir_path),
+                    ]
                 ),
                 os.EX_OK,
             )
