@@ -16,6 +16,7 @@ local-files:
   tests: ./tests
   homedir: '~'
   forbidden_slash: /
+  dev_null: /dev/null
 #  some.other.file.alias: |
 #    The contents of the file...
 

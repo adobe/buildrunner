@@ -163,7 +163,8 @@ class BuildRunner(object):
                     continue
 
                 # Only allow MASTER_GLOBAL_CONFIG_FILE to specify arbitrary local-files for mounting
-                # - all other local-files must reside in the user's home directory.
+                # - all other local-files get scrubbed for specific requirements and non-matches
+                # are dropped.
                 scrubbed_local_files = {}
                 if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
                     for fname, fpath in ctx.get('local-files', {}).items():
@@ -178,6 +179,10 @@ class BuildRunner(object):
                                 resolved_path == homedir
                                 or resolved_path.startswith(homedir + os.path.sep)
                                 or os.stat(resolved_path).st_uid == os.getuid()
+                                or (
+                                    not os.path.isdir(resolved_path)
+                                    and os.access(resolved_path, os.R_OK | os.W_OK)
+                                )
                         ):
                             scrubbed_local_files[fname] = resolved_path
                         else:
