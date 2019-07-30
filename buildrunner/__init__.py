@@ -472,9 +472,9 @@ class BuildRunner(object):
         for i in xrange(len(paths)):
             _path = os.path.expanduser(paths[i])
             if os.path.isabs(_path):
-                paths[i] = os.path.realpath(_path)
+                paths[i] = _path
             else:
-                paths[i] = os.path.realpath(os.path.join(self.build_dir, _path))
+                paths[i] = os.path.join(self.build_dir, _path)
         if return_list:
             return paths
         return paths[0]
