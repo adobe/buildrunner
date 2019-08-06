@@ -860,3 +860,16 @@ integrated into the main `buildrunner.yaml <buildrunner.yaml>`_ - this is due to
 the test suite invoking ``docker`` which does not work well from inside a Docker
 container.  Consequently the test suite is invoked through the `Jenkinsfile
 <Jenkinsfile>`_.
+
+
+Common Issues
+=============
+
+If you encounter an error like ``Unable to load key at /path/to/id_rsa``,
+you will need to generate a new key with the ``-m PEM`` parameter::
+
+  ssh-keygen -m PEM -t rsa -b 4096 -C "username@adobe.com"
+
+This will no longer be necessary if the Paramiko library addresses this issue. There
+are several issues logged in the git repo, most of which are closed, such as:
+https://github.com/paramiko/paramiko/issues/1348
