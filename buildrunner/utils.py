@@ -23,9 +23,13 @@ class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
     """
     pass
 
+def construct_mapping(loader, node):
+    loader.flatten_mapping(node)
+    return OrderedDict(loader.construct_pairs(node))
+
 OrderedLoader.add_constructor(
     yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    lambda loader, node: OrderedDict(loader.construct_pairs(node)),
+    construct_mapping
 )
 # Tell YAML how to dump the OrderedDict
 yaml.add_representer(
