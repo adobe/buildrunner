@@ -1,7 +1,11 @@
 @Library('gauntlet') _
 
 node('docker') {
-    checkoutToLocalBranch()
-    sh('python ./setup.py test')
-    buildrunner()
+    stage("Test") {
+        checkoutToLocalBranch()
+        sh('python ./setup.py test')
+    }
+    stage("Build") {
+        buildrunner()
+    }
 }
