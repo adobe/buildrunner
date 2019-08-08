@@ -129,6 +129,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         try:
             artifact_lister = DockerRunner(
                 self.ARTIFACT_LISTER_DOCKER_IMAGE,
+                log=self.step_runner.log,
             )
             #TODO: see if we can use archive commands to eliminate the need for
             #the /stepresults volume when we can move to api v1.20
@@ -586,6 +587,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         service_runner = DockerRunner(
             _image,
             pull_image=config.get('pull', True),
+            log=service_logger,
         )
         self._service_runners[name] = service_runner
         cont_name = self.step_runner.id + '-' + name
@@ -911,6 +913,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.runner = DockerRunner(
                 _run_image,
                 pull_image=self.config.get('pull', True),
+                log=self.step_runner.log,
             )
             # Figure out if we should be running systemd.  Has to happen after docker pull
             container_args["systemd"] = self.is_systemd(self.config, _run_image, self.step_runner.log)
