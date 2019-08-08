@@ -25,7 +25,7 @@ class DockerRunner(object):
     """
 
 
-    def __init__(self, image_name, dockerd_url=None, pull_image=True):
+    def __init__(self, image_name, dockerd_url=None, pull_image=True, log=None):
         self.image_name = image_name
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
@@ -57,7 +57,16 @@ class DockerRunner(object):
                 break
 
         if pull_image or not found_image:
-            self.docker_client.pull(self.image_name)
+            if log:
+                log.write('Pulling image {}\n'.format(self.image_name))
+            for data in self.docker_client.pull(self.image_name, stream=True, decode=True):
+                if log:
+                    log.write('.')
+                    # If we implement an interactive mode, this could be used instead
+                    #line = data.get('progress', data.get('status')) or '...'
+                    #log.write('\r{}'.format(line.ljust(80)))
+            if log:
+                log.write('\nImage pulled successfully\n')
 
 
     def start(
