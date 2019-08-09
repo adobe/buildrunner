@@ -40,9 +40,7 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,
             log_generated_files=args.log_generated_files,
-            # Set short to make sure that we can exceed this timeout
-            # while running commands (see test-timeout.yaml)
-            docker_timeout=60,
+            docker_timeout=args.docker_timeout,
         )
 
         build_runner.run()
