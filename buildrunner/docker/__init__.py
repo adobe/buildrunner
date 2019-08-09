@@ -32,7 +32,7 @@ def new_client(
         tls=False,
         tls_verify=False,
         cert_path=None,
-        timeout=600,
+        timeout=None,
 ):
     """
     Return a newly configured Docker client.
@@ -73,7 +73,7 @@ def new_client(
             _dockerd_url = urlparse.urlunparse(('https',) + url_parts[1:])
 
     args = {}
-    if timeout != 0:
+    if timeout:
         args['timeout'] = timeout
     return Client(
         base_url=_dockerd_url,

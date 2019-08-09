@@ -246,6 +246,7 @@ class BuildRunner(object):
             publish_ports=False,
             disable_timestamps=False,
             log_generated_files=False,
+            docker_timeout=None,
     ):
         """
         """
@@ -261,6 +262,7 @@ class BuildRunner(object):
         self.publish_ports = publish_ports
         self.disable_timestamps = disable_timestamps
         self.log_generated_files = log_generated_files
+        self.docker_timeout = docker_timeout
 
         self.tmp_files = []
         self.artifacts = OrderedDict()
@@ -536,7 +538,9 @@ class BuildRunner(object):
                 source_archive_path: 'source.tar',
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
-            source_builder = DockerBuilder(inject=inject)
+            source_builder = DockerBuilder(
+                inject=inject, timeout=self.docker_timeout
+            )
             exit_code = source_builder.build(
                 nocache=True,
             )
@@ -657,7 +661,7 @@ class BuildRunner(object):
                     'Push requested--pushing generated images to remote '
                     'registries\n'
                 )
-                _docker_client = docker.new_client()
+                _docker_client = docker.new_client(timeout=self.docker_timeout)
                 for _repo_tag, _insecure_registry in self.repo_tags_to_push:
                     self.log.write(
                         '\nPushing %s\n' % _repo_tag
@@ -722,7 +726,7 @@ class BuildRunner(object):
         finally:
             self._write_artifact_manifest()
 
-            _docker_client = docker.new_client()
+            _docker_client = docker.new_client(timeout=self.docker_timeout)
             if self.cleanup_images:
                 self.log.write(
                     'Removing local copy of generated images\n'

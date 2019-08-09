@@ -386,11 +386,11 @@ class DockerRunner(object):
         Attach to the container, writing output to the given log stream until
         the container exits.
         """
-        stream = self.docker_client.attach_socket(
+        docker_stream = self.docker_client.attach(
             self.container['Id'], stream=True, logs=True
         )
-        for line in stream:
-            stream.write(data)
+        for line in docker_stream:
+            stream.write(line)
 
 
     def commit(self, stream):
