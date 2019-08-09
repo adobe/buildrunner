@@ -72,7 +72,7 @@ class BuildStepRunner(object):
                     try:
                         _task.run(_context)
                     except BuildRunnerError as err:
-                        if not _task_config.get('xfail', False):
+                        if not isinstance(_task_config, dict) or not _task_config.get('xfail', False):
                             raise
                         else:
                             self.log.write('Step "%s" failed with exception: %s\n    Ignoring due to XFAIL\n' % (
