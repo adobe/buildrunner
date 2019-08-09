@@ -50,7 +50,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
     def __init__(self, step_runner, config):
         super(RunBuildStepRunnerTask, self).__init__(step_runner, config)
-        self._docker_client = buildrunner.docker.new_client()
+        self._docker_client = buildrunner.docker.new_client(
+            timeout=step_runner.build_runner.docker_timeout,
+        )
         self._source_container = None
         self._service_runners = OrderedDict()
         self._service_links = {}

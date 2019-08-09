@@ -1,0 +1,9 @@
+# Test not timing out when timeout is exceeded
+
+steps:
+  test-sleep-past-timeout:
+    run:
+      image: ubuntu:latest
+      # Should not fail even though the timeout for tests (30)
+      # is shorter than this sleep
+      cmd: echo 'sleeping for 60 seconds without a timeout'; sleep 60

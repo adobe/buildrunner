@@ -22,10 +22,12 @@ class DockerImporter(object):
             self,
             src,
             dockerd_url=None,
+            timeout=None,
     ):
         self.src = src
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
+            timeout=timeout,
         )
         self.image = None
 

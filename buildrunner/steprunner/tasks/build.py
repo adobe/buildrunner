@@ -29,7 +29,9 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             image_to_prepend_to_dockerfile=None,
     ):
         super(BuildBuildStepRunnerTask, self).__init__(step_runner, config)
-        self._docker_client = buildrunner.docker.new_client()
+        self._docker_client = buildrunner.docker.new_client(
+            timeout=step_runner.build_runner.docker_timeout,
+        )
         self.path = None
         self.dockerfile = None
         self.to_inject = {}
@@ -144,7 +146,10 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.log.write('  Importing %s as a Docker image\n' % (
                 self._import,
             ))
-            context['image'] = DockerImporter(self._import).import_image()
+            context['image'] = DockerImporter(
+                self._import,
+                timeout=self.step_runner.build_runner.docker_timeout,
+            ).import_image()
             return
 
         if not self.dockerfile:

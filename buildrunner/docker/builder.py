@@ -26,6 +26,7 @@ class DockerBuilder(object):
             inject=None,
             dockerfile=None,
             dockerd_url=None,
+            timeout=None,
     ):
         self.path = path
         self.inject = inject
@@ -45,6 +46,7 @@ class DockerBuilder(object):
 
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
+            timeout=timeout,
         )
         self.image = None
         self.intermediate_containers = []

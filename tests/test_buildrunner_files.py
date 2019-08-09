@@ -26,6 +26,9 @@ class Test_buildrunner_files(unittest.TestCase):
                         '-d', top_dir_path,
                         '-f', os.path.join(test_dir, br_file),
                         '--push',
+                        # Set short to make sure that we can exceed this timeout
+                        # while running commands (see test-timeout.yaml)
+                        '-t', '30',
                     ],
                     master_config_file = '{0}/test-data/etc-buildrunner.yaml'.format(test_dir_path),
                     global_config_files = [

@@ -29,6 +29,8 @@ class DockerRunner(object):
         self.image_name = image_name
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
+            # Disable timeouts for running commands
+            timeout=0,
         )
         self.container = None
         self.shell = None
@@ -384,23 +386,11 @@ class DockerRunner(object):
         Attach to the container, writing output to the given log stream until
         the container exits.
         """
-        docksock = self.docker_client.attach_socket(
-            self.container['Id'],
+        docker_stream = self.docker_client.attach(
+            self.container['Id'], stream=True, logs=True
         )
-        docksock.settimeout(1)
-        running = True
-        while running:
-            running = self.is_running()
-            try:
-                data = docksock.recv(4096)
-                while data:
-                    stream.write(data)
-                    data = docksock.recv(4096)
-            except socket.timeout:
-                pass
-            except ssl.SSLError as ssle:
-                if ssle.message != 'The read operation timed out':
-                    raise
+        for line in docker_stream:
+            stream.write(line)
 
 
     def commit(self, stream):

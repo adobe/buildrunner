@@ -51,6 +51,14 @@ def parse_args(argv):
     )
 
     parser.add_argument(
+        '-t', '--docker-timeout',
+        default=600,
+        type=int,
+        dest='docker_timeout',
+        help='docker timeout in seconds, defaults to 600',
+    )
+
+    parser.add_argument(
         '--push',
         default=False,
         action='store_true',
@@ -166,6 +174,7 @@ def main(argv):
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,
             log_generated_files=args.log_generated_files,
+            docker_timeout=args.docker_timeout,
         )
         build_runner.run()
         if build_runner.exit_code:
