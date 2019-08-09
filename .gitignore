@@ -6,6 +6,7 @@ dist
 *.pyc
 .idea
 .*sw*
+.env
 
 .eggs
 
