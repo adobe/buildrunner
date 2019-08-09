@@ -6,4 +6,4 @@ steps:
       image: ubuntu:latest
       # Should not fail even though the timeout for tests (30)
       # is shorter than this sleep
-      cmd: echo 'sleeping for 60 seconds without a timeout'; sleep 60
+      cmd: echo 'sleeping for 90 seconds without a timeout'; sleep 90
