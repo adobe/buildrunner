@@ -37,24 +37,6 @@ steps:
         '/source/TEST.md': { type: "pull-request-comment" }
         '/source/bob': {prop1: 'hello'}
 
-  build-and-service-containers:
-    build:
-      dockerfile: |
-        FROM centos:7
-        RUN yum -y install curl
-    run:
-      services:
-        rabbitmq:
-          image: rabbitmq:3.4
-          hostname: rabbitmq
-          environment:
-            RABBITMQ_NODENAME: test-rabbitmq
-        web:
-          build: tests/webservicecontainer
-      cmds: [
-        'curl http://web:8080/hello'
-      ]
-
 #  run-docker:
 #    build:
 #      dockerfile: |
