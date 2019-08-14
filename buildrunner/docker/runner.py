@@ -386,11 +386,23 @@ class DockerRunner(object):
         Attach to the container, writing output to the given log stream until
         the container exits.
         """
-        docker_stream = self.docker_client.attach(
-            self.container['Id'], stream=True, logs=True
+        docksock = self.docker_client.attach_socket(
+            self.container['Id'],
         )
-        for line in docker_stream:
-            stream.write(line)
+        docksock.settimeout(1)
+        running = True
+        while running:
+            running = self.is_running()
+            try:
+                data = docksock.recv(4096)
+                while data:
+                    stream.write(data)
+                    data = docksock.recv(4096)
+            except socket.timeout:
+                pass
+            except ssl.SSLError as ssle:
+                if ssle.message != 'The read operation timed out':
+                    raise
 
 
     def commit(self, stream):
