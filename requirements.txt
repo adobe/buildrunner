@@ -1,4 +1,4 @@
---index-url https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple
+--extra-index-url https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple
 PyYAML>=3.11
 vcsinfo>=0.1.30
 requests>=2.6.0
