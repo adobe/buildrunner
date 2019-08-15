@@ -109,7 +109,6 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                             dest_path,
                             os.path.basename(source_file),
                         )
-                print('TLH: inject: {0} => {1}'.format(source_file, self.to_inject[source_file]))
 
             if not self._import and not any((
                     self.path, self.dockerfile, self.to_inject
