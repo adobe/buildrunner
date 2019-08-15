@@ -271,11 +271,15 @@ class DockerRunner(object):
             if log:
                 log.write(output_buffer)
         elif hasattr(output_buffer, 'next'):
-            for line in output_buffer:
-                if console:
-                    console.write(line)
-                if log:
-                    log.write(line)
+            try:
+                for line in output_buffer:
+                    if console:
+                        console.write(line)
+                    if log:
+                        log.write(line)
+            except socket.timeout:
+                # Ignore timeouts since we check for the exit code anyways at the end
+                pass
         else:
             if console:
                 console.write('WARNING: Unexpected output object: {0}'.format(output_buffer))
