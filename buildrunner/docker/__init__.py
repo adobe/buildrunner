@@ -20,6 +20,7 @@ from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
 
 DOCKER_API_VERSION = 'auto'
 DOCKER_DEFAULT_DOCKERD_URL = 'unix:///var/run/docker.sock'
+MAX_TIMEOUT = 3600  # 1 hour
 
 
 class BuildRunnerContainerError(BuildRunnerError):
@@ -73,8 +74,11 @@ def new_client(
             _dockerd_url = urlparse.urlunparse(('https',) + url_parts[1:])
 
     args = {}
-    if timeout:
-        args['timeout'] = timeout
+    if timeout is not None:
+        if timeout == 0:
+            args['timeout'] = MAX_TIMEOUT
+        else:
+            args['timeout'] = timeout
     return Client(
         base_url=_dockerd_url,
         version=DOCKER_API_VERSION,
