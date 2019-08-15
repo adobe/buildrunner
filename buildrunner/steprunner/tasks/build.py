@@ -89,10 +89,17 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                         'Unable to expand inject glob: {0}'.format(_src_glob)
                     )
                 if len(xsglob) == 1:
-                    # Only one source - destination may be directory or filename - use the dest
-                    # verbatim.
+                    # Only one source - destination may be directory or filename - check for a trailing
+                    # '/' and treat it accordingly.
                     source_file = xsglob[0]
-                    self.to_inject[source_file] = os.path.join('.', dest_path)
+                    if dest_path[-1] == '/':
+                        self.to_inject[source_file] = os.path.join(
+                            '.',
+                            dest_path.rstrip('/') or '/',
+                            os.path.basename(source_file)
+                        )
+                    else:
+                        self.to_inject[source_file] = os.path.join('.', dest_path)
                 else:
                     # Multiple sources - destination *must* be a directory - add the source basename
                     # to the dest_dir name.
@@ -102,6 +109,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                             dest_path,
                             os.path.basename(source_file),
                         )
+                print('TLH: inject: {0} => {1}'.format(source_file, self.to_inject[source_file]))
 
             if not self._import and not any((
                     self.path, self.dockerfile, self.to_inject
