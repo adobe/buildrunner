@@ -95,9 +95,10 @@ steps:
       image: centos:7
       cmd: 'echo "hello" > /hello.txt'
       post-build:
-              #        path: runservicecontainer # use a different container here to make sure inject overrides
+        # use a different container here to make sure inject overrides
+        #path: runservicecontainer
         inject:
-          'tests/postbuildpath/Dockerfile': '.'
+          'tests/postbuildpath/Dockerfile': '/'
     push:
       repository: ***REMOVED***/releng/test-buildrunner-hello-inline
       tags: *tags
@@ -115,7 +116,7 @@ steps:
       path: .
       no-cache: true
       inject:
-        'buildrunner.results/artifacts/*.txt': files
+        'buildrunner.results/artifacts/*.txt': files/
     push:
       repository: ***REMOVED***/releng/test-buildrunner
       tags: ['latest']

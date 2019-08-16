@@ -80,14 +80,35 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                     'Step %s:build:inject must be a collection/map/dictionary' % self.step_runner
                 )
 
-            for src_glob, dest_dir in self.config.get('inject', {}).iteritems():
-                src_glob = self.step_runner.build_runner.to_abs_path(src_glob)
-                for source_file in glob.glob(src_glob):
-                    self.to_inject[source_file] = os.path.join(
-                        '.',
-                        dest_dir,
-                        os.path.basename(source_file),
+            for src_glob, dest_path in self.config.get('inject', {}).iteritems():
+                _src_glob = self.step_runner.build_runner.to_abs_path(src_glob)
+                xsglob = glob.glob(_src_glob)
+                if not xsglob:
+                    # Failed to resolve the glob
+                    raise BuildRunnerConfigurationError(
+                        'Unable to expand inject glob: {0}'.format(_src_glob)
                     )
+                if len(xsglob) == 1:
+                    # Only one source - destination may be directory or filename - check for a trailing
+                    # '/' and treat it accordingly.
+                    source_file = xsglob[0]
+                    if dest_path[-1] == '/':
+                        self.to_inject[source_file] = os.path.join(
+                            '.',
+                            dest_path.rstrip('/') or '/',
+                            os.path.basename(source_file)
+                        )
+                    else:
+                        self.to_inject[source_file] = os.path.join('.', dest_path)
+                else:
+                    # Multiple sources - destination *must* be a directory - add the source basename
+                    # to the dest_dir name.
+                    for source_file in xsglob:
+                        self.to_inject[source_file] = os.path.join(
+                            '.',
+                            dest_path,
+                            os.path.basename(source_file),
+                        )
 
             if not self._import and not any((
                     self.path, self.dockerfile, self.to_inject

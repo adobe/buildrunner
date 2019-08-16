@@ -61,8 +61,11 @@ If you are using WSL and the hyper-v installtion of docker:
 NOTE TO MAC USERS: If you are using the docker version of buildrunner and are getting the error
 ```docker-credential-osxkeychain not installed or not available in PATH```, you can do one of 2 things:
 
-1. If the authentication information for the docker registry in question is in your ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
-2. Use this `bash <scripts/buildrunnerOSXCredStore>`_ script along with this `python <scripts/resolve-config.py>`_ script - this will pull the docker credentials from the OSX keychain and inject them into the docker container
+1. If the authentication information for the docker registry in question is in your
+   ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
+2. Use this `bash <scripts/buildrunnerOSXCredStore>`_ script along with this `python
+   <scripts/resolve-config.py>`_ script - this will pull the docker credentials from the OSX
+   keychain and inject them into the docker container
 
 **2. Pip**
 
@@ -279,9 +282,11 @@ shows the different configuration options available::
           # to the source tree root with the value being the directory within
           # the build context that the file(s) should be copied to. These files
           # will be available to the Dockerfile at the given location during
-          # the Docker build.
-          glob/to/files.*: dest/dir
-          path/to/file.txt: dest/dir
+          # the Docker build.  Destination directories must have a trailing
+	  # slash (``/``).
+          glob/to/files.*: dest/dir/
+          path/to/file1.txt: dest/dir/
+          path/to/file2.txt: dest/filename.txt
 
         # The path to a Dockerfile to use, or an inline Dockerfile declaration.
         # This Dockerfile overrides any provided in the path or inject

@@ -13,6 +13,7 @@ RUN                                         \
         libssl-dev                          \
         libyaml-dev                         \
         python-cryptography                 \
+        python-pip                          \
         python-dev                          \
     ;                                       \
     cd /buildrunner-source;                 \
