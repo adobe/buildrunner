@@ -15,6 +15,7 @@ from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
 from buildrunner.steprunner.tasks.push import PushBuildStepRunnerTask
 from buildrunner.steprunner.tasks.remote import RemoteBuildStepRunnerTask
 from buildrunner.steprunner.tasks.run import RunBuildStepRunnerTask
+from buildrunner.steprunner.tasks.pypipush import PypiPushBuildStepRunnerTask
 
 
 TASK_MAPPINGS = {
@@ -22,6 +23,7 @@ TASK_MAPPINGS = {
     'build': BuildBuildStepRunnerTask,
     'run': RunBuildStepRunnerTask,
     'push': PushBuildStepRunnerTask,
+    'pypi-push': PypiPushBuildStepRunnerTask,
 }
 
 

@@ -87,6 +87,7 @@ setup(
         'docker>=2.3.0',
         'fabric==1.10.1',
         'Jinja2>=2.7.2',
+        'twine==1.13.0',
     ],
     dependency_links=[
         'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.30/vcsinfo-0.1.30.tar.gz#egg=vcsinfo-0.1.30', #pylint: disable=line-too-long
