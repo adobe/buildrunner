@@ -20,6 +20,8 @@ import tempfile
 import threading
 import uuid
 
+import twine.commands.upload
+
 import jinja2
 import requests
 
@@ -266,6 +268,7 @@ class BuildRunner(object):
 
         self.tmp_files = []
         self.artifacts = OrderedDict()
+        self.pypi_packages = OrderedDict()
 
         self.exit_code = None
         self._source_image = None
@@ -641,6 +644,8 @@ class BuildRunner(object):
 
             self.get_source_archive_path()
 
+            _pypi_to_push = []
+
             # run each step
             for step_name, step_config in self.run_config['steps'].iteritems():
                 if not self.steps_to_run or step_name in self.steps_to_run:
@@ -655,11 +660,10 @@ class BuildRunner(object):
                 "\nFinalizing build\n________________________________________\n"
             )
 
-            # see if we should push registered tags to remote registries
+            # see if we should push registered tags to remote registries/repositories
             if self.push:
                 self.log.write(
-                    'Push requested--pushing generated images to remote '
-                    'registries\n'
+                    'Push requested--pushing generated images/packages to remote registries/repositories\n'
                 )
                 _docker_client = docker.new_client(timeout=self.docker_timeout)
                 for _repo_tag, _insecure_registry in self.repo_tags_to_push:
@@ -701,6 +705,10 @@ class BuildRunner(object):
                                 raise BuildRunnerProcessingError(error_detail)
                             else:
                                 self.log.write(str(msg) + '\n')
+
+                # Push to pypi repositories
+                for _repository_name, _items in self.pypi_packages.iteritems():
+                    twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
             else:
                 self.log.write(
                     '\nPush not requested\n'
@@ -714,12 +722,14 @@ class BuildRunner(object):
             print('processing error')
             exit_explanation = str(brpe)
             self.exit_code = 1
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as rce:
             print('connection error')
+            print(str(rce))
             exit_explanation = (
-                "Error communicating with the remote Docker daemon.\nCheck "
-                "that it is running and/or that the DOCKER_* environment "
-                "variables are set correctly."
+                "Error communicating with the remote host.\n\tCheck that the "
+                "remote docker Daemon is running and/or that the DOCKER_* "
+                "environment variables are set correctly.\n\tCheck that the "
+                "remote PyPi server information is set correctly."
             )
             self.exit_code = 1
 

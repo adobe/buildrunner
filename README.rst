@@ -788,6 +788,43 @@ The configuration may also specify additional tags to add to the image::
         repository: ***REMOVED***/***REMOVED***
         tags: [ 'latest' ]
 
+Pushing To PyPI Repository
+==========================
+The 'pypi-push' step attribute is used to push a python package to a remote PyPI
+repository. If an artifact with a type of ``python-sdist`` is present in the artifacts
+for the step, those packages will be pushed.
+
+The push only occurs if the --push argument is used, similar to how pushing docker
+images to remote docker registries works
+
+The following is an example of a simple 'pypi-push' configuration where only the
+repository index, as defined in the ``~/.pypirc`` file, is defined::
+
+  steps:
+    pypi:
+      run:
+        image: python:2
+        cmds:
+          - python setup.py sdist
+        artifacts:
+          "dist/*.tar.gz": { type: 'python-sdist' }
+      pypi-push: artifactory-releng
+
+The configuration may also specify repository, username, and password. All must be specified when doing this::
+
+  steps:
+    pypi:
+      run:
+        image: python:2
+        cmds:
+          - python setup.py sdist
+        artifacts:
+          "dist/*.tar.gz": { type: 'python-sdist' }
+      pypi-push:
+        repository: https://***REMOVED***/artifactory/api/pypi/pypi-myownrepo
+        username: myuser
+        password: mypass
+
 Publishing Ports
 ================
 
