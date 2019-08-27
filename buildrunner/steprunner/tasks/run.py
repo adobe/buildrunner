@@ -314,7 +314,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 arch_props.update(properties.get('archive', {}))
 
             workdir = None
-            if 'tar' == arch_props['type']:
+            if arch_props['type'] == 'tar':
                 suffix = arch_props.get('suffix', '.{type}.{compression}'.format(**arch_props))
                 output_file_name = arch_props['name'] + suffix
                 new_artifact_file = '/stepresults/' + output_file_name
@@ -333,7 +333,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     filename,
                 ))
 
-            elif 'zip' == arch_props['type']:
+            elif arch_props['type'] == 'zip':
                 output_file_name = '{name}.{type}'.format(**arch_props)
                 new_artifact_file = '/stepresults/' + output_file_name
                 archive_command = [
@@ -376,6 +376,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Archive the given file.
         """
+        # Unused arg
+        _ = new_artifact_file
+
         self.step_runner.log.write(
             '- found {type} {name}\n'.format(
                 type=file_type,
@@ -692,6 +695,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 'Docker run context must specify a "image" attribute or '
                 'be preceded by a build context'
             )
+        _lrun_image = _run_image.lower()
+        if _lrun_image != _run_image:
+            self.step_runner.log.write(
+                'Forcing image name to lowercase: {0} => {1}\n'.format(
+                    _run_image,
+                    _lrun_image,
+                )
+            )
+            _run_image = _lrun_image
 
         self.step_runner.log.write(
             'Creating build container from image "%s"\n' % (
@@ -808,9 +820,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # determine additional hosts to add
         if 'extra_hosts' in self.config:
-            container_args['extra_hosts'] = {}
+            extra_hosts = {}
             for extra_host, extra_host_ip in self.config['extra_hosts'].iteritems():
-                container_args['extra_hosts'][extra_host] = self._resolve_service_ip(extra_host_ip)
+                extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
+            container_args['extra_hosts'] = extra_hosts
 
         # set step specific environment variables
         container_args['environment']['BUILDRUNNER_STEP_ID'] = self.step_runner.id
@@ -858,8 +871,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         f_alias
                     ))
                     if (
-                        f_local != self.step_runner.build_runner.build_dir
-                        and not f_local.startswith(self.step_runner.build_runner.build_dir + os.path.sep)
+                            f_local != self.step_runner.build_runner.build_dir
+                            and not f_local.startswith(self.step_runner.build_runner.build_dir + os.path.sep)
                     ):
                         raise BuildRunnerConfigurationError(
                             'Mount path of "%s" attempts to step out of source directory "%s"' % (
@@ -897,7 +910,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # add any capabilities when the container runs
         if 'cap_add' in self.config:
-            if type(self.config['cap_add']) is not list:
+            if not isinstance(self.config['cap_add'], list):
                 self.config['cap_add'] = [self.config['cap_add']]
             container_args['cap_add'] = self.config['cap_add']
 
@@ -1043,6 +1056,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
 
     def is_systemd(self, config, image, logger):
+        '''Check if an image runs systemd'''
+        # Unused argument
+        _ = logger
+
         rval = False
         if 'systemd' in config:
             rval = config.get('systemd', False)
