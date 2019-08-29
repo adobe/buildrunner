@@ -167,8 +167,8 @@ class BuildRunner(object):
                 # Only allow MASTER_GLOBAL_CONFIG_FILE to specify arbitrary local-files for mounting
                 # - all other local-files get scrubbed for specific requirements and non-matches
                 # are dropped.
-                scrubbed_local_files = {}
                 if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
+                    scrubbed_local_files = {}
                     for fname, fpath in ctx.get('local-files', {}).items():
                         if not isinstance(fpath, str):
                             self.log.write(
@@ -194,7 +194,7 @@ class BuildRunner(object):
                                 '\n    You may need an entry in {3!r}.'
                                 '\n'.format(cfg_path, username, resolved_path, MASTER_GLOBAL_CONFIG_FILE)
                             )
-                ctx['local-files'] = scrubbed_local_files
+                    ctx['local-files'] = scrubbed_local_files
 
                 context.update(ctx)
 
