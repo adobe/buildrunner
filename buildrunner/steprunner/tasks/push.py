@@ -41,7 +41,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 for tag in config['tags']:
                     ltag = tag.lower()
                     if ltag != tag:
-                        self.step_runner.low.write(
+                        self.step_runner.log.write(
                             'Forcing tag to lowercase: {0} => {1}\n'.format(
                                 tag,
                                 ltag,
