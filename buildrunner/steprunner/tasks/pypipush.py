@@ -19,6 +19,12 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
     def __init__(self, step_runner, config):
         super(PypiPushBuildStepRunnerTask, self).__init__(step_runner, config)
 
+        if not self.step_runner.build_runner.push:
+            # Was not invoked with ``--push`` so just skip this.  This avoids twine
+            # complaining when the push repository is not configured and the user
+            # is not even interested in pushing.
+            return
+
         self._repository = None
         self._username = None
         self._password = None
@@ -45,24 +51,39 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
             self._repository = config
 
         if self._repository not in self.step_runner.build_runner.pypi_packages:
-            if self._username is not None and self._password is not None:
-                upload_settings = twine.settings.Settings(
-                    repository_url=self._repository,
-                    username=self._username,
-                    password=self._password,
-                    disable_progress_bar=True,
+            try:
+                if self._username is not None and self._password is not None:
+                    upload_settings = twine.settings.Settings(
+                        repository_url=self._repository,
+                        username=self._username,
+                        password=self._password,
+                        disable_progress_bar=True,
+                    )
+                else:
+                    upload_settings = twine.settings.Settings(
+                        repository_name=self._repository,
+                        disable_progress_bar=True,
+                    )
+            except twine.exceptions.InvalidConfiguration as err:
+                raise BuildRunnerConfigurationError(
+                    (
+                        'Pypi is unable to find an entry for "{0}" in your .pypirc.\n'
+                        '    See documentation: https://***REMOVED***/xeng/build/tools/pypi-pip.html\n'
+                    ).format(self._repository)
                 )
-            else:
-                upload_settings = twine.settings.Settings(
-                    repository_name=self._repository,
-                    disable_progress_bar=True,
-                )
+
             self.step_runner.build_runner.pypi_packages[self._repository] = {
                 'upload_settings': upload_settings,
                 'packages': [],
             }
 
     def run(self, context):
+        if not self.step_runner.build_runner.push:
+            self.step_runner.log.write(
+                'Push not requested with "--push": skipping\n'
+            )
+            return
+
         self.step_runner.log.write(
             'Preparing resulting packages for push to "%s".\n' % self._repository
         )

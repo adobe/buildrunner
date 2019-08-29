@@ -2,7 +2,6 @@
 Copyright (C) 2015 Adobe
 """
 from __future__ import absolute_import
-import json
 import os
 
 import buildrunner.docker
@@ -39,12 +38,31 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             self._repository = config['repository']
 
             if 'tags' in config:
-                self._tags = config['tags']
+                for tag in config['tags']:
+                    ltag = tag.lower()
+                    if ltag != tag:
+                        self.step_runner.low.write(
+                            'Forcing tag to lowercase: {0} => {1}\n'.format(
+                                tag,
+                                ltag,
+                            )
+                        )
+                    self._tags.append(ltag)
 
             if 'insecure_registry' in config:
                 self._insecure_registry = config['insecure_registry'] is True
         else:
             self._repository = config
+
+        lrepo = self._repository.lower()
+        if lrepo != self._repository:
+            self.step_runner.log.write(
+                'Forcing repository to lowercase: {0} => {1}\n'.format(
+                    self._repository,
+                    lrepo,
+                )
+            )
+            self._repository = lrepo
 
 
     def run(self, context):
@@ -76,7 +94,15 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
         # determine internal tag based on source control information and build
         # number
-        self._tags.append(self.step_runner.build_runner.build_id)
+        lbuild_id = self.step_runner.build_runner.build_id.lower()
+        if lbuild_id != self.step_runner.build_runner.build_id:
+            self.step_runner.log.write(
+                'Forcing tag to lowercase: {0} => {1}\n'.format(
+                    self.step_runner.build_runner.build_id,
+                    lbuild_id,
+                )
+            )
+        self._tags.append(lbuild_id)
 
         # add the image to the list of generated images for potential cleanup
         self.step_runner.build_runner.generated_images.append(image_to_use)

@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015 Adobe
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import base64
 import socket
 import ssl
@@ -26,7 +26,11 @@ class DockerRunner(object):
 
 
     def __init__(self, image_name, dockerd_url=None, pull_image=True, log=None):
-        self.image_name = image_name
+        self.image_name = image_name.lower()
+        if self.image_name != image_name:
+            log.write('Forcing image_name to lowercase: {0} => {1}\n'.format(
+                image_name, self.image_name
+            ))
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
             # Disable timeouts for running commands
@@ -62,6 +66,8 @@ class DockerRunner(object):
             if log:
                 log.write('Pulling image {}\n'.format(self.image_name))
             for data in self.docker_client.pull(self.image_name, stream=True, decode=True):
+                # Unused variable (see comment below about interactive mode)
+                _ = data
                 if log:
                     log.write('.')
                     # If we implement an interactive mode, this could be used instead
@@ -202,16 +208,19 @@ class DockerRunner(object):
         Cleanup the backing Docker container, stopping it if necessary.
         """
         if self.container:
-            for c in self.containers:
+            for container in self.containers:
                 try:
                     self.docker_client.remove_container(
-                        c,
+                        container,
                         force=True,
                         v=True,
                     )
-                except docker.errors.NotFound as e:
+                except docker.errors.NotFound:
                     try:
-                        container_ids = self.docker_client.containers(filters={'label':c}, quiet=True)
+                        container_ids = self.docker_client.containers(
+                            filters={'label':container},
+                            quiet=True
+                        )
                         if container_ids:
                             for container_id in container_ids:
                                 self.docker_client.remove_container(
@@ -220,9 +229,13 @@ class DockerRunner(object):
                                     v=True,
                                 )
                         else:
-                            print("Unable to find docker container with name or label '{}'".format(c))
-                    except docker.errors.NotFound as e:
-                        print("Unable to find docker container with name or label '{}'".format(c))
+                            print("Unable to find docker container with name or label '{}'".format(
+                                container
+                            ))
+                    except docker.errors.NotFound:
+                        print("Unable to find docker container with name or label '{}'".format(
+                            container
+                        ))
 
             self.docker_client.remove_container(
                 self.container['Id'],
@@ -237,6 +250,9 @@ class DockerRunner(object):
         """
         Run the given command in the container.
         """
+        # Unused variable
+        _ = workdir
+
         if isinstance(cmd, six.string_types):
             cmdv = [self.shell, '-xc', cmd]
         elif hasattr(cmd, 'next') or hasattr(cmd, '__next__') or hasattr(cmd, '__iter__'):
@@ -346,16 +362,16 @@ class DockerRunner(object):
         """
         Return the ip address of the running container
         """
-        ip = None
+        ipaddr = None
         try:
             if self.is_running():
                 inspection = self.docker_client.inspect_container(
                     self.container['Id'],
                 )
-                ip = inspection.get('NetworkSettings', {}).get('IPAddress', None)
+                ipaddr = inspection.get('NetworkSettings', {}).get('IPAddress', None)
         except docker.errors.APIError:
             pass
-        return ip
+        return ipaddr
 
 
     def is_running(self):
