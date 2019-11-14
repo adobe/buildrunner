@@ -82,6 +82,13 @@ virtual environment, activate it, and install BuildRunner within it::
 The buildrunner executable is now available at buildrunner/bin/buildrunner and
 can be added to your path.
 
+NOTE: If you are getting 404 errors for authenticated registries that you can pull
+with ``docker pull`` (e.g. ``docker.errors.NotFound: 404 Client Error: Not
+Found ("manifest for <image> not found: manifest unknown: The named manifest is
+not known to the registry.")``), then you likely need to downgrade the installed
+python docker library version with ``pip install docker==3.6.0``. Version 3.7.0
+broke compatibility with buildrunner and docker credential helpers.
+
 **3. RPM**
 
 If you run CentOS 6 or CentOS 7, buildrunner can be installed using packages
