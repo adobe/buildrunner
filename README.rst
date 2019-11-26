@@ -504,8 +504,20 @@ the run step::
         # should be added to the build artifacts.json file. The artifacts.json
         # file can be used to publish artifacts to another system (such as
         # Gauntlet) with the accompanying metadata.
+	#
+	# When archiving *directories* special properties can be set to change
+	# the behavior of the archiver.  Directories by default are archived as
+	# gzip'ed TARs.  The compression can be changed by setting the
+	# ``compression`` property to one of the below-listed values.  The
+	# archive type can be changed by setting the property ``type:zip``.
+	# When a zip archive is requested then the ``compression`` property is
+	# ignored.  If the directory tree should be gathered verbatim without
+	# archiving then the property ``format:uncompressed`` can be used.
         artifacts:
           artifacts/to/archive/*:
+            [format: uncompressed]
+	    [type: tar|zip]
+	    [compression: gz|bz2|xz|lzma|lzip|lzop|z]
             property1: value1
             property2: value2
 
