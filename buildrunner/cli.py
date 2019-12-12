@@ -131,6 +131,15 @@ def parse_args(argv):
     )
 
     parser.add_argument(
+        '--print-generated-files',
+        default=False,
+        action='store_true',
+        dest='print_generated_files',
+        #pylint: disable=C0301
+        help='logs the Jinja generated file contents and stops',
+    )
+
+    parser.add_argument(
         '--log-generated-files',
         default=False,
         action='store_true',
@@ -173,12 +182,14 @@ def main(argv):
             cleanup_step_artifacts=not args.keep_step_artifacts,
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,
-            log_generated_files=args.log_generated_files,
+            log_generated_files=(True if (args.log_generated_files or args.print_generated_files) else False),
             docker_timeout=args.docker_timeout,
         )
-        build_runner.run()
-        if build_runner.exit_code:
-            return build_runner.exit_code
+
+        if not args.print_generated_files:
+            build_runner.run()
+            if build_runner.exit_code:
+                return build_runner.exit_code
     except BuildRunnerConfigurationError as brce:
         print(str(brce))
         return os.EX_CONFIG
