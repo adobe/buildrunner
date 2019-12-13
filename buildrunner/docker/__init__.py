@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2015-2019 Adobe
 """
 from __future__ import absolute_import
 import os
@@ -50,8 +50,8 @@ def new_client(
         _cert_path = os.getenv('DOCKER_CERT_PATH', cert_path)
         if not _cert_path:
             raise BuildRunnerConfigurationError(
-                "TLS connection specified by cannot determine cert path "
-                "(from DOCKER_CERT_PATH env variable)"
+                "TLS connection specified but cannot determine cert path"
+                " (from DOCKER_CERT_PATH env variable)"
             )
 
         ca_cert_path = os.path.join(_cert_path, 'ca.pem')
@@ -85,3 +85,8 @@ def new_client(
         tls=tls_config,
         **args
     )
+
+
+# Local Variables:
+# fill-column: 100
+# End:
