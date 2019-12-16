@@ -27,7 +27,7 @@ def fetch_file(url, config):
     if parsed_url.scheme == 'github':
         file_contents = github.fetch_file(parsed_url, config)
 
-    elif parsed_url.scheme == '' and parsed_url.netloc == '':
+    elif parsed_url.scheme == 'file' or (parsed_url.scheme == '' and parsed_url.netloc == ''):
         purl = list(parsed_url)
         purl[0] = 'file'
         parsed_url = urlparse.ParseResult(*purl)

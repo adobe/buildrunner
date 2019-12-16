@@ -1020,6 +1020,10 @@ the test suite invoking ``docker`` which does not work well from inside a Docker
 container.  Consequently the test suite is invoked through the `Jenkinsfile
 <Jenkinsfile>`_.
 
+The test suite can be invoked manually from the top of the source directory::
+
+  >$ python tests/test_buildrunner_files.py
+
 
 Common Issues
 =============

@@ -1,0 +1,8 @@
+steps:
+
+  test:
+    build:
+      no-cache: true
+      dockerfile: |
+        FROM busybox:latest
+        RUN echo 'hi'
