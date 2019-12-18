@@ -7,8 +7,8 @@ ENV PIP_DEFAULT_TIMEOUT 60
 RUN                                         \
     set -ex;                                \
     useradd -m buildrunner;                 \
-    apt-get update;                         \
-    apt-get -y install                      \
+    apt update;                             \
+    apt -y install                          \
         libffi-dev                          \
         libssl-dev                          \
         libyaml-dev                         \
@@ -21,7 +21,7 @@ RUN                                         \
                 -r test_requirements.txt;   \
     python setup.py install;                \
     rm -rf /buildrunner-source;             \
-    apt-get clean all;
+    apt clean all;
 
 #RUN \
 #    set -ex; \

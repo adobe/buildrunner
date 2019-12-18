@@ -1,7 +1,7 @@
 """
 Copyright (C) 2014 Adobe
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import codecs
 from collections import OrderedDict
 import copy
@@ -213,8 +213,10 @@ class BuildRunner(object):
 
         config = None
         fetch_file = cfg_file
+        visited = set()
 
         while True:
+            visited.add(fetch_file)
             contents = fetch.fetch_file(fetch_file, self.global_config)
             jenv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'), extensions=['jinja2.ext.do'])
             jenv.filters['hash_sha1'] = hash_sha1
@@ -244,6 +246,10 @@ class BuildRunner(object):
                 break
 
             fetch_file = redirect
+            if fetch_file in visited:
+                raise BuildRunnerConfigurationError(
+                    "Redirect loop visiting previously visited file: {}".format(fetch_file)
+                )
 
         return config
 

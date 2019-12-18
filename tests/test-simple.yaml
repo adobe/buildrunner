@@ -1,3 +1,5 @@
+# A simple Buildrunner test that simply emits "hi"
+
 steps:
 
   test:

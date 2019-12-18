@@ -925,7 +925,7 @@ build.  The syntax for referencing a back-end uses a simple URL format:
 :REPOSITORY: Which location/repository the ``BACKEND`` will reference.  This is a *label* that is
              used as a reference into configuration found in Buildrunner configuration files
              (e.g. ``~/.buildrunner.yaml``) where a full description of connection parameters and
-             available.
+             available (see specific documentation for each fetch module).
 :PATH: The unique path or ID of the artifact found in the ``REPOSITORY``.
 
 
@@ -986,6 +986,10 @@ These two are equivalent:
 * ``file:///some/path/to/a/file.ext``
 * ``/some/path/to/a/file.ext``
 
+If a relative path from the source directory is to be designated then the ``file://`` scheme cannot
+be used::
+
+  relative/path/to/a/file.ext
 
 
 HTTP/HTTPS

@@ -1,0 +1,10 @@
+# This is a more complex redirect loop:
+#
+#   test-xfail-redirect_loop1.yaml --> test-xfail-redirect_loop2.yaml --+
+#             ^                                                         |
+#             |                                                         |
+#             +---------------------------------------------------------+
+#
+# This is expected to fail.
+
+redirect: 'tests/test-xfail-redirect_loop2.yaml'
