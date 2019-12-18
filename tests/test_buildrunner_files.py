@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import os
 import shutil
+import sys
 import tempfile
 import unittest
 
@@ -23,7 +24,6 @@ class Test_buildrunner_files(unittest.TestCase):
         top_dir_path = os.path.realpath(os.path.dirname(test_dir_path))
 
         br_files = sorted([f for f in os.listdir(test_dir) if f.startswith('test-') and f.endswith('.yaml')])
-        #br_files = sorted([f for f in os.listdir(test_dir) if f.endswith('.yaml')])
         for br_file in br_files:
             print('\n>>>> Testing Buildrunner file: {0}'.format(br_file))
             args = self._get_test_args(br_file)
@@ -42,7 +42,6 @@ class Test_buildrunner_files(unittest.TestCase):
                 assert_func = self.assertEqual
 
             assert_func(
-            #self.assertEqual(
                 tr.run_tests(
                     command_line,
                     master_config_file = '{0}/test-data/etc-buildrunner.yaml'.format(test_dir_path),
@@ -56,4 +55,4 @@ class Test_buildrunner_files(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(argv=sys.argv)
