@@ -947,12 +947,12 @@ Files can be retrieved from Github - either central ``github.com`` location or t
 
   ``github://LABEL/GROUP/REPO/PATH``
 
-:``github://``: scheme indicates fetching using the ``github`` facility.
-:``LABEL``: a look-up key into Buildrunner configuration that describes connection parameters.  This
-            is an arbitrary name but benefits from uniform use across build sources.
-:``GROUP``: Github organization/group.
-:``REPO``: Git repository in the ``GROUP``.
-:``PATH``: path to the file in the Git ``REPO``.
+:github\://: scheme indicates fetching using the ``github`` facility.
+:LABEL: a look-up key into Buildrunner configuration that describes connection parameters.  This
+        is an arbitrary name but benefits from uniform use across build sources.
+:GROUP: Github organization/group.
+:REPO: Git repository in the ``GROUP``.
+:PATH: path to the file in the Git ``REPO``.
 
 The ``github://`` facility requires the following configuration entries::
 
