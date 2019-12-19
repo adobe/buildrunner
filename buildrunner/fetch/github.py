@@ -43,7 +43,7 @@ def v3_fetch_file(parsed_url, config):
     ))
     resp = requests.get(url, auth=auth)
     if resp.status_code != 200:
-        raise BuildRunnerProtocolError('Failed authentication to {}'.format(endpoint))
+        raise BuildRunnerProtocolError('Failed authenticating {} on {}'.format(username, endpoint))
 
     if not parsed_url.path.startswith('/'):
         raise ValueError('URL must begin with "/"')

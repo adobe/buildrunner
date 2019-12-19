@@ -11,8 +11,6 @@ def fetch_file(parsed_url, config):
     '''
     Pull files from the local file system.
     '''
-    # TODO: should this prevent fetching files outside of the source directory?  Maybe for specific
-    # situations?
     with codecs.open(parsed_url.path, 'r', encoding='utf-8') as _file:
         contents = ''.join(_file.readlines())
 
