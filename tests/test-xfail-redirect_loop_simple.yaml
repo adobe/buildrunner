@@ -1,0 +1,5 @@
+# This just redirects back to itself - a simple redirect loop.
+#
+# This is expected to fail.
+
+redirect: 'tests/test-xfail-redirect_loop_simple.yaml'

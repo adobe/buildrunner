@@ -1,0 +1,10 @@
+# A simple Buildrunner test that simply emits "hi"
+
+steps:
+
+  test:
+    build:
+      no-cache: true
+      dockerfile: |
+        FROM busybox:latest
+        RUN echo 'hi'

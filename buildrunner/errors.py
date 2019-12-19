@@ -1,10 +1,15 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2014-2019 Adobe
 """
 from __future__ import absolute_import
 
 class BuildRunnerError(Exception):
     """Base BuildRunner Exception"""
+    pass
+
+
+class BuildRunnerProtocolError(BuildRunnerError):
+    """Error with unhandled state in protocol"""
     pass
 
 
@@ -21,3 +26,8 @@ class BuildRunnerProcessingError(BuildRunnerError):
 class BuildRunnerProvisionerError(BuildRunnerError):
     """Error indicating an issue with a provisioner"""
     pass
+
+
+# Local Variables:
+# fill-column: 100
+# End:

@@ -1,7 +1,7 @@
 """
 Copyright (C) 2014 Adobe
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import codecs
 from collections import OrderedDict
 import copy
@@ -40,6 +40,7 @@ from buildrunner.utils import (
     load_config,
     hash_sha1
 )
+from . import fetch
 from vcsinfo import detect_vcs
 
 
@@ -210,26 +211,45 @@ class BuildRunner(object):
           multi-structure: configuration keys and values
         """
 
-        with codecs.open(cfg_file, 'r', encoding='utf-8') as _file:
+        config = None
+        fetch_file = cfg_file
+        visited = set()
+
+        while True:
+            visited.add(fetch_file)
+            contents = fetch.fetch_file(fetch_file, self.global_config)
             jenv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'), extensions=['jinja2.ext.do'])
             jenv.filters['hash_sha1'] = hash_sha1
-            jtemplate = jenv.from_string(_file.read())
+            jtemplate = jenv.from_string(contents)
 
-        config_context = copy.deepcopy(self.env)
-        config_context.update({
-            'CONFIG_FILE': cfg_file,
-            'CONFIG_DIR': os.path.dirname(cfg_file),
-            'read_yaml_file': self._read_yaml_file,
-            'raise': self._raise_exception_jinja,
-        })
+            config_context = copy.deepcopy(self.env)
+            config_context.update({
+                'CONFIG_FILE': cfg_file,
+                'CONFIG_DIR': os.path.dirname(cfg_file),
+                'read_yaml_file': self._read_yaml_file,
+                'raise': self._raise_exception_jinja,
+            })
 
-        if ctx:
-            config_context.update(ctx)
+            if ctx:
+                config_context.update(ctx)
 
-        config_contents = jtemplate.render(config_context)
-        if log_file:
-            self._log_generated_file(cfg_file, config_contents)
-        config = load_config(StringIO(config_contents), cfg_file)
+            config_contents = jtemplate.render(config_context)
+            if log_file:
+                self._log_generated_file(cfg_file, config_contents)
+            config = load_config(StringIO(config_contents), cfg_file)
+
+            if not config:
+                break
+
+            redirect = config.get('redirect')
+            if redirect is None:
+                break
+
+            fetch_file = redirect
+            if fetch_file in visited:
+                raise BuildRunnerConfigurationError(
+                    "Redirect loop visiting previously visited file: {}".format(fetch_file)
+                )
 
         return config
 
@@ -783,3 +803,7 @@ class BuildRunner(object):
                     os.remove(tmp_file)
 
             self._exit_message_and_close_log(exit_explanation)
+
+# Local Variables:
+# fill-column: 100
+# End:
