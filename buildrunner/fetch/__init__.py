@@ -37,7 +37,7 @@ def fetch_file(url, config):
         file_contents = http.fetch_file(parsed_url, config)
 
     else:
-        raise NotImplementedError('Unknown provider: {}'.format(parsed_url.scheme))
+        raise NotImplementedError('Unknown fetch backend: {}'.format(parsed_url.scheme))
 
     return file_contents
 

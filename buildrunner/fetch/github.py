@@ -102,7 +102,7 @@ def fetch_file(parsed_url, config):
     if ver == 'v3':
         contents = v3_fetch_file(parsed_url, nlcfg)
     else:
-        raise NotImplementedError('No version support for github {}'.format(ver))
+        raise NotImplementedError('No version support for github API version {}'.format(ver))
 
     return contents
 
