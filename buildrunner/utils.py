@@ -111,7 +111,7 @@ def hash_sha1(fileNameGlobs=[]):
     BLOCKSIZE = 2**16 # 65,536
     hasher = hashlib.sha1()
     for fileNameGlob in fileNameGlobs:
-        for fileName in glob.glob(fileNameGlob):
+        for fileName in sorted(glob.glob(fileNameGlob)):
             try:
                 # Use BLOCKSIZE to ensure python memory isn't too full
                 with open(fileName, 'rb') as openFile:
