@@ -11,6 +11,7 @@ from buildrunner.utils import is_dict
 
 import twine.settings
 
+
 class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
     """
     Class used to push the resulting python packages to the given repository.
@@ -28,6 +29,7 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
         self._repository = None
         self._username = None
         self._password = None
+        self._skip_existing = False
 
         if is_dict(config):
             if 'repository' not in config:
@@ -47,6 +49,10 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                     'Pypi push configuration must specify a "password" attribute'
                 )
             self._password = config['password']
+
+            if 'skip_existing' not in config:
+                self._skip_existing = config['skip_existing']
+
         else:
             self._repository = config
 
@@ -58,11 +64,13 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                         username=self._username,
                         password=self._password,
                         disable_progress_bar=True,
+                        skip_existing=self._skip_existing,
                     )
                 else:
                     upload_settings = twine.settings.Settings(
                         repository_name=self._repository,
                         disable_progress_bar=True,
+                        skip_existing=self._skip_existing,
                     )
             except twine.exceptions.InvalidConfiguration as err:
                 raise BuildRunnerConfigurationError(
