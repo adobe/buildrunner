@@ -522,6 +522,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # set service specific environment variables
         _env['BUILDRUNNER_STEP_ID'] = self.step_runner.id
+        _env['BUILDRUNNER_STEP_NAME'] = self.step_runner.name
         if 'env' in config:
             for key, value in config['env'].iteritems():
                 _env[key] = value
@@ -827,6 +828,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # set step specific environment variables
         container_args['environment']['BUILDRUNNER_STEP_ID'] = self.step_runner.id
+        container_args['environment']['BUILDRUNNER_STEP_NAME'] = self.step_runner.name
         if 'env' in self.config:
             for key, value in self.config['env'].iteritems():
                 container_args['environment'][key] = value
