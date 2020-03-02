@@ -357,6 +357,8 @@ every run container:
   build number information)
 - BUILDRUNNER_BUILD_TIME = the "unix" time or "epoch" time of the build (in
   seconds)
+- BUILDRUNNER_STEP_ID = a UUID representing the step
+- BUILDRUNNER_STEP_NAME = The name of the Buildrunner step
 - VCSINFO_NAME = the VCS repository name without a path
 - VCSINFO_BRANCH = the VCS branch
 - VCSINFO_NUMBER = the VCS commit number
