@@ -17,6 +17,14 @@ _SOURCE_DIR = os.path.dirname(
 _BUILDRUNNER_DIR = os.path.join(_SOURCE_DIR, 'buildrunner')
 _VERSION_FILE = os.path.join(_BUILDRUNNER_DIR, 'version.py')
 
+THIS_DIR = os.path.dirname(__file__)
+REQUIRES = []
+with open(os.path.join(THIS_DIR, 'requirements.txt')) as robj:
+    for line in robj.readlines():
+        _line = line.strip()
+        if _line and _line[0].isalpha():
+            REQUIRES.append(_line)
+
 
 def get_version():
     """
@@ -78,18 +86,7 @@ setup(
             'SSHAgentProxyImage/login.sh',
         ],
     },
-    install_requires=[
-        'PyYAML>=3.11',
-        'vcsinfo>=0.1.30',
-        'requests>=2.6.0',
-        'paramiko>=1.16.0',
-        'pycrypto>=2.6.1',
-        'docker>=2.3.0',
-        'fabric==1.10.1',
-        'Jinja2<3',
-        'twine==1.13.0',
-        'setuptools<45'
-    ],
+    install_requires=REQUIRES,
     dependency_links=[
         'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.30/vcsinfo-0.1.30.tar.gz#egg=vcsinfo-0.1.30', #pylint: disable=line-too-long
     ],
