@@ -1,6 +1,6 @@
 --extra-index-url https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple
 PyYAML>=3.11
-vcsinfo>=0.1.30
+vcsinfo>=0.1.46
 requests>=2.6.0
 paramiko>=1.16.0
 pycrypto>=2.6.1
