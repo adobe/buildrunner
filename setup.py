@@ -88,7 +88,15 @@ setup(
     },
     install_requires=REQUIRES,
     dependency_links=[
-        'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.30/vcsinfo-0.1.30.tar.gz#egg=vcsinfo-0.1.30', #pylint: disable=line-too-long
+        # NOTE: It is ugly that the specific vcsinfo file is hard-coded here and is unable to
+        # leverage what is declared in requirements.txt - bonus points if you know how to reconcile
+        # the two.
+        'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.50/vcsinfo-0.1.50.tar.gz#egg=vcsinfo-0.1.50', #pylint: disable=line-too-long
     ],
     test_suite='tests',
 )
+
+
+# Local Variables:
+# fill-column: 100
+# End:
