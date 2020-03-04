@@ -1,0 +1,9 @@
+alexandria:
+  projects:
+    - name: buildrunner
+      summary: Buildrunner
+      description: |
+        Build and publish Docker images, run builds within Docker containers.
+      short_url: buildrunner
+      collections:
+        team: xeng
