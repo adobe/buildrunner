@@ -4,6 +4,7 @@ Copyright (C) 2014-2017 Adobe
 import imp
 import os
 import subprocess
+import sys
 import unittest
 
 from setuptools import setup, find_packages
@@ -19,10 +20,21 @@ _VERSION_FILE = os.path.join(_BUILDRUNNER_DIR, 'version.py')
 
 THIS_DIR = os.path.dirname(__file__)
 REQUIRES = []
+DEP_LINKS = []
 with open(os.path.join(THIS_DIR, 'requirements.txt')) as robj:
     for line in robj.readlines():
         _line = line.strip()
-        if _line and _line[0].isalpha():
+        if not _line:
+            continue
+
+        if _line.startswith('--extra-index-url'):
+            args = _line.split(None, 1)
+            if len(args) < 2:
+                print('ERROR: option "--extra-index-url" must have an argument: {}'.format(_line))
+                continue
+            DEP_LINKS.append(args[1])
+
+        elif _line[0].isalpha():
             REQUIRES.append(_line)
 
 
@@ -87,12 +99,7 @@ setup(
         ],
     },
     install_requires=REQUIRES,
-    dependency_links=[
-        # NOTE: It is ugly that the specific vcsinfo file is hard-coded here and is unable to
-        # leverage what is declared in requirements.txt - bonus points if you know how to reconcile
-        # the two.
-        'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.50/vcsinfo-0.1.50.tar.gz#egg=vcsinfo-0.1.50', #pylint: disable=line-too-long
-    ],
+    dependency_links=DEP_LINKS,
     test_suite='tests',
 )
 
