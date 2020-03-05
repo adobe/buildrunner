@@ -39,4 +39,10 @@ RUN                                         \
 #    apt-get -y install docker-engine
 
 ENV BUILDRUNNER_CONTAINER 1
+
+# NOTE: this should likely have an ENTRYPOINT of the buildrunner executable with a default
+# argument of "--help" in the CMD ... but the horse has already left the barn and it is
+# likely difficult to fix all of the places that use the buildrunner Docker image.
+#ENTRYPOINT ["/usr/local/bin/buildrunner"]
+#CMD ["--help"]
 CMD ["/usr/local/bin/buildrunner",  "--help"]
