@@ -55,22 +55,22 @@ steps:
         'curl http://web:8080/hello'
       ]
 
-#  run-docker:
-#    build:
-#      dockerfile: |
-#        FROM centos:7.2.1511
-#        RUN yum -y install docker
-#        RUN echo "" > /etc/sysconfig/docker
-#        RUN mkdir /bob && touch /bob/test
-#        VOLUME /bob
-#    run:
-#      cmds: [
-#        'env',
-#        'docker info',
-#        'docker run centos:7 hostname',
-#        'docker run --volumes-from $BUILDRUNNER_BUILD_CONTAINER centos:7 touch /bob/test2',
-#        'ls -al /bob',
-#      ]
+  run-docker:
+    build:
+      dockerfile: |
+        FROM centos:7.2.1511
+        RUN yum -y install docker
+        RUN echo "" > /etc/sysconfig/docker
+        RUN mkdir /bob && touch /bob/test
+        VOLUME /bob
+    run:
+      cmds: [
+        'env',
+        'docker info',
+        'docker run centos:7 hostname',
+        'docker run --volumes-from $BUILDRUNNER_BUILD_CONTAINER centos:7 touch /bob/test2',
+        'ls -al /bob',
+      ]
 
   run-post-build-path:
     run:
