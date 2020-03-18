@@ -625,7 +625,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 exit_code = service_runner.run(
                     config['cmd'],
                     console=service_logger,
-                    log=self.step_runner.log,
+                    #log=self.step_runner.log,
                 )
                 if exit_code != 0:
                     service_logger.write(
@@ -953,7 +953,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     exit_code = self.runner.run(
                         _cmd,
                         console=container_logger,
-                        log=self.step_runner.log,
+                        #log=self.step_runner.log,
                     )
                     container_meta_logger.write(
                         'Command "%s" exited with code %s\n' % (

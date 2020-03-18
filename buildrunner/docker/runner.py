@@ -297,10 +297,15 @@ class DockerRunner(object):
                 # Ignore timeouts since we check for the exit code anyways at the end
                 pass
         else:
+            warning = 'WARNING: Unexpected output object: {0}'.format(output_buffer)
             if console:
-                console.write('WARNING: Unexpected output object: {0}'.format(output_buffer))
+                console.write(warning)
+            if log:
+                log.write(warning)
         inspect_res = self.docker_client.exec_inspect(create_res)
         if 'ExitCode' in inspect_res:
+            if inspect_res['ExitCode'] == None:
+                raise BuildRunnerContainerError('Error running cmd: exit code is None')
             return inspect_res['ExitCode']
         raise BuildRunnerContainerError('Error running cmd: no exit code')
 
