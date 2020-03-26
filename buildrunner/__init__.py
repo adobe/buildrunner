@@ -179,7 +179,8 @@ class BuildRunner(object):
                             continue
                         resolved_path = os.path.realpath(os.path.expanduser(fpath))
                         if (
-                                resolved_path == homedir
+                                username == 'root'
+                                or resolved_path == homedir
                                 or resolved_path.startswith(homedir + os.path.sep)
                                 or os.stat(resolved_path).st_uid == os.getuid()
                                 or (

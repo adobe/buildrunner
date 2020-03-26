@@ -1,9 +1,13 @@
 """
 Copyright (C) 2014-2017 Adobe
 """
+
+from __future__ import print_function
+
 import imp
 import os
 import subprocess
+import sys
 import unittest
 
 from setuptools import setup, find_packages
@@ -16,6 +20,45 @@ _SOURCE_DIR = os.path.dirname(
 )
 _BUILDRUNNER_DIR = os.path.join(_SOURCE_DIR, 'buildrunner')
 _VERSION_FILE = os.path.join(_BUILDRUNNER_DIR, 'version.py')
+
+THIS_DIR = os.path.dirname(__file__)
+REQUIRES = []
+DEP_LINKS = []
+for require in ('requirements.txt', 'test_requirements.txt'):
+    with open(os.path.join(THIS_DIR, require)) as robj:
+        lnr = 0
+        for line in robj.readlines():
+            lnr += 1
+            _line = line.strip()
+            if not _line:
+                continue
+
+            if _line.startswith('--extra-index-url'):
+                args = _line.split(None, 1)
+                if len(args) != 2:
+                    print(
+                        'ERROR: option "--extra-index-url" must have a URL argument: {}:{}'.format(
+                            require,
+                            lnr
+                        ),
+                        file=sys.stderr,
+                    )
+                    continue
+                DEP_LINKS.append(args[1])
+
+            elif _line[0].isalpha():
+                REQUIRES.append(_line)
+
+            else:
+                print(
+                    'ERROR: {}:{}:"{}" does not appear to be a requirement'.format(
+                        require,
+                        lnr,
+                        _line
+                    ),
+                    file=sys.stderr,
+                )
+                pass
 
 
 def get_version():
@@ -78,20 +121,12 @@ setup(
             'SSHAgentProxyImage/login.sh',
         ],
     },
-    install_requires=[
-        'PyYAML>=3.11',
-        'vcsinfo>=0.1.30',
-        'requests>=2.6.0',
-        'paramiko>=1.16.0',
-        'pycrypto>=2.6.1',
-        'docker>=2.3.0',
-        'fabric==1.10.1',
-        'Jinja2<3',
-        'twine==1.13.0',
-        'setuptools<45'
-    ],
-    dependency_links=[
-        'https://***REMOVED***/artifactory/***REMOVED***/vcsinfo/0.1.30/vcsinfo-0.1.30.tar.gz#egg=vcsinfo-0.1.30', #pylint: disable=line-too-long
-    ],
+    install_requires=REQUIRES,
+    dependency_links=DEP_LINKS,
     test_suite='tests',
 )
+
+
+# Local Variables:
+# fill-column: 100
+# End:
