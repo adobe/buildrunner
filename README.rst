@@ -282,22 +282,22 @@ shows the different configuration options available::
         # should be included in the context sent to the Docker daemon. Files
         # injected into the build context override files with the same name/path
         # contained in the path configuration above.
-	#
+        #
         # NOTE: you do not need to specify a path attribute if you inject all
         # of the files you need, including a Dockerfile
-	#
-	# NOTE: if the destination is a directory then it must be indicated with
-	# an ending "/" or a "." component.
+        #
+        # NOTE: if the destination is a directory then it must be indicated with
+        # an ending "/" or a "." component.
         inject:
           # Each entry in the map has a glob pattern key that resolves relative
           # to the source tree root with the value being the directory within
           # the build context that the file(s) should be copied to. These files
           # will be available to the Dockerfile at the given location during
           # the Docker build.  Destination directories must have a trailing
-	  # slash (``/``).
+          # slash (``/``).
           glob/to/files.*: dest/dir/
           path/to/file1.txt: dest/dir/
-	  path/to/file2.txt: .
+          path/to/file2.txt: .
           path/to/file3.txt: dest/filename.txt
 
         # The path to a Dockerfile to use, or an inline Dockerfile declaration.
@@ -511,20 +511,20 @@ the run step::
         # should be added to the build artifacts.json file. The artifacts.json
         # file can be used to publish artifacts to another system (such as
         # Gauntlet) with the accompanying metadata.
-	#
-	# When archiving *directories* special properties can be set to change
-	# the behavior of the archiver.  Directories by default are archived as
-	# gzip'ed TARs.  The compression can be changed by setting the
-	# ``compression`` property to one of the below-listed values.  The
-	# archive type can be changed by setting the property ``type:zip``.
-	# When a zip archive is requested then the ``compression`` property is
-	# ignored.  If the directory tree should be gathered verbatim without
-	# archiving then the property ``format:uncompressed`` can be used.
+        #
+        # When archiving *directories* special properties can be set to change
+        # the behavior of the archiver.  Directories by default are archived as
+        # gzip'ed TARs.  The compression can be changed by setting the
+        # ``compression`` property to one of the below-listed values.  The
+        # archive type can be changed by setting the property ``type:zip``.
+        # When a zip archive is requested then the ``compression`` property is
+        # ignored.  If the directory tree should be gathered verbatim without
+        # archiving then the property ``format:uncompressed`` can be used.
         artifacts:
           artifacts/to/archive/*:
             [format: uncompressed]
-	    [type: tar|zip]
-	    [compression: gz|bz2|xz|lzma|lzip|lzop|z]
+            [type: tar|zip]
+            [compression: gz|bz2|xz|lzma|lzip|lzop|z]
             property1: value1
             property2: value2
 
