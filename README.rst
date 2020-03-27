@@ -282,8 +282,12 @@ shows the different configuration options available::
         # should be included in the context sent to the Docker daemon. Files
         # injected into the build context override files with the same name/path
         # contained in the path configuration above.
-        # (NOTE: you do not need to specify a path attribute if you inject all
-        # of the files you need, including a Dockerfile)
+	#
+        # NOTE: you do not need to specify a path attribute if you inject all
+        # of the files you need, including a Dockerfile
+	#
+	# NOTE: if the destination is a directory then it must be indicated with
+	# an ending "/" or a "." component.
         inject:
           # Each entry in the map has a glob pattern key that resolves relative
           # to the source tree root with the value being the directory within
@@ -293,7 +297,8 @@ shows the different configuration options available::
 	  # slash (``/``).
           glob/to/files.*: dest/dir/
           path/to/file1.txt: dest/dir/
-          path/to/file2.txt: dest/filename.txt
+	  path/to/file2.txt: .
+          path/to/file3.txt: dest/filename.txt
 
         # The path to a Dockerfile to use, or an inline Dockerfile declaration.
         # This Dockerfile overrides any provided in the path or inject

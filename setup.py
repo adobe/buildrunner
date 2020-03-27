@@ -25,40 +25,45 @@ THIS_DIR = os.path.dirname(__file__)
 REQUIRES = []
 DEP_LINKS = []
 for require in ('requirements.txt', 'test_requirements.txt'):
-    with open(os.path.join(THIS_DIR, require)) as robj:
-        lnr = 0
-        for line in robj.readlines():
-            lnr += 1
-            _line = line.strip()
-            if not _line:
-                continue
+    try:
+        with open(os.path.join(THIS_DIR, require)) as robj:
+            lnr = 0
+            for line in robj.readlines():
+                lnr += 1
+                _line = line.strip()
+                if not _line:
+                    continue
 
-            if _line.startswith('--extra-index-url'):
-                args = _line.split(None, 1)
-                if len(args) != 2:
+                if _line.startswith('--extra-index-url'):
+                    args = _line.split(None, 1)
+                    if len(args) != 2:
+                        print(
+                            'ERROR: option "--extra-index-url" must have a URL argument: {}:{}'.format(
+                                require,
+                                lnr
+                            ),
+                            file=sys.stderr,
+                        )
+                        continue
+                    DEP_LINKS.append(args[1])
+
+                elif _line[0].isalpha():
+                    REQUIRES.append(_line)
+
+                else:
                     print(
-                        'ERROR: option "--extra-index-url" must have a URL argument: {}:{}'.format(
+                        'ERROR: {}:{}:"{}" does not appear to be a requirement'.format(
                             require,
-                            lnr
+                            lnr,
+                            _line
                         ),
                         file=sys.stderr,
                     )
-                    continue
-                DEP_LINKS.append(args[1])
+                    pass
 
-            elif _line[0].isalpha():
-                REQUIRES.append(_line)
-
-            else:
-                print(
-                    'ERROR: {}:{}:"{}" does not appear to be a requirement'.format(
-                        require,
-                        lnr,
-                        _line
-                    ),
-                    file=sys.stderr,
-                )
-                pass
+    except IOError as err:
+        sys.stderr.write('Failure reading "{0}": {1}\n'.format(REQ_FILE, err))
+        os.exit(err.errno)
 
 
 def get_version():

@@ -30,6 +30,7 @@ class DockerBuilder(object):
     ):
         self.path = path
         self.inject = inject
+        print('TLH: DockerBuilder(): inject={}'.format(inject))
         self.dockerfile = None
         self.cleanup_dockerfile = False
         if dockerfile:

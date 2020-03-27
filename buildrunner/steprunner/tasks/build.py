@@ -92,22 +92,26 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                     # Only one source - destination may be directory or filename - check for a trailing
                     # '/' and treat it accordingly.
                     source_file = xsglob[0]
-                    if dest_path[-1] == '/':
-                        self.to_inject[source_file] = os.path.join(
-                            '.',
-                            dest_path.rstrip('/') or '/',
-                            os.path.basename(source_file)
+                    if dest_path[-1] == '/' or os.path.split(dest_path)[-1] in ('.', '..'):
+                        self.to_inject[source_file] = os.path.normpath(
+                            os.path.join(
+                                '.',
+                                dest_path,
+                                os.path.basename(source_file)
+                            )
                         )
                     else:
-                        self.to_inject[source_file] = os.path.join('.', dest_path)
+                        self.to_inject[source_file] = os.path.normpath(os.path.join('.', dest_path))
                 else:
                     # Multiple sources - destination *must* be a directory - add the source basename
                     # to the dest_dir name.
                     for source_file in xsglob:
-                        self.to_inject[source_file] = os.path.join(
-                            '.',
-                            dest_path,
-                            os.path.basename(source_file),
+                        self.to_inject[source_file] = os.path.normpath(
+                            os.path.join(
+                                '.',
+                                dest_path,
+                                os.path.basename(source_file),
+                            )
                         )
 
             if not self._import and not any((
@@ -133,9 +137,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 if os.path.exists(path_dockerfile):
                     self.dockerfile = path_dockerfile
             for src_file, dest_file in self.to_inject.iteritems():
-                if dest_file in [
-                        './Dockerfile',
-                        '././Dockerfile',
+                if os.path.normpath(dest_file) in [
+                        'Dockerfile',
                         '/Dockerfile',
                 ]:
                     self.dockerfile = src_file
@@ -201,3 +204,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
         finally:
             builder.cleanup()
         context['image'] = builder.image
+
+# Local Variables:
+# fill-column: 100
+# End:
