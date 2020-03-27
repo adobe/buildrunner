@@ -305,7 +305,7 @@ class DockerRunner(object):
         inspect_res = self.docker_client.exec_inspect(create_res)
         if 'ExitCode' in inspect_res:
             if inspect_res['ExitCode'] == None:
-                raise BuildRunnerContainerError('Error running cmd: exit code is None')
+                raise BuildRunnerContainerError('Error running cmd ({0}): exit code is None'.format(cmd))
             return inspect_res['ExitCode']
         raise BuildRunnerContainerError('Error running cmd: no exit code')
 
