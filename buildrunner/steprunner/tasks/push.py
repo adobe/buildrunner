@@ -3,6 +3,7 @@ Copyright (C) 2015 Adobe
 """
 from __future__ import absolute_import
 import os
+import re
 
 import buildrunner.docker
 from buildrunner.errors import (
@@ -11,6 +12,18 @@ from buildrunner.errors import (
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.utils import is_dict
+
+
+def sanitize_tag(tag, log=None):
+    _tag = re.sub(r'[^-_\w.]+', '-', tag.lower())
+    if _tag != tag and log:
+        log.write(
+            'Forcing tag to lowercase and removing illegal characters: {0} => {1}\n'.format(
+                tag,
+                _tag,
+            )
+        )
+    return _tag
 
 
 class PushBuildStepRunnerTask(BuildStepRunnerTask):
@@ -39,15 +52,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
             if 'tags' in config:
                 for tag in config['tags']:
-                    ltag = tag.lower()
-                    if ltag != tag:
-                        self.step_runner.log.write(
-                            'Forcing tag to lowercase: {0} => {1}\n'.format(
-                                tag,
-                                ltag,
-                            )
-                        )
-                    self._tags.append(ltag)
+                    self._tags.append(sanitize_tag(tag, self.step_runner.log))
 
             if 'insecure_registry' in config:
                 self._insecure_registry = config['insecure_registry'] is True
@@ -94,15 +99,9 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
         # determine internal tag based on source control information and build
         # number
-        lbuild_id = self.step_runner.build_runner.build_id.lower()
-        if lbuild_id != self.step_runner.build_runner.build_id:
-            self.step_runner.log.write(
-                'Forcing tag to lowercase: {0} => {1}\n'.format(
-                    self.step_runner.build_runner.build_id,
-                    lbuild_id,
-                )
-            )
-        self._tags.append(lbuild_id)
+        self._tags.append(
+            sanitize_tag(self.step_runner.build_runner.build_id, self.step_runner.log)
+        )
 
         # add the image to the list of generated images for potential cleanup
         self.step_runner.build_runner.generated_images.append(image_to_use)
@@ -137,3 +136,8 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 'docker:tags': self._tags,
             },
         )
+
+
+# Local Variables:
+# fill-column: 100
+# End:
