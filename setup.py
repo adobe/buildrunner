@@ -59,11 +59,10 @@ for require in ('requirements.txt', 'test_requirements.txt'):
                         ),
                         file=sys.stderr,
                     )
-                    pass
 
     except IOError as err:
         sys.stderr.write('Failure reading "{0}": {1}\n'.format(REQ_FILE, err))
-        os.exit(err.errno)
+        sys.exit(err.errno)
 
 
 def get_version():
