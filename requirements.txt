@@ -10,3 +10,5 @@ fabric==1.10.1
 Jinja2<3
 twine==1.13.0
 setuptools<45
+# >=2.0 versions of MarkupSafe no longer work with Python 2.7
+MarkupSafe<2.0
