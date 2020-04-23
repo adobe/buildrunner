@@ -2,9 +2,11 @@
 Copyright (C) 2014 Adobe
 """
 from __future__ import absolute_import, print_function
+import base64
 import codecs
 from collections import OrderedDict
 import copy
+import datetime
 import errno
 import fnmatch
 import getpass
@@ -204,6 +206,18 @@ class BuildRunner(object):
 
         return context
 
+    def _strftime(self, _format="%Y-%m-%d", _ts=None):
+        """
+        Format the provided timestamp. If no timestamp is provided, build_time is used
+        :param _format: Format string - default "%Y-%m-%d"
+        :param _ts: Timestamp to format - default self.build_time
+        :return: Formatted date/time string
+        """
+        if _ts is None:
+            _ts = self.build_time
+        _date = datetime.date.fromtimestamp(_ts)
+        return _date.strftime(_format)
+
     def _load_config(self, cfg_file, ctx=None, log_file=True):
         """
         Load a config file templating it with Jinja and parsing the YAML.
@@ -221,6 +235,8 @@ class BuildRunner(object):
             contents = fetch.fetch_file(fetch_file, self.global_config)
             jenv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'), extensions=['jinja2.ext.do'])
             jenv.filters['hash_sha1'] = hash_sha1
+            jenv.filters['base64encode'] = base64.encode
+            jenv.filters['base64decode'] = base64.decode
             jtemplate = jenv.from_string(contents)
 
             config_context = copy.deepcopy(self.env)
@@ -229,6 +245,7 @@ class BuildRunner(object):
                 'CONFIG_DIR': os.path.dirname(cfg_file),
                 'read_yaml_file': self._read_yaml_file,
                 'raise': self._raise_exception_jinja,
+                'strftime': self._strftime,
             })
 
             if ctx:
