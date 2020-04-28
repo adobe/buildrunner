@@ -15,7 +15,6 @@ import inspect
 import json
 import os
 import shutil
-from StringIO import StringIO
 import sys
 import tarfile
 import tempfile
@@ -27,6 +26,10 @@ import twine.commands.upload
 import jinja2
 import requests
 
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
