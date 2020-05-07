@@ -9,8 +9,6 @@ from buildrunner.errors import (
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.utils import is_dict
 
-import twine.settings
-
 
 class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
     """
@@ -57,6 +55,8 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
             self._repository = config
 
         if self._repository not in self.step_runner.build_runner.pypi_packages:
+            # Importing here avoids twine dependency when it is unnecessary
+            import twine.settings
             try:
                 if self._username is not None and self._password is not None:
                     upload_settings = twine.settings.Settings(
