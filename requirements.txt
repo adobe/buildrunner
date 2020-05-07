@@ -12,3 +12,6 @@ twine==1.13.0
 setuptools<45
 # >=2.0 versions of MarkupSafe no longer work with Python 2.7
 MarkupSafe<2.0
+# pyparsing>=3.0.0a1 versions are Python 3 only
+pyparsing==2.4.7
+

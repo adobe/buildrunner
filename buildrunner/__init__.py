@@ -22,8 +22,6 @@ import tempfile
 import threading
 import uuid
 
-import twine.commands.upload
-
 import jinja2
 import requests
 
@@ -745,6 +743,8 @@ class BuildRunner(object):
                                 self.log.write(str(msg) + '\n')
 
                 # Push to pypi repositories
+                # Placing the import here avoids the dependency when pypi is not needed
+                import twine.commands.upload
                 for _repository_name, _items in self.pypi_packages.iteritems():
                     twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
             else:
