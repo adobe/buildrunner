@@ -6,4 +6,4 @@ alexandria:
         Build and publish Docker images, run builds within Docker containers.
       short_url: buildrunner
       collections:
-        team: xeng
+        team: XEng
