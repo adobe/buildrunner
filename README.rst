@@ -34,7 +34,7 @@ Installation
 
 There are three different options for installing Buildrunner.  Each option
 depends on `Docker <http://www.docker.com/getdocker>`_.  Windows also depends
-on ``bash``, which can be found at `Git Bash <https://git-for-windows.github.io/>`_.
+on ``BASH``, which can be found at `Git Bash <https://git-for-windows.github.io/>`_.
 
 **1. Docker Container**  
 
@@ -43,29 +43,29 @@ is the easiest way to keep up to date.
 
 To install, simply clone this repo and add the ``scripts`` directory to your 
 ``$PATH``.  ``scripts`` contains wrapper scripts that pass the appropriate
-context to the Docker container.  There is a `bash <scripts/buildrunner>`_ script
-and a Windows `batch file <scripts/buildrunner.bat>`_, which simply calls the bash
+context to the Docker container.  There is a `BASH <scripts/buildrunner>`_ script
+and a Windows `batch file <scripts/buildrunner.bat>`_, which simply calls the ``BASH``
 script.
 
-NOTE TO WINDOWS USERS: This is the recommended method for Windows users, however,
-you must make sure that you are using the 
-`bash shell <https://www.laptopmag.com/articles/use-bash-shell-windows-10>`_
-enhancements for Windows or that you have something installed that enables the use
-of "sh", or else this method will not work. 
-If you are using WSL and the hyper-v installtion of docker:
+.. note:: WINDOWS USERS: This is the recommended method for Windows users, however, you must make
+   sure that you are using the `BASH shell
+   <https://www.laptopmag.com/articles/use-bash-shell-windows-10>`_ enhancements for Windows or that
+   you have something installed that enables the use of ``sh``, or else this method will not work.
+   If you are using WSL and the hyper-v installtion of docker:
 
-1. Click on the "Expose deamon on tcp://localhost:2375 without tls" from inside of the docker settings 
-2. Use the pip install method inside of the WSL subsystem
-3. Export your docker host "DOCKER_HOST=tcp://localhost:2375" inside of WSL
+   1. Click on the "Expose deamon on tcp://localhost:2375 without tls" from inside of the docker settings 
+   2. Use the pip install method inside of the WSL subsystem
+   3. Export your docker host ``DOCKER_HOST=tcp://localhost:2375`` inside of WSL
 
-NOTE TO MAC USERS: If you are using the docker version of buildrunner and are getting the error
-```docker-credential-osxkeychain not installed or not available in PATH```, you can do one of 2 things:
+.. note:: MAC USERS: If you are using the docker version of buildrunner and are getting the error
+   ``docker-credential-osxkeychain not installed or not available in PATH``, you can do one of 2
+   things:
 
-1. If the authentication information for the docker registry in question is in your
-   ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
-2. Use this `bash <scripts/buildrunnerOSXCredStore>`_ script along with this `python
-   <scripts/resolve-config.py>`_ script - this will pull the docker credentials from the OSX
-   keychain and inject them into the docker container
+   1. If the authentication information for the docker registry in question is in your
+      ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
+   2. Use this `BASH <scripts/buildrunnerOSXCredStore>`_ script along with this `python
+      <scripts/resolve-config.py>`_ script - this will pull the docker credentials from the OSX
+      keychain and inject them into the docker container
 
 **2. Pip**
 
@@ -73,7 +73,9 @@ If you wish to install buildrunner directly on your local machine, install via
 pip, pointing at the Release Engineering internal pypi server (hosted on the
 corporate artifactory instance). This is best done when installing into a
 virtual environment using virtualenv. The following commands will create a new
-virtual environment, activate it, and install BuildRunner within it::
+virtual environment, activate it, and install BuildRunner within it:
+
+.. code:: bash
 
   virtualenv buildrunner
   source buildrunner/bin/activate
@@ -82,12 +84,15 @@ virtual environment, activate it, and install BuildRunner within it::
 The buildrunner executable is now available at buildrunner/bin/buildrunner and
 can be added to your path.
 
-NOTE: If you are getting 404 errors for authenticated registries that you can pull
-with ``docker pull`` (e.g. ``docker.errors.NotFound: 404 Client Error: Not
-Found ("manifest for <image> not found: manifest unknown: The named manifest is
-not known to the registry.")``), then you likely need to downgrade the installed
-python docker library version with ``pip install docker==3.6.0``. Version 3.7.0
-broke compatibility with buildrunner and docker credential helpers.
+.. tip:: If you are getting 404 errors for authenticated registries but you can pull them with
+   ``docker pull`` - messages similar to the following::
+
+     docker.errors.NotFound: 404 Client Error: Not Found ("manifest for <image> not found: manifest
+     unknown: The named manifest is not known to the registry.")
+
+   then you likely need to downgrade the installed python docker library version with ``pip
+   install docker==3.6.0``. Version 3.7.0 broke compatibility with buildrunner and docker credential
+   helpers.
 
 **3. RPM**
 
@@ -107,7 +112,9 @@ Example Global Configuration
 ----------------------------
 
 The following example configuration explains what options are available and how
-they are used when put into the global configuration file::
+they are used when put into the global configuration file:
+
+.. code:: yaml
 
   # The 'build-servers' global configuration consists of a map where each key
   # is a server user@host string and the value is a list of host aliases that
@@ -194,7 +201,9 @@ Build definitions are found in the root of your source tree, either in a file
 named 'buildrunner.yaml'. The build definition is simply a
 yaml map defining 'steps'. Each step is given a custom name and must contain
 either 'build' and/or 'run' attributes (optionally containing a 'push'
-attribute) or a 'remote' attribute::
+attribute) or a 'remote' attribute:
+
+.. code:: yaml
 
   steps:
     step1-name:
@@ -211,11 +220,12 @@ attribute) or a 'remote' attribute::
       remote: <remote config>
 
 Step names are arbitrary--you can use whatever names you want as long as they
-are unique within a given "steps" configuration. Archived artifacts are stored
+are unique within a given ``steps`` configuration. Archived artifacts are stored
 in a step-specific results directory. To use artifacts generated from a
 previous step in a subsequent one you would reference them using the previous
-step name. (NOTE: Artifacts from previous steps are not available within remote
-builds)
+step name.
+
+.. note:: Artifacts from previous steps are not available within remote builds
 
 Jinja Templating
 ================
@@ -226,17 +236,15 @@ modified dynamically before it is run. In addition to the environment variables
 listed below in "Running Containers" and the standard Jinja methods, the list 
 below contains available variables and methods.
 
-- CONFIG_FILE = the full path to the current file being processed 
-  (buildrunner.yaml) 
-- CONFIG_DIR = the full path to the directory containing the current file
-  being processed
-- read_yaml_file = a method to read an arbitrary file in the current
-  workspace as yaml and use the contents in the script, note that the file
-  is processed using Jinja as well and that the file must exist before 
-  buildrunner is run or else this method will fail
+:``CONFIG_FILE``: the full path to the current file being processed (buildrunner.yaml) 
+:``CONFIG_DIR``: the full path to the directory containing the current file being processed
+:``read_yaml_file``: a method to read an arbitrary file in the current workspace as yaml and use the
+                     contents in the script, note that the file is processed using Jinja as well and
+                     that the file must exist before buildrunner is run or else this method will
+                     fail
 
-Standard Docker Builds (the 'build' step attribute)
-===================================================
+Standard Docker Builds (the ``build`` step attribute)
+=====================================================
 
 BuildRunner allows you to build a Docker image using a standard Dockerfile.
 This is done using the top-level 'build' attribute in a step configuration. The
@@ -247,21 +255,27 @@ arguments.
 
 Here is an example of a build definition that would build a Docker image using
 the root directory of the source tree as the build context (equivalent to
-running 'docker build .' in the root of your source tree)::
+running 'docker build .' in the root of your source tree):
+
+.. code:: yaml
 
   steps:
     build-my-container:
       build: .
 
 If the Dockerfile is in another directory within the source tree just give the
-relative path as the argument to the build attribute::
+relative path as the argument to the build attribute:
+
+.. code:: yaml
 
   steps:
     build-my-container:
       build: my/container/build/context
 
 By placing different contexts in different directories a single source tree can
-produce multiple Docker images::
+produce multiple Docker images:
+
+.. code:: yaml
 
   steps:
     build-container-1:
@@ -270,7 +284,9 @@ produce multiple Docker images::
       build: container-2
 
 The value of the 'build' attribute can also be a map. The following example
-shows the different configuration options available::
+shows the different configuration options available:
+
+.. code:: yaml
 
   steps:
     build-my-container:
@@ -340,8 +356,8 @@ shows the different configuration options available::
         # image is passed to subsequent steps.
         import: path/to/image/archive.tar
 
-Running Containers (the 'run' step attribute)
-=============================================
+Running Containers (the ``run`` step attribute)
+===============================================
 
 The 'run' step attribute is used to create and run a Docker container from a
 given image.
@@ -351,32 +367,30 @@ There are 2 reasons for running a Docker container within a build:
 1. To run another build tool or test framework and collect the resulting
    artifacts
 2. To run scripts and operations within an existing image to create a new image
-   (similar to how Packer creates Docker images)
+   (similar to how Packer_ creates Docker images)
 
 BuildRunner injects special environment variables and volume mounts into every
 run container. The following environment variables are set and available in
 every run container:
 
-- BUILDRUNNER_BUILD_NUMBER = the build number
-- BUILDRUNNER_BUILD_ID = a unique id identifying the build (includes vcs and
-  build number information)
-- BUILDRUNNER_BUILD_TIME = the "unix" time or "epoch" time of the build (in
-  seconds)
-- BUILDRUNNER_STEP_ID = a UUID representing the step
-- BUILDRUNNER_STEP_NAME = The name of the Buildrunner step
-- VCSINFO_NAME = the VCS repository name without a path
-- VCSINFO_BRANCH = the VCS branch
-- VCSINFO_NUMBER = the VCS commit number
-- VCSINFO_ID = the VCS commit id
-- VCSINFO_SHORT_ID = the VCS short commit id
-- VCSINFO_MODIFIED = the last file modification timestamp if local changes
-  have been made and not committed to the source VCS repository
+:``BUILDRUNNER_BUILD_NUMBER``: the build number
+:``BUILDRUNNER_BUILD_ID``: a unique id identifying the build (includes vcs and build number
+                           information)
+:``BUILDRUNNER_BUILD_TIME``: the "unix" time or "epoch" time of the build (in seconds)
+:``BUILDRUNNER_STEP_ID``: a UUID representing the step
+:``BUILDRUNNER_STEP_NAME``: The name of the Buildrunner step
+:``VCSINFO_NAME``: the VCS repository name without a path
+:``VCSINFO_BRANCH``: the VCS branch
+:``VCSINFO_NUMBER``: the VCS commit number
+:``VCSINFO_ID``: the VCS commit id
+:``VCSINFO_SHORT_ID``: the VCS short commit id
+:``VCSINFO_MODIFIED``: the last file modification timestamp if local changes have been made and not
+                       committed to the source VCS repository
 
 The following volumes are created within run containers:
 
-- /source = (read-write) maps to a pristine snapshot of the current source
-  tree (build directory)
-- /artifacts = (read-only) maps to the buildrunner.results directory
+:``/source``: (read-write) maps to a pristine snapshot of the current source tree (build directory)
+:``/artifacts``: (read-only) maps to the buildrunner.results directory
 
 The /source volume is actually a mapped volume to a new source container
 containing a copy of the build source tree. This container is created from a
@@ -386,7 +400,9 @@ This file follows the same conventions as a .dockerignore file does when
 creating Docker images.
 
 The following example shows the different configuration options available in
-the run step::
+the run step:
+
+.. code:: yaml
 
   steps:
     my-build-step:
@@ -425,7 +441,7 @@ the run step::
         # command to a shell, running the provisioners within the shell.
         # Currently BuildRunner supports shell and salt provisioners.
         provisioners:
-          shell: path/to/script.sh
+          shell: path/to/script.sh | [path/to/script.sh, ARG1, ...]
           salt: <simple salt sls yaml config>
 
         # The shell to use when specifying the cmd or provisioners attributes.
@@ -600,7 +616,9 @@ Service containers have the same injected environment variables and volume
 mounts as build containers do, but the /source mount is read-only.
 
 The following example shows the different configuration options available
-within service container configuration::
+within service container configuration:
+
+.. code:: yaml
 
   steps:
     my-build-step
@@ -726,7 +744,9 @@ within service container configuration::
             inject-ssh-agent: true/false (defaults to false)
 
 Here is an example of a 'run' definition that simply runs the default command
-from the specified Docker image and archives the given artifacts::
+from the specified Docker image and archives the given artifacts:
+
+.. code:: yaml
 
   steps:
     package:
@@ -737,7 +757,9 @@ from the specified Docker image and archives the given artifacts::
 
 This example builds a custom image using a build context and Dockerfile in a
 subdirectory of the project, then uses the resulting image for the run
-container::
+container:
+
+.. code:: yaml
 
   steps:
     package:
@@ -747,7 +769,9 @@ container::
           omtr_tmp/artifacts/*.x86_64.rpm:
 
 This example uses one step to create a package and another to run an
-integration test::
+integration test:
+
+.. code:: yaml
 
   steps:
 
@@ -798,14 +822,18 @@ purposes. Additional tags may be added in the 'push' configuration.
 To push the image to a registry, you must add the --push argument to buildrunner.
 
 The following is an example of a simple 'push' configuration where only the
-repository is defined::
+repository is defined:
+
+.. code:: yaml
 
   steps:
     build-my-container:
       build: .
       push: ***REMOVED***/***REMOVED***
 
-The configuration may also specify additional tags to add to the image::
+The configuration may also specify additional tags to add to the image:
+
+.. code:: yaml
 
   steps:
     build-my-container:
@@ -824,7 +852,9 @@ The push only occurs if the --push argument is used, similar to how pushing dock
 images to remote docker registries works
 
 The following is an example of a simple 'pypi-push' configuration where only the
-repository index, as defined in the ``~/.pypirc`` file, is defined::
+repository index, as defined in the ``~/.pypirc`` file, is defined:
+
+.. code:: yaml
 
   steps:
     pypi:
@@ -836,7 +866,10 @@ repository index, as defined in the ``~/.pypirc`` file, is defined::
           "dist/*.tar.gz": { type: 'python-sdist' }
       pypi-push: artifactory-releng
 
-The configuration may also specify repository, username, and password. All must be specified when doing this::
+The configuration may also specify repository, username, and password. All must be specified when
+doing this:
+
+.. code:: yaml
 
   steps:
     pypi:
@@ -873,7 +906,9 @@ host. A 'remote' step attribute overrides any other attributes within the step.
 The 'remote' step attribute value is a map providing the host to run on, the
 command to run, and information about which artifacts should be archived. The
 following example shows the configuration options available within a 'remote'
-configuration::
+configuration:
+
+.. code:: yaml
 
   steps:
     my-remote-step:
@@ -909,7 +944,9 @@ configuration::
 
 The 'build-servers' global configuration consists of a map where each key is a
 server user@host string and the value is a list of host aliases that map to the
-server::
+server:
+
+.. code:: yaml
 
   build-servers:
     user@myserver1: [ alias1, alias2 ]
@@ -926,14 +963,16 @@ Fetching Files
 Buildrunner has a ``fetch`` facility for retrieving files and artifactes to incorporate into the
 build.  The syntax for referencing a back-end uses a simple URL format:
 
+.. code:: yaml
+
   ``BACKEND://REPOSITORY/PATH``
 
-:BACKEND: The fetch back-end to use: ``github``, ``http``, ``file``, *etc*.
-:REPOSITORY: Which location/repository the ``BACKEND`` will reference.  This is a *label* that is
-             used as a reference into configuration found in Buildrunner configuration files
-             (e.g. ``~/.buildrunner.yaml``) where a full description of connection parameters and
-             available (see specific documentation for each fetch module).
-:PATH: The unique path or ID of the artifact found in the ``REPOSITORY``.
+:``BACKEND``: The fetch back-end to use: ``github``, ``http``, ``file``, *etc*.
+:``REPOSITORY``: Which location/repository the ``BACKEND`` will reference.  This is a *label* that
+                 is used as a reference into configuration found in Buildrunner configuration files
+                 (e.g. ``~/.buildrunner.yaml``) where a full description of connection parameters
+                 and available (see specific documentation for each fetch module).
+:``PATH``: The unique path or ID of the artifact found in the ``REPOSITORY``.
 
 
 Fetch Backends
@@ -941,7 +980,7 @@ Fetch Backends
 
 The available ``fetch`` back-ends are the following:
 
-* Github: fetches files Github
+* Github: fetches files from Github
 * File: fetches files from the file system
 * HTTP/HTTPS: fetches files from HTTP/HTTPS servers
 
@@ -954,14 +993,16 @@ Files can be retrieved from Github - either central ``github.com`` location or t
 
   ``github://LABEL/GROUP/REPO/PATH``
 
-:github\://: scheme indicates fetching using the ``github`` facility.
-:LABEL: a look-up key into Buildrunner configuration that describes connection parameters.  This
-        is an arbitrary name but benefits from uniform use across build sources.
-:GROUP: Github organization/group.
-:REPO: Git repository in the ``GROUP``.
-:PATH: path to the file in the Git ``REPO``.
+:``github://``: scheme indicates fetching using the ``github`` facility.
+:``LABEL``: a look-up key into Buildrunner configuration that describes connection parameters.  This
+            is an arbitrary name but benefits from uniform use across build sources.
+:``GROUP``: Github organization/group.
+:``REPO``: Git repository in the ``GROUP``.
+:``PATH``: path to the file in the Git ``REPO``.
 
-The ``github://`` facility requires the following configuration entries::
+The ``github://`` facility requires the following configuration entries:
+
+.. code:: yaml
 
   github:
     LABEL:
@@ -970,7 +1011,9 @@ The ``github://`` facility requires the following configuration entries::
       username: 'USERNAME'
       app_token: 'APP_TOKEN'
 
-The following is suggested for an entry to reference files on Adobe Github::
+The following is suggested for an entry to reference files on Adobe Github:
+
+.. code:: yaml
 
   github:
     adobe_github:
@@ -994,7 +1037,9 @@ These two are equivalent:
 * ``/some/path/to/a/file.ext``
 
 If a relative path from the source directory is to be designated then the ``file://`` scheme cannot
-be used::
+be used:
+
+.. code:: yaml
 
   relative/path/to/a/file.ext
 
@@ -1031,7 +1076,9 @@ the test suite invoking ``docker`` which does not work well from inside a Docker
 container.  Consequently the test suite is invoked through the `Jenkinsfile
 <Jenkinsfile>`_.
 
-The test suite can be invoked manually from the top of the source directory::
+The test suite can be invoked manually from the top of the source directory:
+
+.. code:: bash
 
   >$ python tests/test_buildrunner_files.py
 
@@ -1040,13 +1087,19 @@ Common Issues
 =============
 
 If you encounter an error like ``Unable to load key at /path/to/id_rsa``,
-you will need to generate a new key with the ``-m PEM`` parameter::
+you will need to generate a new key with the ``-m PEM`` parameter:
+
+.. code:: bash
 
   ssh-keygen -m PEM -t rsa -b 4096 -C "username@adobe.com"
 
 This will no longer be necessary if the Paramiko library addresses this issue. There
 are several issues logged in the git repo, most of which are closed, such as:
 https://github.com/paramiko/paramiko/issues/1348
+
+
+.. Links
+.. _Packer: https://www.packer.io/
 
 
 ..
