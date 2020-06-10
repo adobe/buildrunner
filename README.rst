@@ -846,6 +846,30 @@ The configuration may also specify additional tags to add to the image:
         repository: ***REMOVED***/***REMOVED***
         tags: [ 'latest' ]
 
+Pushing One Image To Multiple Repositories
+------------------------------------------
+
+To push a single image to multiple repositories, multiple steps must be used. The image
+will only be built once. The key is to set the ``pull`` attribute to ``false`` on the
+any steps that want to re-use the same image.
+
+.. code:: yaml+jinja
+
+  steps:
+    build-my-container:
+      build: .
+      push:
+        repository: ***REMOVED***/***REMOVED***
+        tags: [ 'latest' ]
+    push-again:
+      build:
+        dockerfile: |
+          FROM ***REMOVED***/***REMOVED***:{{ BUILDRUNNER_BUILD_ID|lower }}
+        pull: false
+      push:
+        repository: docker-xeng-release2.dr.corp.adobe.com/another/path/test-image
+        tags: [ 'latest' ]
+
 Pushing To PyPI Repository
 ==========================
 The 'pypi-push' step attribute is used to push a python package to a remote PyPI
