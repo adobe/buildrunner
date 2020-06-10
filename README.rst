@@ -536,6 +536,10 @@ the run step:
         # When a zip archive is requested then the ``compression`` property is
         # ignored.  If the directory tree should be gathered verbatim without
         # archiving then the property ``format:uncompressed`` can be used.
+        #
+        # NOTE: Artifacts can only be archived from the /source directory using
+        # a relative path or a full path. Files outside of this directory will
+        # fail to be archived.
         artifacts:
           artifacts/to/archive/*:
             [format: uncompressed]
@@ -840,6 +844,30 @@ The configuration may also specify additional tags to add to the image:
       build: .
       push:
         repository: ***REMOVED***/***REMOVED***
+        tags: [ 'latest' ]
+
+Pushing One Image To Multiple Repositories
+------------------------------------------
+
+To push a single image to multiple repositories, multiple steps must be used. The image
+will only be built once. The key is to set the ``pull`` attribute to ``false`` on the
+any steps that want to re-use the same image.
+
+.. code:: yaml+jinja
+
+  steps:
+    build-my-container:
+      build: .
+      push:
+        repository: ***REMOVED***/***REMOVED***
+        tags: [ 'latest' ]
+    push-again:
+      build:
+        dockerfile: |
+          FROM ***REMOVED***/***REMOVED***:{{ BUILDRUNNER_BUILD_ID|lower }}
+        pull: false
+      push:
+        repository: docker-xeng-release2.dr.corp.adobe.com/another/path/test-image
         tags: [ 'latest' ]
 
 Pushing To PyPI Repository
