@@ -536,6 +536,10 @@ the run step:
         # When a zip archive is requested then the ``compression`` property is
         # ignored.  If the directory tree should be gathered verbatim without
         # archiving then the property ``format:uncompressed`` can be used.
+        #
+        # NOTE: Artifacts can only be archived from the /source directory using
+        # a relative path or a full path. Files outside of this directory will
+        # fail to be archived.
         artifacts:
           artifacts/to/archive/*:
             [format: uncompressed]
