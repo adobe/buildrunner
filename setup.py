@@ -22,16 +22,19 @@ _BUILDRUNNER_DIR = os.path.join(_SOURCE_DIR, 'buildrunner')
 _VERSION_FILE = os.path.join(_BUILDRUNNER_DIR, 'version.py')
 
 THIS_DIR = os.path.dirname(__file__)
-REQUIRES = []
-DEP_LINKS = []
-for require in ('requirements.txt', 'test_requirements.txt'):
+
+def read_requirements(filename):
+    requires = []
+    dep_links = []
     try:
-        with open(os.path.join(THIS_DIR, require)) as robj:
+        with open(os.path.join(THIS_DIR, filename)) as robj:
             lnr = 0
             for line in robj.readlines():
                 lnr += 1
                 _line = line.strip()
                 if not _line:
+                    continue
+                if _line.startswith('#'):
                     continue
 
                 if _line.startswith('--extra-index-url'):
@@ -39,21 +42,21 @@ for require in ('requirements.txt', 'test_requirements.txt'):
                     if len(args) != 2:
                         print(
                             'ERROR: option "--extra-index-url" must have a URL argument: {}:{}'.format(
-                                require,
+                                filename,
                                 lnr
                             ),
                             file=sys.stderr,
                         )
                         continue
-                    DEP_LINKS.append(args[1])
+                    dep_links.append(args[1])
 
                 elif _line[0].isalpha():
-                    REQUIRES.append(_line)
+                    requires.append(_line)
 
                 else:
                     print(
                         'ERROR: {}:{}:"{}" does not appear to be a requirement'.format(
-                            require,
+                            filename,
                             lnr,
                             _line
                         ),
@@ -61,8 +64,17 @@ for require in ('requirements.txt', 'test_requirements.txt'):
                     )
 
     except IOError as err:
-        sys.stderr.write('Failure reading "{0}": {1}\n'.format(REQ_FILE, err))
+        sys.stderr.write('Failure reading "{0}": {1}\n'.format(filename, err))
         sys.exit(err.errno)
+
+    return requires, dep_links
+
+
+requs = read_requirements('requirements.txt')
+(REQUIRES, DEP_LINKS) = requs
+requs = read_requirements('test_requirements.txt')
+TEST_REQUIRES = requs[0]
+DEP_LINKS.extend(requs[1])
 
 
 def get_version():
@@ -126,6 +138,7 @@ setup(
         ],
     },
     install_requires=REQUIRES,
+    tests_require=TEST_REQUIRES,
     dependency_links=DEP_LINKS,
     test_suite='tests',
 )
