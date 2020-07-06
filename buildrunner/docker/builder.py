@@ -67,7 +67,7 @@ class DockerBuilder(object):
         if not isinstance(buildargs, dict):
             raise TypeError('buildargs must be a dictionary of keys/values')
 
-        _buildargs = dict([k: str(v) for k, v in buildargs.items()])
+        _buildargs = dict([(k, str(v)) for k, v in buildargs.items()])
         return _buildargs
 
 
