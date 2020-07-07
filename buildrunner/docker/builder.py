@@ -52,7 +52,7 @@ class DockerBuilder(object):
         self.intermediate_containers = []
 
 
-    def _sanitize_buildargs(buildargs=None):
+    def _sanitize_buildargs(self, buildargs=None):
         '''
         Ensure that buildargs are correct for the Docker API.
 
