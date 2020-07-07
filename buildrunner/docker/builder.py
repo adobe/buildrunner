@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2015-2020 Adobe
 """
 from __future__ import absolute_import
 import json
@@ -52,6 +52,25 @@ class DockerBuilder(object):
         self.intermediate_containers = []
 
 
+    def _sanitize_buildargs(self, buildargs=None):
+        '''
+        Ensure that buildargs are correct for the Docker API.
+
+        Args:
+
+            :buildargs: (dict): unsanitized arguments to be passed to the Docker client.
+
+        Returns:
+
+            :dict: sanitized arguments to be passed to the Docker client.
+        '''
+        if not isinstance(buildargs, dict):
+            raise TypeError('buildargs must be a dictionary of keys/values')
+
+        _buildargs = dict([(k, str(v)) for k, v in buildargs.items()])
+        return _buildargs
+
+
     def build(self, console=None, nocache=False, cache_from=[], rm=True, pull=True, buildargs={}):
         """
         Run a docker build using the configured context, constructing the
@@ -78,7 +97,7 @@ class DockerBuilder(object):
             fileobj=_fileobj,
             rm=rm,
             pull=pull,
-            buildargs=buildargs
+            buildargs=self._sanitize_buildargs(buildargs)
         )
 
         # monitor output for logs and status
