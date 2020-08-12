@@ -1,13 +1,15 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2015-2020 Adobe
 """
 from __future__ import absolute_import
 from collections import OrderedDict
+import grp
 import os
-import threading
-import uuid
+import pwd
 import socket
+import threading
 import time
+import uuid
 
 import buildrunner.docker
 from buildrunner.docker.daemon import DockerDaemonProxy
@@ -457,6 +459,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # setup custom env variables
         _env = dict(self.step_runner.build_runner.env)
+        _env['BUILDRUNNER_INVOKE_USER'] = pwd.getpwuid(os.getuid())
+        _env['BUILDRUNNER_INVOKE_UID'] = os.getuid()
+        _env['BUILDRUNNER_INVOKE_GROUP'] = grp.getgrgid(os.getgid())
+        _env['BUILDRUNNER_INVOKE_GID'] = os.getgid()
 
         # do we need to change to a given dir when running
         # a cmd or script?

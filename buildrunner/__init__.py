@@ -14,6 +14,7 @@ import imp
 import inspect
 import json
 import os
+import re
 import shutil
 import sys
 import tarfile
@@ -219,6 +220,29 @@ class BuildRunner(object):
         _date = datetime.date.fromtimestamp(_ts)
         return _date.strftime(_format)
 
+    @staticmethod
+    def _re_sub_filter(text, pattern, replace, count=0, flags=0):
+        '''
+        Filter for regular expression replacement.
+        :param text: The string being examined for ``pattern``
+        :param pattern: The pattern to find in ``text``
+        :param replace: The replacement for ``pattern``
+        :param count: How many matches of ``pattern`` to replace with ``replace`` (0=all)
+        :param flags: Regular expression flags
+        '''
+        return re.sub(pattern, replace, text, count=count, flags=flags)
+
+    @staticmethod
+    def _re_split_filter(text, pattern, maxsplit=0, flags=0):
+        '''
+        Filter for regular expression replacement.
+        :param text: The string being examined for ``pattern``
+        :param pattern: The pattern used to split ``text``
+        :param maxsplit: How many instances of ``pattern`` to split (0=all)
+        :param flags: Regular expression flags
+        '''
+        return re.split(pattern, text, maxsplit=maxsplit, flags=flags)
+
     def _load_config(self, cfg_file, ctx=None, log_file=True):
         """
         Load a config file templating it with Jinja and parsing the YAML.
@@ -238,6 +262,9 @@ class BuildRunner(object):
             jenv.filters['hash_sha1'] = hash_sha1
             jenv.filters['base64encode'] = base64.encode
             jenv.filters['base64decode'] = base64.decode
+            jenv.filters['re_sub'] = self._re_sub_filter
+            jenv.filters['re_split'] = self._re_split_filter
+
             jtemplate = jenv.from_string(contents)
 
             config_context = copy.deepcopy(self.env)

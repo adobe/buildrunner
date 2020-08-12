@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015-2019 Adobe
+Copyright (C) 2015-2020 Adobe
 """
 from __future__ import absolute_import
 import os
@@ -11,8 +11,13 @@ try:
     # Newer API
     Client = docker.client.Client
 except:
-    # Older API
-    Client = docker.APIClient
+    try:
+        # Older API
+        Client = docker.client.APIClient
+
+    except:
+        # Older API
+        Client = docker.api.client.APIClient
 
 
 from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError

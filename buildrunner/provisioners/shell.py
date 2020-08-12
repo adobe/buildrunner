@@ -1,7 +1,8 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2015-2020 Adobe
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
+import sys
 from buildrunner.errors import BuildRunnerProvisionerError
 
 
@@ -28,3 +29,8 @@ class ShellProvisioner(object):
         )
         if exit_code != 0:
             raise BuildRunnerProvisionerError("Shell provisioner failed")
+
+
+# Local Variables:
+# fill-column: 100
+# End:

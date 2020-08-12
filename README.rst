@@ -233,7 +233,7 @@ Jinja Templating
 The 'buildrunner.yaml' file is processed as a 
 `Jinja template <http://jinja.pocoo.org/>`_, meaning the build definition can be 
 modified dynamically before it is run. In addition to the environment variables 
-listed below in "Running Containers" and the standard Jinja methods, the list 
+listed below in `Running Containers`_ and the standard Jinja methods, the list 
 below contains available variables and methods.
 
 :``CONFIG_FILE``: the full path to the current file being processed (buildrunner.yaml) 
@@ -242,6 +242,16 @@ below contains available variables and methods.
                      contents in the script, note that the file is processed using Jinja as well and
                      that the file must exist before buildrunner is run or else this method will
                      fail
+
+Jinja filters
+~~~~~~~~~~~~~
+
+:``hash_sha1`: SHA1 hash filter
+:``base64encode``:  Base64 encoding filter
+:``base64decode``: Base64 decoding filter
+:``re_sub``: performs a regular expression replacement on text
+:``re_split``: uses a pattern to split text
+
 
 Standard Docker Builds (the ``build`` step attribute)
 =====================================================
@@ -356,6 +366,9 @@ shows the different configuration options available:
         # image is passed to subsequent steps.
         import: path/to/image/archive.tar
 
+
+.. _Running Containers:
+
 Running Containers (the ``run`` step attribute)
 ===============================================
 
@@ -379,6 +392,10 @@ every run container:
 :``BUILDRUNNER_BUILD_TIME``: the "unix" time or "epoch" time of the build (in seconds)
 :``BUILDRUNNER_STEP_ID``: a UUID representing the step
 :``BUILDRUNNER_STEP_NAME``: The name of the Buildrunner step
+:``BUILDRUNNER_INVOKE_USER``: The username of the user that invoked Buildrunner
+:``BUILDRUNNER_INVOKE_UID``: The UID of the user that invoked Buildrunner
+:``BUILDRUNNER_INVOKE_GROUP``: The group of the user that invoked Buildrunner
+:``BUILDRUNNER_INVOKE_GID``: The GID (group ID) of the user that invoked Buildrunner
 :``VCSINFO_NAME``: the VCS repository name without a path
 :``VCSINFO_BRANCH``: the VCS branch
 :``VCSINFO_NUMBER``: the VCS commit number
@@ -454,7 +471,7 @@ the run step:
 
         # The user to run commands as. Defaults to the user specified in the
         # Docker image.
-        user: <user to run commands as>
+        user: <user to run commands as (can be username:group / uid:gid)>
 
         # The hostname assigned to the run container.
         hostname: <the hostname>
@@ -666,7 +683,7 @@ within service container configuration:
 
             # The user to run commands as. Defaults to the user specified in
             # the Docker image.
-            user: <user to run commands as>
+            user: <user to run commands as (can be username:group / uid:gid)>
 
             # The hostname assigned to the service container.
             hostname: <the hostname>
