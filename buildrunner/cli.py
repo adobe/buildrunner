@@ -77,6 +77,15 @@ def parse_args(argv):
     )
 
     parser.add_argument(
+        '--local-images',
+        default=False,
+        action='store_true',
+        dest='local_images',
+        #pylint: disable=C0301
+        help='Prefer local images rather than fetching remote images.  This can be used for testing images prior to pushing them.',
+    )
+
+    parser.add_argument(
         '--keep-step-artifacts',
         default=False,
         action='store_true',
@@ -184,6 +193,7 @@ def main(argv):
             publish_ports=args.publish_ports,
             log_generated_files=(True if (args.log_generated_files or args.print_generated_files) else False),
             docker_timeout=args.docker_timeout,
+            local_images=args.local_images,
         )
 
         if not args.print_generated_files:

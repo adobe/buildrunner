@@ -33,12 +33,13 @@ class BuildStepRunner(object):
     """
 
 
-    def __init__(self, build_runner, step_name, step_config):
+    def __init__(self, build_runner, step_name, step_config, local_images=False):
         """
         Constructor.
         """
         self.name = step_name
         self.config = step_config
+        self.local_images = local_images
 
         self.build_runner = build_runner
         self.src_dir = self.build_runner.build_dir
@@ -69,6 +70,8 @@ class BuildStepRunner(object):
             for _task_name, _task_config in self.config.iteritems():
                 self.log.write('==> Running step: %s:%s\n' % (self.name, _task_name))
                 if _task_name in TASK_MAPPINGS:
+                    if self.local_images:
+                        _task_config['pull'] = False
                     _task = TASK_MAPPINGS[_task_name](self, _task_config)
                     _tasks.append(_task)
                     try:
