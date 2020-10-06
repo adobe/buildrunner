@@ -353,6 +353,11 @@ shows the different configuration options available:
         # Whether to do a docker pull of the "FROM" image prior to the build.
         # This is critical if you are building from images that are changing
         # with regularity.
+        # NOTE: If the image is prior in this ``buildrunner.yaml`` then this should be
+        #       set to "false" because the image will not be in the repo yet.
+        # NOTE: The command line argument ``--local-images`` can be used to temporarily
+        #       override and assume ``pull: false`` for the build without rewriting
+        #       ``buildrunner.yaml``.
         pull: true/false (defaults to true)
 
         # Specify the build args that should be used when building your image,

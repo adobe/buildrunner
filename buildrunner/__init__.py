@@ -315,6 +315,7 @@ class BuildRunner(object):
             disable_timestamps=False,
             log_generated_files=False,
             docker_timeout=None,
+            local_images=False,
     ):
         """
         """
@@ -331,6 +332,7 @@ class BuildRunner(object):
         self.disable_timestamps = disable_timestamps
         self.log_generated_files = log_generated_files
         self.docker_timeout = docker_timeout
+        self.local_images = local_images
 
         self.tmp_files = []
         self.artifacts = OrderedDict()
@@ -719,6 +721,7 @@ class BuildRunner(object):
                         self,
                         step_name,
                         step_config,
+                        self.local_images,
                     )
                     build_step_runner.run()
 
