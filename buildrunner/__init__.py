@@ -217,7 +217,7 @@ class BuildRunner(object):
         """
         if _ts is None:
             _ts = self.build_time
-        _date = datetime.date.fromtimestamp(_ts)
+        _date = datetime.datetime.fromtimestamp(_ts)
         return _date.strftime(_format)
 
     @staticmethod
