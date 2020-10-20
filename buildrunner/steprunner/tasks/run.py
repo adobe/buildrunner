@@ -6,7 +6,6 @@ from collections import OrderedDict
 import grp
 import os
 import pwd
-import socket
 import threading
 import time
 import uuid
@@ -38,6 +37,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
     # Lightweight docker image for artifact management
     ARTIFACT_LISTER_DOCKER_IMAGE = 'ubuntu:19.04'
+    # Lightweight docker image for running nc
+    NC_DOCKER_IMAGE = 'subfuzion/netcat:latest'
 
     TAR_COMPRESSION_ARG = {
         'gz': '--gzip',
@@ -668,17 +669,37 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         Wait for listening port on named container
         """
         ipaddr = self._docker_client.inspect_container(name)['NetworkSettings']['IPAddress']
-        sopen = False
+        socket_open = False
 
-        while not sopen:
+        while not socket_open:
             self.step_runner.log.write(
                 "Waiting for port %d to be listening for connections in container %s with IP address %s\n" % (
                     port, name, ipaddr
                 ))
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sopen = sock.connect_ex((ipaddr, port)) == 0
-            sock.close()
-            if not sopen:
+
+            # Use a small nc image to test if the port is open from within the docker network
+            # Linux can talk to containers directly, but mac and other OSes cannot
+            # See https://github.com/docker/for-mac/issues/155 for more info for mac
+            nc_tester = None
+            try:
+                nc_tester = DockerRunner(
+                    self.NC_DOCKER_IMAGE,
+                    pull_image=False,
+                    # Do not log anything from this container
+                    log=None,
+                )
+                nc_tester.start(
+                    # The shell is the command
+                    shell='-n -z {} {}'.format(ipaddr, port),
+                )
+                nc_tester.attach_until_finished()
+                exit_code = nc_tester.exit_code
+                socket_open = exit_code is not None and not exit_code
+            finally:
+                if nc_tester:
+                    nc_tester.cleanup()
+
+            if not socket_open:
                 time.sleep(1)
 
         self.step_runner.log.write("Port %d is listening in container %s with IP address %s\n" % (port, name, ipaddr))
