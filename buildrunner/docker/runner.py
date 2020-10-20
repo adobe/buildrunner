@@ -27,7 +27,7 @@ class DockerRunner(object):
 
     def __init__(self, image_name, dockerd_url=None, pull_image=True, log=None):
         self.image_name = image_name.lower()
-        if self.image_name != image_name:
+        if log and self.image_name != image_name:
             log.write('Forcing image_name to lowercase: {0} => {1}\n'.format(
                 image_name, self.image_name
             ))
@@ -406,7 +406,7 @@ class DockerRunner(object):
         return status['State']['ExitCode']
 
 
-    def attach_until_finished(self, stream):
+    def attach_until_finished(self, stream=None):
         """
         Attach to the container, writing output to the given log stream until
         the container exits.
@@ -421,7 +421,8 @@ class DockerRunner(object):
             try:
                 data = docksock.recv(4096)
                 while data:
-                    stream.write(data)
+                    if stream:
+                        stream.write(data)
                     data = docksock.recv(4096)
             except socket.timeout:
                 pass
