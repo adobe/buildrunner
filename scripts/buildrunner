@@ -11,13 +11,19 @@ do
         env_vars="$env_vars -e $var"
 done
 
+if [ "$(uname)" == "Darwin" ]; then
+    docker_sock="/run/host-services/docker.proxy.sock"
+else
+    docker_sock="//var/run/docker.sock"
+fi
+
 
 # stdbuf disables buffering
 docker run \
         $env_vars \
         -v /$HOME:$HOME \
         --tty --interactive \
-        -v //var/run/docker.sock:/var/run/docker.sock \
+        -v $docker_sock:/var/run/docker.sock \
         -w /`pwd` \
         ***REMOVED***/releng/buildrunner:latest \
         stdbuf -oL buildrunner $@
