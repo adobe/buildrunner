@@ -1136,6 +1136,42 @@ The test suite can be invoked manually from the top of the source directory:
 Common Issues
 =============
 
+Docker Hub rate limit
+---------------------
+
+In November 2020, Docker Hub added rate limiting for all docker images to 100 pulls every 6 hours.
+This has been addressed by adding a variable to point to a new Docker registry for upstream images.
+To use this registry, see the following examples. Each example assumes the image to be pulled is
+``busybox:latest``.
+
+To use the registry in ``buildrunner.yaml``:
+
+.. code:: yaml+jinja
+
+    steps:
+      step1:
+        run:
+          image: {{ DOCKER_REGISTRY }}/busybox:latest
+
+To use the registry in a ``Dockerfile``:
+
+.. code:: dockerfile
+
+    ARG DOCKER_REGISTRY
+    FROM $DOCKER_REGISTRY/busybox:latest
+
+If developing locally and you have hit the rate limit, configure the following in your buildrunner
+global configuration file (typically ``~/.buildrunner.yaml``):
+
+.. code:: yaml
+
+    docker-registry: ***REMOVED***
+
+This will point to the Docker Hub proxy located in Artifactory.
+
+Unable to load key
+------------------
+
 If you encounter an error like ``Unable to load key at /path/to/id_rsa``,
 you will need to generate a new key with the ``-m PEM`` parameter:
 
