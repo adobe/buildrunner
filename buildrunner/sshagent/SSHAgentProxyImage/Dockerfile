@@ -1,4 +1,4 @@
-FROM centos:centos7
+FROM ***REMOVED***/centos:centos7
 
 RUN yum clean all; yum -y install initscripts openssh-server socat
 RUN mkdir /var/run/sshd; mkdir /ssh-agent

@@ -1,4 +1,4 @@
-FROM python:2.7.12-alpine
+FROM ***REMOVED***/python:2.7.12-alpine
 EXPOSE 80
 RUN mkdir -p /var/http
 WORKDIR /var/http

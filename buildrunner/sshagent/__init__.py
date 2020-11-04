@@ -256,6 +256,7 @@ class DockerSSHAgentProxy(object):
             )
             exit_code = ssh_agent_builder.build(
                 nocache=False,
+                pull=False,
             )
             if exit_code != 0 or not ssh_agent_builder.image:
                 raise BuildRunnerProcessingError(

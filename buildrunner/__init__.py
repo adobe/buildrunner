@@ -614,6 +614,7 @@ class BuildRunner(object):
             )
             exit_code = source_builder.build(
                 nocache=True,
+                pull=False,
             )
             if exit_code != 0 or not source_builder.image:
                 raise BuildRunnerProcessingError((

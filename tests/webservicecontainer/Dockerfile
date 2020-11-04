@@ -1,4 +1,4 @@
-FROM centos:7
+FROM ***REMOVED***/centos:7
 RUN						\
     set -eux;					\
     yum clean all;				\

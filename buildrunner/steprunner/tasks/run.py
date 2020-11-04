@@ -135,6 +135,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             artifact_lister = DockerRunner(
                 self.ARTIFACT_LISTER_DOCKER_IMAGE,
                 log=self.step_runner.log,
+                pull_image=False,
             )
             #TODO: see if we can use archive commands to eliminate the need for
             #the /stepresults volume when we can move to api v1.20
