@@ -1,4 +1,4 @@
-FROM python:2.7
+FROM ***REMOVED***/python:2.7
 
 COPY . /buildrunner-source
 

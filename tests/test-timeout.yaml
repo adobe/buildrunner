@@ -3,7 +3,7 @@
 steps:
   test-sleep-past-timeout:
     run:
-      image: ubuntu:latest
+      image: ***REMOVED***/ubuntu:latest
       # Should not fail even though the timeout for tests (15)
       # is shorter than this sleep. See test_buildrunner_files for
       # where the timeout is set
