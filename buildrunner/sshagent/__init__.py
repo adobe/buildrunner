@@ -103,7 +103,7 @@ class DockerSSHAgentProxy(object):
         """
         self.docker_client = docker_client
         self.log = log
-        slef.docker_registry = docker_registry
+        self.docker_registry = docker_registry
         self._ssh_agent_image = None
         self._ssh_agent_container = None
         self._ssh_client = None
