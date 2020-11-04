@@ -271,6 +271,8 @@ class BuildRunner(object):
             config_context.update({
                 'CONFIG_FILE': cfg_file,
                 'CONFIG_DIR': os.path.dirname(cfg_file),
+                # This is stored after the initial env is set
+                'DOCKER_REGISTRY': self.get_docker_registry(),
                 'read_yaml_file': self._read_yaml_file,
                 'raise': self._raise_exception_jinja,
                 'strftime': self._strftime,
@@ -412,6 +414,10 @@ class BuildRunner(object):
                     _run_config_file if _run_config_file else 'provided config'
                 )
             )
+
+    def get_docker_registry(self):
+        # Default to docker.io if none is configured
+        return self.global_config.get('docker-registry', 'docker.io')
 
     def get_build_server_from_alias(self, host):
         """
@@ -610,7 +616,9 @@ class BuildRunner(object):
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
             source_builder = DockerBuilder(
-                inject=inject, timeout=self.docker_timeout
+                inject=inject,
+                timeout=self.docker_timeout,
+                docker_registry=self.get_docker_registry(),
             )
             exit_code = source_builder.build(
                 nocache=True,

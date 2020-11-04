@@ -6,7 +6,7 @@ steps:
     build:
       no-cache: true
       dockerfile: |
-        FROM ***REMOVED***/busybox:latest
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
         RUN echo 'hi'
         RUN echo 'hi'
         RUN echo 'hi'
@@ -40,12 +40,12 @@ steps:
   build-and-service-containers:
     build:
       dockerfile: |
-        FROM ***REMOVED***/centos:7
+        FROM {{ DOCKER_REGISTRY }}/centos:7
         RUN yum -y install curl
     run:
       services:
         rabbitmq:
-          image: ***REMOVED***/rabbitmq:3.4
+          image: {{ DOCKER_REGISTRY }}/rabbitmq:3.4
           hostname: rabbitmq
           environment:
             RABBITMQ_NODENAME: test-rabbitmq
@@ -58,7 +58,7 @@ steps:
   run-docker:
     build:
       dockerfile: |
-        FROM ***REMOVED***/centos:7.2.1511
+        FROM {{ DOCKER_REGISTRY }}/centos:7.2.1511
         RUN yum -y install docker
         RUN echo "" > /etc/sysconfig/docker
         RUN mkdir /bob && touch /bob/test
@@ -74,7 +74,7 @@ steps:
 
   run-post-build-path:
     run:
-      image: ***REMOVED***/centos:7
+      image: {{ DOCKER_REGISTRY }}/centos:7
       cmd: 'echo "hello" > /hello.txt'
       post-build: tests/postbuildpath
     push:
@@ -82,7 +82,7 @@ steps:
 
   run-post-build-inline:
     run:
-      image: ***REMOVED***/centos:7
+      image: {{ DOCKER_REGISTRY }}/centos:7
       cmd: 'echo "hello" > /hello.txt'
       post-build:
         dockerfile: |
@@ -92,7 +92,7 @@ steps:
 
   run-post-build-inject:
     run:
-      image: ***REMOVED***/centos:7
+      image: {{ DOCKER_REGISTRY }}/centos:7
       cmd: 'echo "hello" > /hello.txt'
       post-build:
         # use a different container here to make sure inject overrides
@@ -105,7 +105,7 @@ steps:
 
   archive-container-config:
     run:
-      image: ***REMOVED***/centos:7
+      image: {{ DOCKER_REGISTRY }}/centos:7
       cmd: 'echo "create marathon config here"'
       artifacts:
         'marathon.config': {'marathon.config': 'releng/testmodule'}
@@ -123,7 +123,7 @@ steps:
 
   test-dir-archive:
     run:
-      image: ***REMOVED***/centos:7
+      image: {{ DOCKER_REGISTRY }}/centos:7
       cmds:
         - 'mkdir bob; echo "hello" > bob/file1.txt; echo "hello" > bob/file2.txt'
         - 'mkdir -p bob/bob2; echo "hello" > bob/bob2/file1.txt; echo "hello" > bob/bob2/file2.txt'

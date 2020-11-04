@@ -4,7 +4,7 @@
 steps:
   test-build_dir_mount:
     run:
-      image: ***REMOVED***/ubuntu:latest
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
         # Obvious directory that should succeed
         .: /test_dir
@@ -20,7 +20,7 @@ steps:
       # This is expected to fail since relative paths outside of the build
       # directory are forbidden.
 
-      image: ***REMOVED***/ubuntu:latest
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
         # Obvious directory that should fail
         ..: /test_dir

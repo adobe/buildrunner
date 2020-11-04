@@ -98,11 +98,12 @@ class DockerSSHAgentProxy(object):
     """
 
 
-    def __init__(self, docker_client, log):
+    def __init__(self, docker_client, log, docker_registry):
         """
         """
         self.docker_client = docker_client
         self.log = log
+        slef.docker_registry = docker_registry
         self._ssh_agent_image = None
         self._ssh_agent_container = None
         self._ssh_client = None
@@ -253,6 +254,7 @@ class DockerSSHAgentProxy(object):
             self.log.write('Creating ssh-agent image\n')
             ssh_agent_builder = DockerBuilder(
                 path=SSH_AGENT_PROXY_BUILD_CONTEXT,
+                docker_registry=self.docker_registry,
             )
             exit_code = ssh_agent_builder.build(
                 nocache=False,
