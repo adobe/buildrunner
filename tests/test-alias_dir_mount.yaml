@@ -4,7 +4,7 @@
 steps:
   test-alias_dir_mount-tests:
     run:
-      image: ***REMOVED***/ubuntu:latest
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
         # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
         tests: /tmp_dir
@@ -16,7 +16,7 @@ steps:
 
   test-alias_dir_mount-homedir:
     run:
-      image: ***REMOVED***/ubuntu:latest
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
         # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
         homedir: /tmp_dir
@@ -32,7 +32,7 @@ steps:
       # Should be forbidden (viz. outside of the user's home directory,
       # not owned by the user and not specified in the ``MASTER_GLOBAL_CONFIG_FILE``
       # (``/etc/buildrunner/buildrunner.yaml``).
-      image: ***REMOVED***/ubuntu:latest
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
         # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
         forbidden_slash: /tmp_dir
@@ -44,7 +44,7 @@ steps:
 
   test-alias_dir_mount-dev_null:
     run:
-      image: ***REMOVED***/ubuntu:latest
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
         # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
         dev_null: /test_file

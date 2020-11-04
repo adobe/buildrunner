@@ -27,6 +27,7 @@ class DockerBuilder(object):
             dockerfile=None,
             dockerd_url=None,
             timeout=None,
+            docker_registry=None,
     ):
         self.path = path
         self.inject = inject
@@ -48,6 +49,7 @@ class DockerBuilder(object):
             dockerd_url=dockerd_url,
             timeout=timeout,
         )
+        self.docker_registry = docker_registry
         self.image = None
         self.intermediate_containers = []
 
@@ -88,6 +90,9 @@ class DockerBuilder(object):
             tfile.add(self.dockerfile, arcname='./Dockerfile')
         tfile.close()
         _fileobj.seek(0)
+
+        # Always add default registry to build args
+        buildargs['DOCKER_REGISTRY'] = self.docker_registry
 
         stream = self.docker_client.build(
             path=None,

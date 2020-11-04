@@ -5,7 +5,7 @@ steps:
   # Ensure the image is here so the next step always passes
   ensure-centos7:
     run:
-      image: ***REMOVED***/centos:7
+      image: {{ DOCKER_REGISTRY }}/centos:7
       cmd:   /bin/true
   # Remove the centos image
   clean-images-1:
@@ -16,13 +16,13 @@ steps:
   # Start up a container, it should NOT fail based on centos:7 not existing
   test-without-systemd:
     run:
-      image: ***REMOVED***/centos:7
+      image: {{ DOCKER_REGISTRY }}/centos:7
       cmd:   /bin/true
 
   # Same as above, but for a service container
   ensure-alpine:
     run:
-      image: ***REMOVED***/alpine:latest
+      image: {{ DOCKER_REGISTRY }}/alpine:latest
       cmd:   /bin/true
   clean-images-2:
     run:
@@ -33,29 +33,29 @@ steps:
      run:
        services:
          s1:
-           image: ***REMOVED***/centos:7
+           image: {{ DOCKER_REGISTRY }}/centos:7
            cmd: python -m SimpleHTTPServer 8001
-       image: ***REMOVED***/alpine:latest
+       image: {{ DOCKER_REGISTRY }}/alpine:latest
        cmd: /bin/true
 
   # Ensure systemd init process is not running
   test-systemd-off:
     run:
-       image: ***REMOVED***/centos:7
+       image: {{ DOCKER_REGISTRY }}/centos:7
        systemd: false
        cmd: ps -p 1 -o cmd | tail -1 | grep -v /usr/sbin/init
 
   # Ensure systemd init process is running
   test-systemd-on:
     run:
-       image: ***REMOVED***/centos:7
+       image: {{ DOCKER_REGISTRY }}/centos:7
        systemd: true
        cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
 
   test-systemd-on-built:
     build:
       dockerfile: |
-        FROM ***REMOVED***/centos:7
+        FROM {{ DOCKER_REGISTRY }}/centos:7
         LABEL BUILDRUNNER_SYSTEMD=1
     run:
       cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
@@ -64,7 +64,7 @@ steps:
   test-systemd-off-built-{{ v }}:
     build:
       dockerfile: |
-        FROM ***REMOVED***/centos:7
+        FROM {{ DOCKER_REGISTRY }}/centos:7
         LABEL BUILDRUNNER_SYSTEMD={{ v }}
     run:
       cmd: ps -p 1 -o cmd | tail -1 | grep -v /usr/sbin/init
@@ -76,7 +76,7 @@ steps:
     run:
       services:
         s1:
-          image:   ***REMOVED***/centos:7
+          image:   {{ DOCKER_REGISTRY }}/centos:7
           systemd: true
           cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init && python -m SimpleHTTPServer 8001
       image: ***REMOVED***/releng/buildrunner:latest

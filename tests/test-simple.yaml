@@ -6,5 +6,5 @@ steps:
     build:
       no-cache: true
       dockerfile: |
-        FROM ***REMOVED***/busybox:latest
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
         RUN echo 'hi'

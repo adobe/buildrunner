@@ -1,4 +1,5 @@
-FROM ***REMOVED***/python:2.7
+ARG DOCKER_REGISTRY
+FROM $DOCKER_REGISTRY/python:2.7
 
 COPY . /buildrunner-source
 

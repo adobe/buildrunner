@@ -4,9 +4,10 @@ steps:
     build:
       dockerfile: |
         ARG imageLocation
-        FROM $imageLocation
+        ARG DOCKER_REGISTRY
+        FROM $DOCKER_REGISTRY/$imageLocation
       buildargs:
-        imageLocation: ***REMOVED***/alpine
+        imageLocation: alpine
 
   # Test adding multiple buildargs to docker build (see https://github.com/moby/moby/pull/31352)
   test-multiple-buildargs:
@@ -17,5 +18,5 @@ steps:
         FROM $imageLocation1
         FROM $imageLocation2
       buildargs:
-        imageLocation1: ***REMOVED***/alpine
-        imageLocation2: ***REMOVED***/ubuntu
+        imageLocation1: {{ DOCKER_REGISTRY }}/alpine
+        imageLocation2: {{ DOCKER_REGISTRY }}/ubuntu

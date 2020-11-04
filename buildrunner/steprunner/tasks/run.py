@@ -786,6 +786,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._sshagent = DockerSSHAgentProxy(
                 self._docker_client,
                 self.step_runner.log,
+                self.step_runner.build_runner.get_docker_registry(),
             )
             self._sshagent.start(
                 self.step_runner.build_runner.get_ssh_keys_from_aliases(

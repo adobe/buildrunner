@@ -1,2 +1,3 @@
-FROM ***REMOVED***/centos:7
+ARG DOCKER_REGISTRY
+FROM $DOCKER_REGISTRY/centos:7
 RUN yum -y install curl

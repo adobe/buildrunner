@@ -187,6 +187,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             self.path,
             inject=self.to_inject,
             dockerfile=self.dockerfile,
+            docker_registry=self.step_runner.build_runner.get_docker_registry(),
         )
         try:
             exit_code = builder.build(
