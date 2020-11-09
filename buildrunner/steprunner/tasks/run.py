@@ -798,6 +798,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._dockerdaemonproxy = DockerDaemonProxy(
             self._docker_client,
             self.step_runner.log,
+            self.step_runner.build_runner.get_docker_registry(),
         )
         self._dockerdaemonproxy.start()
 
