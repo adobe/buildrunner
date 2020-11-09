@@ -13,10 +13,11 @@ class DockerDaemonProxy(object):
     """
 
 
-    def __init__(self, docker_client, log):
+    def __init__(self, docker_client, log, docker_registry):
         """
         """
         self.docker_client = docker_client
+        self.docker_registry = docker_registry
         self.log = log
         self._daemon_container = None
         self._env = {
@@ -74,7 +75,7 @@ class DockerDaemonProxy(object):
 
         # create and start the Docker container
         self._daemon_container = self.docker_client.create_container(
-            'busybox',
+            '{0}/busybox:latest'.format(self.docker_registry),
             command='/bin/sh',
             volumes=_volumes,
             host_config=self.docker_client.create_host_config(
