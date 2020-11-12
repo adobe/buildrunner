@@ -400,6 +400,8 @@ every run container:
 :``BUILDRUNNER_BUILD_TIME``: the "unix" time or "epoch" time of the build (in seconds)
 :``BUILDRUNNER_STEP_ID``: a UUID representing the step
 :``BUILDRUNNER_STEP_NAME``: The name of the Buildrunner step
+:``BUILDRUNNER_STEPS``: the list of steps manually specified on the command line,
+                        defaults to an empty list
 :``BUILDRUNNER_INVOKE_USER``: The username of the user that invoked Buildrunner
 :``BUILDRUNNER_INVOKE_UID``: The UID of the user that invoked Buildrunner
 :``BUILDRUNNER_INVOKE_GROUP``: The group of the user that invoked Buildrunner

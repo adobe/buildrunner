@@ -101,6 +101,7 @@ class BuildRunner(object):
             'VCSINFO_ID': str(self.vcs.id),
             'VCSINFO_SHORT_ID': str(self.vcs.id)[:7],
             'VCSINFO_MODIFIED': str(self.vcs.modified),
+            'BUILDRUNNER_STEPS': self.steps_to_run,
         }
 
         if ctx:
