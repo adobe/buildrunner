@@ -516,7 +516,10 @@ class BuildRunner(object):
                     return local_path
 
                 # need to put the contents in a tmp file and return the path
-                _fileobj = tempfile.NamedTemporaryFile(delete=False)
+                _fileobj = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    dir=os.getenv('BUILDRUNNER_TEMPDIR', tempfile.gettempdir()),
+                )
                 _fileobj.write(local_file)
                 tmp_path = os.path.realpath(_fileobj.name)
                 _fileobj.close()
@@ -591,7 +594,10 @@ class BuildRunner(object):
             self.log.write('Creating source archive\n')
             _fileobj = None
             try:
-                _fileobj = tempfile.NamedTemporaryFile(delete=False)
+                _fileobj = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    dir=os.getenv('BUILDRUNNER_TEMPDIR', tempfile.gettempdir()),
+                )
                 with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
                     tfile.add(
                         self.build_dir,
