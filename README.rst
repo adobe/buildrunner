@@ -167,6 +167,14 @@ they are used when put into the global configuration file:
   # build caches. The default directory is ~/.buildrunner/caches.
   caches-root: ~/.buildrunner/caches
 
+  # Change the default docker registry, see the FAQ below for more information
+  docker-registry: ***REMOVED***
+
+  # Change the temp directory used for *most* files
+  # Setting the TMP, TMPDIR, or TEMP env vars should do the same thing,
+  # but on some systems it may be necessary to use this instead.
+  temp-dir: /my/tmp/dir
+
 Configuration Locations
 -----------------------
 
