@@ -420,6 +420,9 @@ class BuildRunner(object):
         # Default to docker.io if none is configured
         return self.global_config.get('docker-registry', 'docker.io')
 
+    def get_temp_dir(self):
+        return self.global_config.get('temp-dir', tempfile.gettempdir())
+
     def get_build_server_from_alias(self, host):
         """
         Given a host alias string determine the actual build server host value
@@ -518,7 +521,7 @@ class BuildRunner(object):
                 # need to put the contents in a tmp file and return the path
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=os.getenv('BUILDRUNNER_TEMPDIR', tempfile.gettempdir()),
+                    dir=os.getenv('BUILDRUNNER_TEMPDIR', self.get_temp_dir()),
                 )
                 _fileobj.write(local_file)
                 tmp_path = os.path.realpath(_fileobj.name)
@@ -596,7 +599,7 @@ class BuildRunner(object):
             try:
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=os.getenv('BUILDRUNNER_TEMPDIR', tempfile.gettempdir()),
+                    dir=os.getenv('BUILDRUNNER_TEMPDIR', self.get_temp_dir()),
                 )
                 with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
                     tfile.add(
