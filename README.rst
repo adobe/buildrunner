@@ -1149,6 +1149,10 @@ The test suite can be invoked manually from the top of the source directory:
 Common Issues
 =============
 
+.. warning::
+    Always update to the latest version of buildrunner before troubleshooting as new features
+    may be required.
+
 Docker Hub rate limit
 ---------------------
 
