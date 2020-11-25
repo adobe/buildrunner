@@ -678,10 +678,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     port, name, ipaddr
                 ))
 
-            #check that the container is still available
+            # check that the container is still available
             container = self._docker_client.inspect_container(name)
             container_status = container.get('State', {}).get('Status')
-            print('checking {0}'.format(container))
             if container_status not in ['created', 'running']:
                 raise BuildRunnerProcessingError(
                     'Unable to wait for a service port {0} to be ready, the container {1} status is {2}'.format(
