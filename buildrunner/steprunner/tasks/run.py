@@ -678,11 +678,24 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     port, name, ipaddr
                 ))
 
+            #check that the container is still available
+            container = self._docker_client.inspect_container(name)
+            container_status = container.get('State', {}).get('Status')
+            print('checking {0}'.format(container))
+            if container_status not in ['created', 'running']:
+                raise BuildRunnerProcessingError(
+                    'Unable to wait for a service port {0} to be ready, the container {1} status is {2}'.format(
+                        port,
+                        name,
+                        container_status
+                    ))
+
             # Use a small nc image to test if the port is open from within the docker network
             # Linux can talk to containers directly, but mac and other OSes cannot
             # See https://github.com/docker/for-mac/issues/155 for more info for mac
             nc_tester = None
             try:
+
                 nc_tester = DockerRunner(
                     self.NC_DOCKER_IMAGE,
                     pull_image=False,
