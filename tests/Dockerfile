@@ -1,5 +1,5 @@
 ARG DOCKER_REGISTRY
-FROM $DOCKER_REGISTRY/python:2.7.12-alpine
+FROM $DOCKER_REGISTRY/python:3.6-alpine
 EXPOSE 80
 RUN mkdir -p /var/http
 WORKDIR /var/http

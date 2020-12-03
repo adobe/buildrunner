@@ -1,7 +1,7 @@
 """
 Copyright (C) 2016 Adobe
 """
-from __future__ import absolute_import
+
 import os
 
 from buildrunner.docker import DOCKER_DEFAULT_DOCKERD_URL
@@ -45,7 +45,7 @@ class DockerDaemonProxy(object):
 
         # setup docker env and mounts so that the docker daemon is accessible
         # from within the run container
-        for env_name, env_value in os.environ.iteritems():
+        for env_name, env_value in os.environ.items():
             if env_name == 'DOCKER_HOST':
                 self._env['DOCKER_HOST'] = env_value
             if env_name == 'DOCKER_TLS_VERIFY' and env_value:

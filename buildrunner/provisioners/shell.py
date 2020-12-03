@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015-2020 Adobe
 """
-from __future__ import absolute_import, print_function
+
 import sys
 from buildrunner.errors import BuildRunnerProvisionerError
 

@@ -1,7 +1,7 @@
 """
 Copyright (C) 2014 Adobe
 """
-from __future__ import absolute_import
+
 
 import codecs
 from collections import OrderedDict
@@ -34,11 +34,11 @@ OrderedLoader.add_constructor(
 # Tell YAML how to dump the OrderedDict
 yaml.add_representer(
     OrderedDict,
-    lambda dumper, data: dumper.represent_dict(data.iteritems()),
+    lambda dumper, data: dumper.represent_dict(iter(data.items())),
 )
 yaml.add_representer(
     OrderedDict,
-    lambda dumper, data: dumper.represent_dict(data.iteritems()),
+    lambda dumper, data: dumper.represent_dict(iter(data.items())),
     Dumper=yaml.SafeDumper
 )
 
@@ -120,7 +120,7 @@ def hash_sha1(fileNameGlobs=[]):
                         hasher.update(buf)
                         buf = openFile.read(BLOCKSIZE)
             except:
-                print "WARNING: Error reading file: %s" % fileName
+                print("WARNING: Error reading file: %s" % fileName)
     return hasher.hexdigest()
 
 class ConsoleLogger(object):
@@ -142,13 +142,13 @@ class ConsoleLogger(object):
         with color.
         """
         # colorize stdout
-        if not isinstance(output, unicode):
-            output = unicode(output, encoding='utf-8', errors='replace')
+        if not isinstance(output, str):
+            output = str(output, encoding='utf-8', errors='replace')
         _stdout = output
         if color and self.colorize_log:
             # Colorize stdout
-            _color_start = u'\033[01;3{color}m'.format(color=color)
-            _stdout = _color_start + _stdout + u'\033[00;00m'
+            _color_start = '\033[01;3{color}m'.format(color=color)
+            _stdout = _color_start + _stdout + '\033[00;00m'
         self.stdout.write(_stdout)
 
         # do not colorize output to other streams

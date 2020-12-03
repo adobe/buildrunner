@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015-2020 Adobe
 """
-from __future__ import absolute_import
+
 from collections import OrderedDict
 import grp
 import os
@@ -97,12 +97,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             volume_option = None
             if len(volumes_from_definition) > 1:
                 volume_option = volumes_from_definition[1]
-            if service_container not in self._service_links.values():
+            if service_container not in list(self._service_links.values()):
                 raise BuildRunnerConfigurationError(
                     '"volumes_from" configuration "%s" does not '
                     'reference a valid service container\n' % sc_vf
                 )
-            for container, service in self._service_links.iteritems():
+            for container, service in self._service_links.items():
                 if service == service_container:
                     if volume_option:
                         _volumes_from.append(
@@ -148,7 +148,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 shell='/bin/sh',
             )
 
-            for pattern, properties in self.config['artifacts'].iteritems():
+            for pattern, properties in self.config['artifacts'].items():
                 # query files for each artifacts pattern, capturing the output
                 # for parsing
                 stat_output_file = "%s.out" % str(uuid.uuid4())
@@ -525,14 +525,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _extra_hosts = None
         if 'extra_hosts' in config:
             _extra_hosts = {}
-            for extra_host, extra_host_ip in config['extra_hosts'].iteritems():
+            for extra_host, extra_host_ip in config['extra_hosts'].items():
                 _extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
 
         # set service specific environment variables
         _env['BUILDRUNNER_STEP_ID'] = self.step_runner.id
         _env['BUILDRUNNER_STEP_NAME'] = self.step_runner.name
         if 'env' in config:
-            for key, value in config['env'].iteritems():
+            for key, value in config['env'].items():
                 _env[key] = value
 
         # make buildrunner aware of spawned containers
@@ -554,7 +554,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             if ssh_container:
                 _volumes_from.append(ssh_container)
             if ssh_env:
-                for _var, _val in ssh_env.iteritems():
+                for _var, _val in ssh_env.items():
                     _env[_var] = _val
 
         # attach the docker daemon container
@@ -562,7 +562,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if daemon_container:
             _volumes_from.append(daemon_container)
         if daemon_env:
-            for _var, _val in daemon_env.iteritems():
+            for _var, _val in daemon_env.items():
                 _env[_var] = _val
 
         # see if we need to map any service container volumes
@@ -576,7 +576,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 ARTIFACTS_VOLUME_MOUNT + ':ro',
         }
         if 'files' in config:
-            for f_alias, f_path in config['files'].iteritems():
+            for f_alias, f_path in config['files'].items():
                 # lookup file from alias
                 f_local = self.step_runner.build_runner.get_local_files_from_alias(
                     f_alias,
@@ -711,7 +711,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         Otherwise, return the service_name
         """
         rval = service_name
-        if isinstance(service_name, basestring) and service_name in self._service_runners:
+        if isinstance(service_name, str) and service_name in self._service_runners:
             ipaddr = self._service_runners[service_name].get_ip()
             if ipaddr is not None:
                 rval = ipaddr
@@ -804,7 +804,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # start any service containers
         if 'services' in self.config:
-            for _name, _config in self.config['services'].iteritems():
+            for _name, _config in self.config['services'].items():
                 self._start_service_container(_name, _config)
 
         # determine if there is a command to run
@@ -852,7 +852,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # determine additional hosts to add
         if 'extra_hosts' in self.config:
             extra_hosts = {}
-            for extra_host, extra_host_ip in self.config['extra_hosts'].iteritems():
+            for extra_host, extra_host_ip in self.config['extra_hosts'].items():
                 extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
             container_args['extra_hosts'] = extra_hosts
 
@@ -860,7 +860,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         container_args['environment']['BUILDRUNNER_STEP_ID'] = self.step_runner.id
         container_args['environment']['BUILDRUNNER_STEP_NAME'] = self.step_runner.name
         if 'env' in self.config:
-            for key, value in self.config['env'].iteritems():
+            for key, value in self.config['env'].items():
                 container_args['environment'][key] = value
 
         # make buildrunner aware of spawned containers
@@ -879,7 +879,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             if ssh_container:
                 container_args['volumes_from'].append(ssh_container)
             if ssh_env:
-                for _var, _val in ssh_env.iteritems():
+                for _var, _val in ssh_env.items():
                     container_args['environment'][_var] = _val
 
         # attach the docker daemon container
@@ -887,12 +887,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if daemon_container:
             container_args['volumes_from'].append(daemon_container)
         if daemon_env:
-            for _var, _val in daemon_env.iteritems():
+            for _var, _val in daemon_env.items():
                 container_args['environment'][_var] = _val
 
         # see if we need to inject any files
         if 'files' in self.config:
-            for f_alias, f_path in self.config['files'].iteritems():
+            for f_alias, f_path in self.config['files'].items():
                 # lookup file from alias
                 f_local = self.step_runner.build_runner.get_local_files_from_alias(
                     f_alias,
@@ -930,7 +930,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # see if we need to mount any caches
         if 'caches' in self.config:
-            for cache_name, cache_path in self.config['caches'].iteritems():
+            for cache_name, cache_path in self.config['caches'].items():
                 # get the cache location from the main BuildRunner class
                 cache_local_path = self.step_runner.build_runner.get_cache_path(
                     cache_name,
@@ -1063,7 +1063,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.runner.cleanup()
 
         if self._service_runners:
-            for (_sname, _srun) in reversed(self._service_runners.items()):
+            for (_sname, _srun) in reversed(list(self._service_runners.items())):
                 self.step_runner.log.write(
                     'Destroying service container "%s"\n' % _sname
                 )

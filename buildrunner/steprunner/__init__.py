@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015 Adobe
 """
-from __future__ import absolute_import
+
 import os
 import traceback
 import uuid
@@ -67,7 +67,7 @@ class BuildStepRunner(object):
         _tasks = []
         _context = {}
         try:
-            for _task_name, _task_config in self.config.iteritems():
+            for _task_name, _task_config in self.config.items():
                 self.log.write('==> Running step: %s:%s\n' % (self.name, _task_name))
                 if _task_name in TASK_MAPPINGS:
                     if self.local_images:

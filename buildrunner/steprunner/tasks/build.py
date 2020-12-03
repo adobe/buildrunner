@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015 Adobe
 """
-from __future__ import absolute_import
+
 import buildrunner.docker
 import glob
 import os
@@ -80,7 +80,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                     'Step %s:build:inject must be a collection/map/dictionary' % self.step_runner
                 )
 
-            for src_glob, dest_path in self.config.get('inject', {}).iteritems():
+            for src_glob, dest_path in self.config.get('inject', {}).items():
                 _src_glob = self.step_runner.build_runner.to_abs_path(src_glob)
                 xsglob = glob.glob(_src_glob)
                 if not xsglob:
@@ -136,7 +136,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 path_dockerfile = os.path.join(self.path, 'Dockerfile')
                 if os.path.exists(path_dockerfile):
                     self.dockerfile = path_dockerfile
-            for src_file, dest_file in self.to_inject.iteritems():
+            for src_file, dest_file in self.to_inject.items():
                 if os.path.normpath(dest_file) in [
                         'Dockerfile',
                         '/Dockerfile',

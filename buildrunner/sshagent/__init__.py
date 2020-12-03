@@ -1,15 +1,15 @@
 """
 Copyright (C) 2014 Adobe
 """
-from __future__ import absolute_import
+
 import fcntl
 import os
 from select import select
-import StringIO
+import io
 import struct
 import threading
 import time
-import urlparse
+import urllib.parse
 import json
 
 from paramiko import (
@@ -66,7 +66,7 @@ def load_ssh_key_from_str(key_str, passwd):
     """
     try:
         return RSAKey.from_private_key(
-            StringIO.StringIO(key_str),
+            io.StringIO(key_str),
             passwd
         )
     except PasswordRequiredException:
@@ -76,7 +76,7 @@ def load_ssh_key_from_str(key_str, passwd):
     except SSHException:
         try:
             return DSSKey.from_private_key_file(
-                StringIO.StringIO(key_str),
+                io.StringIO(key_str),
                 passwd,
             )
         except PasswordRequiredException:
@@ -171,7 +171,7 @@ class DockerSSHAgentProxy(object):
         else:
             # get the Docker server ip address and ssh port exposed by this
             # container
-            p_data = urlparse.urlparse(self.docker_client.base_url)
+            p_data = urllib.parse.urlparse(self.docker_client.base_url)
             if p_data and 'unix' not in p_data.scheme and p_data.hostname:
                 if p_data.hostname != 'localunixsocket':
                     _ssh_host = p_data.hostname

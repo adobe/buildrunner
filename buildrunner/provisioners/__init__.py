@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015 Adobe
 """
-from __future__ import absolute_import
+
 from buildrunner.errors import BuildRunnerProvisionerError
 
 from buildrunner.provisioners.salt import SaltProvisioner
@@ -21,7 +21,7 @@ def create_provisioners(provisioners_config, logger):
     _provisioners = []
 
     if provisioners_config:
-        for _type, _value in provisioners_config.iteritems():
+        for _type, _value in provisioners_config.items():
             if _type in PROVISIONERS:
                 _provisioners.append(
                     PROVISIONERS[_type](_value, console=logger)

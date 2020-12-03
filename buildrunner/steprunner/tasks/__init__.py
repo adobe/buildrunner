@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015 Adobe
 """
-from __future__ import absolute_import
+
 
 
 class BuildStepRunnerTask(object):

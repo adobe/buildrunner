@@ -1,7 +1,7 @@
 """
 Copyright (C) 2015 Adobe
 """
-from __future__ import absolute_import, print_function
+
 import base64
 import socket
 import ssl
@@ -126,7 +126,7 @@ class DockerRunner(object):
             command = "/usr/sbin/init"
 
         if volumes:
-            for key, value in volumes.iteritems():
+            for key, value in volumes.items():
                 to_bind = value
                 _ro = False
                 if to_bind.rfind(':') > 0:

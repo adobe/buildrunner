@@ -1,7 +1,7 @@
 """
 Copyright (C) 2014 Adobe
 """
-from __future__ import absolute_import, print_function
+
 import base64
 import codecs
 from collections import OrderedDict
@@ -26,7 +26,7 @@ import jinja2
 import requests
 
 try:
-    from StringIO import StringIO
+    from io import StringIO
 except ImportError:
     from io import StringIO
 
@@ -107,7 +107,7 @@ class BuildRunner(object):
         if ctx:
             context.update(ctx)
 
-        for env_name, env_value in os.environ.iteritems():
+        for env_name, env_value in os.environ.items():
             for prefix in self.CONTEXT_ENV_PREFIXES:
                 if env_name.startswith(prefix):
                     context[env_name] = env_value
@@ -175,7 +175,7 @@ class BuildRunner(object):
                 # are dropped.
                 if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
                     scrubbed_local_files = {}
-                    for fname, fpath in ctx.get('local-files', {}).items():
+                    for fname, fpath in list(ctx.get('local-files', {}).items()):
                         if not isinstance(fpath, str):
                             self.log.write(
                                 'Bad "local-files" entry in {0!r}:'
@@ -433,7 +433,7 @@ class BuildRunner(object):
             return host
 
         build_servers = self.global_config['build-servers']
-        for _host, _host_aliases in build_servers.iteritems():
+        for _host, _host_aliases in build_servers.items():
             if host in _host_aliases:
                 return _host
 
@@ -510,7 +510,7 @@ class BuildRunner(object):
             return None
 
         local_files = self.global_config['local-files']
-        for local_alias, local_file in local_files.iteritems():
+        for local_alias, local_file in local_files.items():
             if file_alias == local_alias:
                 local_path = os.path.realpath(
                     os.path.expanduser(os.path.expandvars(local_file))
@@ -555,7 +555,7 @@ class BuildRunner(object):
         if not isinstance(path, list):
             paths = [path]
 
-        for i in xrange(len(paths)):
+        for i in range(len(paths)):
             _path = os.path.expanduser(paths[i])
             if os.path.isabs(_path):
                 paths[i] = os.path.realpath(_path)
@@ -685,7 +685,7 @@ class BuildRunner(object):
             if os.path.exists(artifact_manifest):
                 with open(artifact_manifest, 'r') as _af:
                     data = json.load(_af, object_pairs_hook=OrderedDict)
-                    artifacts = OrderedDict(data.items() + self.artifacts.items())
+                    artifacts = OrderedDict(list(data.items()) + list(self.artifacts.items()))
             else:
                 artifacts = self.artifacts
 
@@ -734,7 +734,7 @@ class BuildRunner(object):
             _pypi_to_push = []
 
             # run each step
-            for step_name, step_config in self.run_config['steps'].iteritems():
+            for step_name, step_config in self.run_config['steps'].items():
                 if not self.steps_to_run or step_name in self.steps_to_run:
                     build_step_runner = BuildStepRunner(
                         self,
@@ -797,7 +797,7 @@ class BuildRunner(object):
                 # Push to pypi repositories
                 # Placing the import here avoids the dependency when pypi is not needed
                 import twine.commands.upload
-                for _repository_name, _items in self.pypi_packages.iteritems():
+                for _repository_name, _items in self.pypi_packages.items():
                     twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
             else:
                 self.log.write(

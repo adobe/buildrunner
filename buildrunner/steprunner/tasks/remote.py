@@ -1,9 +1,9 @@
 """
 Copyright (C) 2015 Adobe
 """
-from __future__ import absolute_import
+
 import os
-from StringIO import StringIO
+from io import StringIO
 
 import fabric.tasks
 from fabric.api import hide, run, put, get
@@ -130,7 +130,7 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
 
                     if self.artifacts:
                         _arts = []
-                        for _art, _props in self.artifacts.iteritems():
+                        for _art, _props in self.artifacts.items():
                             # check to see if there are artifacts
                             # that match the pattern
                             with hide('everything'): #pylint: disable=not-context-manager

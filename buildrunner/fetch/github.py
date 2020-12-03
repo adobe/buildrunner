@@ -4,7 +4,7 @@ Fetch GitHub files.
 Copyright (C) 2019 Adobe
 '''
 
-from __future__ import absolute_import
+
 
 import os
 import sys
@@ -19,7 +19,7 @@ from ..errors import (
 try:
     import urllib.parse as urlparse
 except ImportError:
-    import urlparse
+    import urllib.parse
 
 
 def v3_fetch_file(parsed_url, config):
@@ -94,7 +94,7 @@ def fetch_file(parsed_url, config):
             (
                 'Missing github configuration for {} in buildrunner.yaml'
                 ' - known github configurations: {}'
-            ).format(parsed_url.netloc, ghcfg.keys())
+            ).format(parsed_url.netloc, list(ghcfg.keys()))
         )
 
     ver = nlcfg.get('version')
