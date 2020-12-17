@@ -24,10 +24,7 @@ import types
 import jinja2
 import requests
 
-try:
-    from io import StringIO
-except ImportError:
-    from io import StringIO
+from io import StringIO
 
 from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder

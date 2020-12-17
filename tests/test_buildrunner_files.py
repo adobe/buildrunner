@@ -4,6 +4,7 @@ import unittest
 
 import tests.test_runner as tr
 
+
 class Test_buildrunner_files(unittest.TestCase):
 
     def _get_test_args(self, br_file):
