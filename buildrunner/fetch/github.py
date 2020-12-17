@@ -1,7 +1,7 @@
 '''
 Fetch GitHub files.
 
-Copyright (C) 2019 Adobe
+Copyright (C) 2020 Adobe
 '''
 
 
@@ -32,7 +32,7 @@ def v3_fetch_file(parsed_url, config):
 
     username = config.get('username', os.getenv('USER', os.getenv('LOGNAME')))
     if not username:
-        raise RuntimeError('Failed to look up username to access github {}'.format(endpoint))
+        raise RuntimeError(f'Failed to look up username to access github {endpoint}')
 
     auth = (username, config.get('app_token', ''))
     url = '/'.join((
@@ -43,7 +43,7 @@ def v3_fetch_file(parsed_url, config):
     ))
     resp = requests.get(url, auth=auth)
     if resp.status_code != 200:
-        raise BuildRunnerProtocolError('Failed authenticating {} on {}'.format(username, endpoint))
+        raise BuildRunnerProtocolError(f'Failed authenticating {username} on {endpoint}')
 
     if not parsed_url.path.startswith('/'):
         raise ValueError('URL must begin with "/"')
@@ -54,7 +54,7 @@ def v3_fetch_file(parsed_url, config):
     url = '/'.join(ubuild)
     resp = requests.get(url, auth=auth)
     if resp.status_code != 200:
-        raise BuildRunnerProtocolError('Failed fetching URL: {}'.format(url))
+        raise BuildRunnerProtocolError(f'Failed fetching URL: {url}')
     json_c = resp.json()
 
     encoding = json_c.get('encoding')
@@ -63,14 +63,14 @@ def v3_fetch_file(parsed_url, config):
         dec_contents = base64.b64decode(enc_contents)
     else:
         raise NotImplementedError(
-            'No implementation to decode {}-encoded contents'.format(encoding)
+            f'No implementation to decode {encoding}-encoded contents'
         )
 
     if resp.encoding == 'utf-8':
         contents = dec_contents.decode('utf-8')
     else:
         raise NotImplementedError(
-            'No implementation to decode {}-encoded contents'.format(resp.encoding)
+            f'No implementation to decode {resp.encoding}-encoded contents'
         )
 
     return contents
@@ -82,7 +82,7 @@ def fetch_file(parsed_url, config):
     '''
 
     if parsed_url.scheme != 'github':
-        raise ValueError('URL scheme must be "github" but is "{}"'.format(parsed_url.github))
+        raise ValueError(f'URL scheme must be "github" but is "{parsed_url.github}"')
 
     ghcfg = config.get('github')
     if not ghcfg:
@@ -102,7 +102,7 @@ def fetch_file(parsed_url, config):
     if ver == 'v3':
         contents = v3_fetch_file(parsed_url, nlcfg)
     else:
-        raise NotImplementedError('No version support for github API version {}'.format(ver))
+        raise NotImplementedError(f'No version support for github API version {ver}')
 
     return contents
 

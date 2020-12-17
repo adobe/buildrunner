@@ -1,13 +1,10 @@
 '''
 File fetching engine.
 
-Copyright (C) 2019 Adobe
+Copyright (C) 2020 Adobe
 '''
 
-try:
-    import urllib.parse as urlparse
-except ImportError:
-    import urllib.parse
+import urllib.parse
 
 from . import github
 from . import http
@@ -37,7 +34,7 @@ def fetch_file(url, config):
         file_contents = http.fetch_file(parsed_url, config)
 
     else:
-        raise NotImplementedError('Unknown fetch backend: {}'.format(parsed_url.scheme))
+        raise NotImplementedError(f'Unknown fetch backend: {parsed_url.scheme}')
 
     return file_contents
 

@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import buildrunner.docker
@@ -54,14 +54,14 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
 
             if not is_dict(self.config.get('buildargs', self.buildargs)):
                 raise BuildRunnerConfigurationError(
-                    'Step %s:build:buildargs must be a collection/map/dictionary' % self.step_runner
+                    f'Step {self.step_runner}:build:buildargs must be a collection/map/dictionary'
                 )
 
             self.buildargs = self.config.get('buildargs', self.buildargs)
 
             if not isinstance(self.config.get('cache_from', self.cache_from), list):
                 raise BuildRunnerConfigurationError(
-                    'Step %s:build:cache_from must be a list' % self.step_runner
+                    f'Step {self.step_runner}:build:cache_from must be a list'
                 )
 
             self.cache_from = self.config.get('cache_from', self.cache_from)
@@ -71,13 +71,13 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                     self._docker_client.pull(cache_from_image)
                     # If the pull is successful, add the image to be cleaned up at the end of the script
                     self.step_runner.build_runner.generated_images.append(cache_from_image)
-                    self.step_runner.log.write('Using cache_from image: %s\n' % cache_from_image)
+                    self.step_runner.log.write(f'Using cache_from image: {cache_from_image}\n')
                 except:
-                    self.step_runner.log.write('WARNING: Unable to pull the cache_from image: %s\n' % cache_from_image)
+                    self.step_runner.log.write(f'WARNING: Unable to pull the cache_from image: {cache_from_image}\n')
 
             if not is_dict(self.config.get('inject', {})):
                 raise BuildRunnerConfigurationError(
-                    'Step %s:build:inject must be a collection/map/dictionary' % self.step_runner
+                    f'Step {self.step_runner}:build:inject must be a collection/map/dictionary'
                 )
 
             for src_glob, dest_path in self.config.get('inject', {}).items():
@@ -86,7 +86,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                 if not xsglob:
                     # Failed to resolve the glob
                     raise BuildRunnerConfigurationError(
-                        'Unable to expand inject glob: {0}'.format(_src_glob)
+                        f'Unable to expand inject glob: {_src_glob}'
                     )
                 if len(xsglob) == 1:
                     # Only one source - destination may be directory or filename - check for a trailing
@@ -127,9 +127,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
 
         if self.path and not os.path.exists(self.path):
             raise BuildRunnerConfigurationError(
-                'Step %s:build:path:%s: Invalid build context path' % (
-                    self.step_runner, self.path
-                ))
+                f'Step {self.step_runner}:build:path:{self.path}: Invalid build context path')
 
         if not self.dockerfile:
             if self.path:
@@ -157,19 +155,14 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
 
             if self.image_to_prepend_to_dockerfile:
                 # prepend the given image to the dockerfile
-                self.dockerfile = 'FROM %s\n%s' % (
-                    self.image_to_prepend_to_dockerfile,
-                    self.dockerfile
-                )
+                self.dockerfile = f'FROM {self.image_to_prepend_to_dockerfile}\n{self.dockerfile}'
 
 
     def run(self, context):
         # 'import' will override other configuration and perform a 'docker
         # import'
         if self._import:
-            self.step_runner.log.write('  Importing %s as a Docker image\n' % (
-                self._import,
-            ))
+            self.step_runner.log.write(f'  Importing {self._import} as a Docker image\n')
             context['image'] = DockerImporter(
                 self._import,
                 timeout=self.step_runner.build_runner.docker_timeout,
@@ -200,7 +193,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             if exit_code != 0 or not builder.image:
                 raise BuildRunnerProcessingError('Error building image')
         except Exception as exc:
-            self.step_runner.log.write('ERROR: {0}\n'.format(exc))
+            self.step_runner.log.write(f'ERROR: {exc}\n')
             raise
         finally:
             builder.cleanup()

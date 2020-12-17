@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015-2020 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import json
@@ -39,7 +39,7 @@ class DockerBuilder(object):
             else:
                 df_file = tempfile.NamedTemporaryFile(delete=False)
                 try:
-                    df_file.write(dockerfile)
+                    df_file.write(dockerfile.encode('utf-8'))
                     self.cleanup_dockerfile = True
                     self.dockerfile = df_file.name
                 finally:
@@ -109,7 +109,7 @@ class DockerBuilder(object):
         exit_code = 0
         msg_buffer = ''
         for msg_str in stream:
-            for msg in msg_str.split("\n"):
+            for msg in msg_str.decode('utf-8').split("\n"):
                 if msg:
                     msg_buffer += msg
                     try:

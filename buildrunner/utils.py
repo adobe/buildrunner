@@ -1,18 +1,19 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2020 Adobe
 """
 
 
-import codecs
 from collections import OrderedDict
 from datetime import datetime
 from time import strftime, gmtime
 import os
 import sys
 import uuid
-import yaml
+import yaml.resolver
+import yaml.scanner
 import glob
 import hashlib
+from typing import Union
 
 from buildrunner import BuildRunnerConfigurationError
 
@@ -23,9 +24,11 @@ class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
     """
     pass
 
+
 def construct_mapping(loader, node):
     loader.flatten_mapping(node)
     return OrderedDict(loader.construct_pairs(node))
+
 
 OrderedLoader.add_constructor(
     yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
@@ -104,24 +107,28 @@ def tempfile(prefix=None, suffix=None, temp_dir='/tmp'):
 
     return os.path.join(temp_dir, name)
 
-def hash_sha1(fileNameGlobs=[]):
+
+def hash_sha1(file_name_globs=None):
     """
     Return the sha1 hash from the content of multiple files, represented by a list of globs
     """
-    BLOCKSIZE = 2**16 # 65,536
+    if not file_name_globs:
+        file_name_globs = []
+    BLOCKSIZE = 2**16  # 65,536
     hasher = hashlib.sha1()
-    for fileNameGlob in fileNameGlobs:
-        for fileName in sorted(glob.glob(fileNameGlob)):
+    for file_name_glob in file_name_globs:
+        for fileName in sorted(glob.glob(file_name_glob)):
             try:
                 # Use BLOCKSIZE to ensure python memory isn't too full
-                with open(fileName, 'rb') as openFile:
-                    buf = openFile.read(BLOCKSIZE)
+                with open(fileName, 'rb') as open_file:
+                    buf = open_file.read(BLOCKSIZE)
                     while len(buf) > 0:
                         hasher.update(buf)
-                        buf = openFile.read(BLOCKSIZE)
+                        buf = open_file.read(BLOCKSIZE)
             except:
-                print("WARNING: Error reading file: %s" % fileName)
+                print(f"WARNING: Error reading file: {fileName}")
     return hasher.hexdigest()
+
 
 class ConsoleLogger(object):
     """
@@ -132,23 +139,22 @@ class ConsoleLogger(object):
         self.colorize_log = colorize_log
         self.streams = []
         for stream in streams:
-            self.streams.append(codecs.getwriter('utf-8')(stream, 'replace'))
-        self.stdout = codecs.getwriter('utf-8')(sys.stdout, 'replace')
+            self.streams.append(stream)
+        self.stdout = sys.stdout
 
-
-    def write(self, output, color=None):
+    def write(self, output: Union[bytes, str], color=None):
         """
         Write the given text to stdout and streams decorating output to stdout
         with color.
         """
-        # colorize stdout
         if not isinstance(output, str):
-            output = str(output, encoding='utf-8', errors='replace')
+            output = str(output, encoding=sys.stdout.encoding, errors='replace')
         _stdout = output
+
+        # colorize stdout
         if color and self.colorize_log:
             # Colorize stdout
-            _color_start = '\033[01;3{color}m'.format(color=color)
-            _stdout = _color_start + _stdout + '\033[00;00m'
+            _stdout = f'[01;3{color}m{_stdout}\033[00;00m'
         self.stdout.write(_stdout)
 
         # do not colorize output to other streams
@@ -156,7 +162,7 @@ class ConsoleLogger(object):
             try:
                 stream.write(output)
             except UnicodeDecodeError as ude:
-                stream.write("\nERROR writing to log: %s\n" % str(ude))
+                stream.write(f"\nERROR writing to log: {str(ude)}\n")
 
     def flush(self):
         """
@@ -172,6 +178,10 @@ class ContainerLogger(object):
     This class is not thread safe, but since each container gets its own that
     is ok.
     """
+    BUILD_LOG_COLORS = [3, 4]
+    SERVICE_LOG_COLORS = [5, 6, 1, 2]
+    LOGGERS = {}
+
     def __init__(self, console_logger, name, color, timestamps=True):
         self.console_logger = console_logger
         self.name = name
@@ -189,23 +199,25 @@ class ContainerLogger(object):
         """
         Write the contents of the buffer to the log.
         """
-        _line = self._get_timestamp() + self.line_prefix + ''.join(self._buffer)
-        del self._buffer[:]
+        _line = f'{self._get_timestamp()}{self.line_prefix}{"".join(self._buffer)}'
+        self._buffer.clear()
         self.console_logger.write(
             _line,
             color=self.color,
         )
 
-
-    def write(self, output):
+    def write(self, output: Union[bytes, str]):
         """
         Write the given output to the log.
         """
+        # Ensure that the output is a string
+        if not isinstance(output, str):
+            output = str(output, encoding=sys.stdout.encoding, errors='replace')
+
         for char in output:
             self._buffer.append(char)
             if char == '\n':
                 self._write_buffer()
-
 
     def cleanup(self):
         """
@@ -214,18 +226,13 @@ class ContainerLogger(object):
         self._buffer.append('\n')
         self._write_buffer()
 
-
-    BUILD_LOG_COLORS = [3, 4]
-    SERVICE_LOG_COLORS = [5, 6, 1, 2]
-    LOGGERS = {}
-
     @classmethod
     def for_build_container(cls, console_logger, name, timestamps=True):
         """
         Return a ContainerLogger for a build container.
         """
         color = cls._cycle_colors(cls.BUILD_LOG_COLORS)
-        name_idx = "%s%s" % (name, color)
+        name_idx = f"{name}{color}"
         if name_idx not in cls.LOGGERS:
             cls.LOGGERS[name_idx] = ContainerLogger(
                 console_logger,
@@ -234,7 +241,6 @@ class ContainerLogger(object):
                 timestamps=timestamps,
             )
         return cls.LOGGERS[name_idx]
-
 
     @classmethod
     def for_service_container(cls, console_logger, name, timestamps=True):
@@ -250,7 +256,6 @@ class ContainerLogger(object):
                 timestamps=timestamps,
             )
         return cls.LOGGERS[name]
-
 
     @staticmethod
     def _cycle_colors(colors):

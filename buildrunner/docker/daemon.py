@@ -1,5 +1,5 @@
 """
-Copyright (C) 2016 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import os
@@ -75,7 +75,7 @@ class DockerDaemonProxy(object):
 
         # create and start the Docker container
         self._daemon_container = self.docker_client.create_container(
-            '{0}/busybox:latest'.format(self.docker_registry),
+            f'{self.docker_registry}/busybox:latest',
             command='/bin/sh',
             volumes=_volumes,
             host_config=self.docker_client.create_host_config(
@@ -84,7 +84,7 @@ class DockerDaemonProxy(object):
         )['Id']
         self.docker_client.start(self._daemon_container)
         self.log.write(
-            "Created Docker daemon container %.10s\n" % self._daemon_container
+            f"Created Docker daemon container {self._daemon_container:.10}\n"
         )
 
 
@@ -94,9 +94,7 @@ class DockerDaemonProxy(object):
         """
         # kill container
         self.log.write(
-            "Destroying Docker daemon container %.10s\n" % (
-                self._daemon_container,
-            )
+            f"Destroying Docker daemon container {self._daemon_container:.10}\n"
         )
         if self._daemon_container:
             self.docker_client.remove_container(

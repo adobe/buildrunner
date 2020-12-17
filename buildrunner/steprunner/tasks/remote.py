@@ -1,13 +1,11 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import os
 from io import StringIO
 
-import fabric.tasks
-from fabric.api import hide, run, put, get
-from fabric.context_managers import settings
+from fabric import Connection, Config
 
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
@@ -21,15 +19,13 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
     Class used to manage "remote" build tasks.
     """
 
-
     def __init__(self, step_runner, config):
         super(RemoteBuildStepRunnerTask, self).__init__(step_runner, config)
 
         # must have a 'host' attribute
         if 'host' not in self.config:
             raise BuildRunnerConfigurationError(
-                'Step "%s" has a "remote" configuration without '
-                'a "host" attribute\n' % self.step_runner.name
+                f'Step "{self.step_runner.name}" has a "remote" configuration without a "host" attribute\n'
             )
         self.host = self.step_runner.build_runner.get_build_server_from_alias(
             self.config['host'],
@@ -38,125 +34,87 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
         # must specify the cmd to run
         if 'cmd' not in self.config:
             raise BuildRunnerConfigurationError(
-                'Step "%s" has a "remote" configuration without a'
-                '"cmd" attribute\n' % self.step_runner.name
+                f'Step "{self.step_runner.name}" has a "remote" configuration without a "cmd" attribute\n'
             )
         self.cmd = self.config['cmd']
 
         self.artifacts = self.config.get('artifacts', {})
 
-
     def run(self, step_context): #pylint: disable=unused-argument
         self.step_runner.log.write(
-            "Building on remote host %s\n\n" % self.host
-        )
-        fabric.tasks.execute(
-            fabric.tasks.WrappedCallableTask(self._run),
-            hosts=[self.host],
+            f"Building on remote host {self.host}\n\n"
         )
 
-
-    def _run(self):
-        """
-        Routine run by fabric.
-        """
         # call remote functions to copy tar and build remotely
-
-        remote_build_dir = '/tmp/buildrunner/%s-%s' % (
-            self.step_runner.build_runner.build_id,
-            self.step_runner.name,
-        )
+        remote_build_dir = f'/tmp/buildrunner/{self.step_runner.build_runner.build_id}-{self.step_runner.name}'
         remote_archive_filepath = remote_build_dir + '/source.tar'
         self.step_runner.log.write(
-            "[%s] Creating temporary remote directory '%s'\n" % (
-                self.host,
-                remote_build_dir,
-            )
+            f"[{self.host}] Creating temporary remote directory '{remote_build_dir}'\n"
         )
 
-        mkdir_result = run(
-            "mkdir -p %s" % remote_build_dir,
-            warn_only=True,
-            stdout=self.step_runner.log,
-            stderr=self.step_runner.log,
-        )
-        if mkdir_result.return_code:
-            raise BuildRunnerProcessingError(
-                "Error creating remote directory"
+        with Connection(self.host) as connection:
+            mkdir_result = connection.run(
+                f"mkdir -p {remote_build_dir}",
+                warn=True,
+                out_stream=self.step_runner.log,
+                err_stream=self.step_runner.log,
             )
-
-        try:
-            self.step_runner.log.write(
-                "[%s] Pushing archive file to remote directory\n" % (
-                    self.host,
+            if mkdir_result.return_code:
+                raise BuildRunnerProcessingError(
+                    "Error creating remote directory"
                 )
-            )
-            files = put(
-                self.step_runner.build_runner.get_source_archive_path(),
-                remote_archive_filepath,
-            )
-            if files:
+
+            try:
                 self.step_runner.log.write(
-                    "[%s] Extracting source tree archive on "
-                    "remote host:\n" % self.host
+                    f"[{self.host}] Pushing archive file to remote directory\n"
                 )
-                extract_result = run(
-                    "(cd %s; tar -xvf source.tar && "
-                    "rm -f source.tar)" % (
-                        remote_build_dir,
-                    ),
-                    warn_only=True,
-                    stdout=self.step_runner.log,
-                    stderr=self.step_runner.log,
+                files = connection.put(
+                    self.step_runner.build_runner.get_source_archive_path(),
+                    remote_archive_filepath,
                 )
-                if extract_result.return_code:
-                    raise BuildRunnerProcessingError(
-                        "Error extracting archive file"
+                if files:
+                    self.step_runner.log.write(
+                        f"[{self.host}] Extracting source tree archive on remote host:\n"
                     )
-                else:
-                    self.step_runner.log.write("[%s] Running command '%s'\n" % (
-                        self.host,
-                        self.cmd,
-                    ))
-                    package_result = run(
-                        "(cd %s; %s)" % (
-                            remote_build_dir,
-                            self.cmd,
-                        ),
-                        warn_only=True,
-                        stdout=self.step_runner.log,
-                        stderr=self.step_runner.log,
+                    extract_result = connection.run(
+                        f"(cd {remote_build_dir}; tar -xvf source.tar && rm -f source.tar)",
+                        warn=True,
+                        out_stream=self.step_runner.log,
+                        err_stream=self.step_runner.log,
                     )
+                    if extract_result.return_code:
+                        raise BuildRunnerProcessingError(
+                            "Error extracting archive file"
+                        )
+                    else:
+                        self.step_runner.log.write(f"[{self.host}] Running command '{self.cmd}'\n")
+                        package_result = connection.run(
+                            f"(cd {remote_build_dir}; {self.cmd})",
+                            warn=True,
+                            out_stream=self.step_runner.log,
+                            err_stream=self.step_runner.log,
+                        )
 
-                    if self.artifacts:
-                        _arts = []
-                        for _art, _props in self.artifacts.items():
-                            # check to see if there are artifacts
-                            # that match the pattern
-                            with hide('everything'): #pylint: disable=not-context-manager
+                        if self.artifacts:
+                            _arts = []
+                            for _art, _props in self.artifacts.items():
+                                # check to see if there are artifacts
+                                # that match the pattern
                                 dummy_out = StringIO()
-                                art_result = run(
-                                    'ls -A1 %s/%s' % (
-                                        remote_build_dir,
-                                        _art,
-                                    ),
-                                    warn_only=True,
-                                    stdout=dummy_out,
-                                    stderr=dummy_out,
+                                art_result = connection.run(
+                                    f'ls -A1 {remote_build_dir}/{_art}',
+                                    hide=True,
+                                    warn=True,
+                                    out_stream=dummy_out,
+                                    err_stream=dummy_out,
                                 )
                                 if art_result.return_code:
                                     continue
 
-                            # we have at least one match--run the get
-                            with settings(warn_only=True):
-                                for _ca in get(
-                                        "%s/%s" % (
-                                            remote_build_dir,
-                                            _art,
-                                        ),
-                                        "%s/%%(basename)s" % (
-                                            self.step_runner.results_dir,
-                                        )
+                                # we have at least one match--run the get
+                                for _ca in connection.get(
+                                        f"{remote_build_dir}/{_art}",
+                                        f"{self.step_runner.results_dir}/%(basename)s"
                                 ):
                                     _arts.append(_ca)
                                     self.step_runner.build_runner.add_artifact(
@@ -166,36 +124,32 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                                         ),
                                         _props,
                                     )
-                        self.step_runner.log.write("\nGathered artifacts:\n")
-                        for _art in _arts:
-                            self.step_runner.log.write(
-                                '- found %s\n' % os.path.basename(_art),
+                            self.step_runner.log.write("\nGathered artifacts:\n")
+                            for _art in _arts:
+                                self.step_runner.log.write(
+                                    f'- found {os.path.basename(_art)}\n',
+                                )
+                            self.step_runner.log.write("\n")
+
+                        if package_result.return_code:
+                            raise BuildRunnerProcessingError(
+                                "Error running remote build"
                             )
-                        self.step_runner.log.write("\n")
 
-
-                    if package_result.return_code:
-                        raise BuildRunnerProcessingError(
-                            "Error running remote build"
-                        )
-
-            else:
-                raise BuildRunnerProcessingError(
-                    "Error uploading source archive to host"
+                else:
+                    raise BuildRunnerProcessingError(
+                        "Error uploading source archive to host"
+                    )
+            finally:
+                self.step_runner.log.write(
+                    f"[{self.host}] Cleaning up remote temp directory {remote_build_dir}\n"
                 )
-        finally:
-            self.step_runner.log.write(
-                "[%s] Cleaning up remote temp directory %s\n" % (
-                    self.host,
-                    remote_build_dir,
+                cleanup_result = connection.run(
+                    f"rm -Rf {remote_build_dir}",
+                    out_stream=self.step_runner.log,
+                    err_stream=self.step_runner.log,
                 )
-            )
-            cleanup_result = run(
-                "rm -Rf %s" % remote_build_dir,
-                stdout=self.step_runner.log,
-                stderr=self.step_runner.log,
-            )
-            if cleanup_result.return_code:
-                raise BuildRunnerProcessingError(
-                    "Error cleaning up remote directory"
-                )
+                if cleanup_result.return_code:
+                    raise BuildRunnerProcessingError(
+                        "Error cleaning up remote directory"
+                    )

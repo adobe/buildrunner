@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015-2020 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import sys

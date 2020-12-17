@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2020 Adobe
 """
 
 from buildrunner.errors import BuildRunnerProvisionerError
@@ -28,7 +28,7 @@ def create_provisioners(provisioners_config, logger):
                 )
             else:
                 raise BuildRunnerProvisionerError(
-                    'Unknown provisioner type "%s"' % _type
+                    f'Unknown provisioner type "{_type}"'
                 )
 
     return _provisioners

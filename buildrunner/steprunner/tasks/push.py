@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import os
@@ -33,7 +33,6 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
     given registry/repository.
     """
 
-
     def __init__(self, step_runner, config):
         super(PushBuildStepRunnerTask, self).__init__(step_runner, config)
         self._docker_client = buildrunner.docker.new_client(
@@ -62,17 +61,13 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         lrepo = self._repository.lower()
         if lrepo != self._repository:
             self.step_runner.log.write(
-                'Forcing repository to lowercase: {0} => {1}\n'.format(
-                    self._repository,
-                    lrepo,
-                )
+                f'Forcing repository to lowercase: {self._repository} => {lrepo}\n'
             )
             self._repository = lrepo
 
-
     def run(self, context):
         self.step_runner.log.write(
-            'Preparing resulting image for push to "%s".\n' % self._repository
+            f'Preparing resulting image for push to "{self._repository}".\n'
         )
 
         # first see if a run task produced an image (via a post-build config)
@@ -92,9 +87,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 'Cannot find an image to tag/push from a previous task'
             )
         self.step_runner.log.write(
-            'Using image %s for tagging\n' % (
-                image_to_use,
-            )
+            f'Using image {image_to_use} for tagging\n'
         )
 
         # determine internal tag based on source control information and build
@@ -109,11 +102,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         # tag the image
         for _tag in self._tags:
             self.step_runner.log.write(
-                'Tagging image "%s" with repository:tag "%s:%s"\n' % (
-                    image_to_use,
-                    self._repository,
-                    _tag,
-                )
+                f'Tagging image "{image_to_use}" with repository:tag "{self._repository}:{_tag}"\n'
             )
             self._docker_client.tag(
                 image_to_use,
@@ -122,7 +111,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 force=True,
             )
             self.step_runner.build_runner.repo_tags_to_push.append((
-                "%s:%s" % (self._repository, _tag),
+                f"{self._repository}:{_tag}",
                 self._insecure_registry,
             ))
 

@@ -1,5 +1,5 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import fcntl
@@ -45,18 +45,18 @@ def load_ssh_key_from_file(key_file, passwd):
         return RSAKey.from_private_key_file(key_file, passwd)
     except PasswordRequiredException:
         raise BuildRunnerConfigurationError(
-            "Key at %s requires a password" % key_file
+            f"Key at {key_file} requires a password"
         )
     except SSHException:
         try:
             return DSSKey.from_private_key_file(key_file, passwd)
         except PasswordRequiredException:
             raise BuildRunnerConfigurationError(
-                "Key at %s requires a password" % key_file
+                f"Key at {key_file} requires a password"
             )
         except SSHException:
             raise BuildRunnerConfigurationError(
-                "Unable to load key at %s" % key_file
+                f"Unable to load key at {key_file}"
             )
 
 
@@ -143,7 +143,7 @@ class DockerSSHAgentProxy(object):
         self._ssh_agent_container = self.docker_client.create_container(
             self.get_ssh_agent_image(),
             command=[
-                '%s %s' % (keys[0].get_name(), keys[0].get_base64()),
+                f'{keys[0].get_name()} {keys[0].get_base64()}',
             ],
             host_config=self.docker_client.create_host_config(
                 publish_all_ports=True,
@@ -153,7 +153,7 @@ class DockerSSHAgentProxy(object):
             self._ssh_agent_container,
         )
         self.log.write(
-            "Created ssh-agent container %.10s\n" % self._ssh_agent_container
+            f"Created ssh-agent container {self._ssh_agent_container:.10}\n"
         )
 
         _ssh_host = 'localhost'
@@ -224,19 +224,19 @@ class DockerSSHAgentProxy(object):
                 #pylint: disable=W0703
                 except Exception as _ex:
                     self.log.write(
-                        "Error stopping ssh-agent: %s\n" % _ex
+                        f"Error stopping ssh-agent: {_ex}\n"
                     )
             try:
                 self._ssh_client.close()
             #pylint: disable=W0703
             except Exception as _ex:
                 self.log.write(
-                    "Error stopping ssh-agent connection: %s\n" % _ex
+                    f"Error stopping ssh-agent connection: {_ex}\n"
                 )
 
         # kill container
         self.log.write(
-            "Destroying ssh-agent container %.10s\n" % self._ssh_agent_container
+            f"Destroying ssh-agent container {self._ssh_agent_container:.10}\n"
         )
         if self._ssh_agent_container:
             self.docker_client.remove_container(

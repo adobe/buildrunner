@@ -1,5 +1,5 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import base64
@@ -10,7 +10,7 @@ import datetime
 import errno
 import fnmatch
 import getpass
-import imp
+import importlib.machinery
 import inspect
 import json
 import os
@@ -19,8 +19,7 @@ import shutil
 import sys
 import tarfile
 import tempfile
-import threading
-import uuid
+import types
 
 import jinja2
 import requests
@@ -52,7 +51,9 @@ __version__ = 'DEVELOPMENT'
 try:
     _VERSION_FILE = os.path.join(os.path.dirname(__file__), 'version.py')
     if os.path.exists(_VERSION_FILE):
-        _VERSION_MOD = imp.load_source('buildrunnerversion', _VERSION_FILE)
+        loader = importlib.machinery.SourceFileLoader('buildrunnerversion', _VERSION_FILE)
+        _VERSION_MOD = types.ModuleType(loader.name)
+        loader.exec_module(_VERSION_MOD)
         __version__ = _VERSION_MOD.__version__
 except:  # pylint: disable=bare-except
     pass
@@ -125,9 +126,9 @@ class BuildRunner(object):
         Conditionally log the contents of a generated file.
         '''
         if self.log_generated_files:
-            self.log.write('Generated contents of {}:\n'.format(file_name))
+            self.log.write(f'Generated contents of {file_name}:\n')
             for line in file_contents.splitlines():
-                self.log.write('{}\n'.format(line))
+                self.log.write(f'{line}\n')
 
     def _read_yaml_file(self, filename):
         """
@@ -297,7 +298,7 @@ class BuildRunner(object):
             fetch_file = redirect
             if fetch_file in visited:
                 raise BuildRunnerConfigurationError(
-                    "Redirect loop visiting previously visited file: {}".format(fetch_file)
+                    f"Redirect loop visiting previously visited file: {fetch_file}"
                 )
 
         return config
@@ -356,12 +357,12 @@ class BuildRunner(object):
             self.build_number = self.build_time
 
         self.vcs = detect_vcs(self.build_dir)
-        self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
+        self.build_id = f"{self.vcs.id_string}-{self.build_number}"
 
         # cleanup existing results dir (if needed)
         if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
             shutil.rmtree(self.build_results_dir)
-            self.log.write('Cleaned existing results directory "{}"'.format(RESULTS_DIR))
+            self.log.write(f'Cleaned existing results directory "{RESULTS_DIR}"')
 
         # default environment - must come *after* VCS detection
         base_context = {}
@@ -371,13 +372,13 @@ class BuildRunner(object):
 
         # load global configuration
         _gc_files = [gcf for gcf in DEFAULT_GLOBAL_CONFIG_FILES]
-        _gc_files.append(global_config_file or '{0}/.buildrunner.yaml'.format(self.build_dir))
+        _gc_files.append(global_config_file or f'{self.build_dir}/.buildrunner.yaml')
 
         _global_config_files = self.to_abs_path(
             _gc_files, return_list=True
         )
 
-        self.log.write("\nGlobal configuration is from: {}\n".format(', '.join(_global_config_files)))
+        self.log.write(f"\nGlobal configuration is from: {', '.join(_global_config_files)}\n")
         self.global_config = {}
         self.global_config = self._load_config_files(_global_config_files, log_file=False)
 
@@ -473,7 +474,7 @@ class BuildRunner(object):
 
                     # Prompt for password if necessary.  Only once per key
                     if _prompt_for_password:
-                        _password = getpass.getpass("Password for SSH Key ({0}): ".format(alias))
+                        _password = getpass.getpass(f"Password for SSH Key ({alias}): ")
                         _prompt_for_password = False
 
                     if 'file' in key_info:
@@ -494,7 +495,7 @@ class BuildRunner(object):
         for alias in key_aliases:
             if alias not in _matched_aliases:
                 raise BuildRunnerConfigurationError(
-                    "Could not find valid SSH key matching alias '%s'" % alias
+                    f"Could not find valid SSH key matching alias '{alias}'"
                 )
 
         return _keys
@@ -652,7 +653,7 @@ class BuildRunner(object):
                 os.makedirs(self.build_results_dir)
             except OSError as exc:
                 if exc.errno != errno.EEXIST:
-                    sys.stderr.write('ERROR: {0}\n'.format(str(exc)))
+                    sys.stderr.write(f'ERROR: {str(exc)}\n')
                     sys.exit(os.EX_UNAVAILABLE)
 
             try:
@@ -665,7 +666,7 @@ class BuildRunner(object):
                     {'type': 'log'},
                 )
             except Exception as exc:  # pylint: disable=broad-except
-                sys.stderr.write('ERROR: failed to initialize ConsoleLogger: {0}\n'.format(str(exc)))
+                sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
                 self._log = sys.stderr
 
         return self._log
@@ -712,7 +713,7 @@ class BuildRunner(object):
                 self._log_file.close()
         else:
             if exit_explanation:
-                print('\n{}'.format(exit_explanation))
+                print(f'\n{exit_explanation}')
             print(exit_message)
 
     def run(self):
@@ -756,7 +757,7 @@ class BuildRunner(object):
                 _docker_client = docker.new_client(timeout=self.docker_timeout)
                 for _repo_tag, _insecure_registry in self.repo_tags_to_push:
                     self.log.write(
-                        '\nPushing %s\n' % _repo_tag
+                        f'\nPushing {_repo_tag}\n'
                     )
 
                     # Newer Python Docker bindings drop support for the insecure_registry
@@ -780,9 +781,7 @@ class BuildRunner(object):
                                 self.log.write(msg['status'] + '\n')
                                 previous_status = msg['status']
                             elif 'errorDetail' in msg:
-                                error_detail = "Error pushing image: %s\n" % (
-                                    msg['errorDetail']
-                                )
+                                error_detail = f"Error pushing image: {msg['errorDetail']}\n"
                                 self.log.write("\n" + error_detail)
                                 self.log.write((
                                     "This could be because you are not "
@@ -841,10 +840,7 @@ class BuildRunner(object):
                         )
                     except Exception as _ex:  # pylint: disable=broad-except
                         self.log.write(
-                            'Error removing image %s: %s' % (
-                                _image,
-                                str(_ex),
-                            )
+                            f'Error removing image {_image}: {str(_ex)}'
                         )
             else:
                 self.log.write(
@@ -854,7 +850,7 @@ class BuildRunner(object):
             # cleanup the source image
             if self._source_image:
                 self.log.write(
-                    "Destroying source image %s\n" % self._source_image
+                    f"Destroying source image {self._source_image}\n"
                 )
                 _docker_client.remove_image(
                     self._source_image,

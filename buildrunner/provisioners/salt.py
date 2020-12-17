@@ -1,5 +1,5 @@
 """
-Copyright (C) 2015-2020 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import json
@@ -53,7 +53,7 @@ class SaltProvisioner(object):
 
         # create tmp file_root dir and write top.sls and dr.sls there
         file_root_dir = runner.tempfile(suffix='_salt_file_root')
-        runner.run('mkdir -p %s' % file_root_dir)
+        runner.run(f'mkdir -p {file_root_dir}')
         runner.write_to_container_file(
             'base: {"*": ["dr"]}',
             os.path.join(file_root_dir, 'top.sls'),
@@ -69,10 +69,7 @@ class SaltProvisioner(object):
         if exit_code == 0:
             salt_call_prefix = 'sudo '
         exit_code = runner.run(
-            '%ssalt-call --local --file-root=%s state.highstate' % (
-                salt_call_prefix,
-                file_root_dir,
-            ),
+            f'{salt_call_prefix}salt-call --local --file-root={file_root_dir} state.highstate',
             console=self.console,
         )
         if exit_code != 0:

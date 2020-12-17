@@ -1,14 +1,15 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import base64
 import socket
 import ssl
+from types import GeneratorType
 
 import six
 
-import docker
+import docker.errors
 from docker.utils import compare_version
 
 from buildrunner.docker import (
@@ -17,13 +18,13 @@ from buildrunner.docker import (
 )
 from buildrunner.utils import tempfile
 
+
 class DockerRunner(object):
 
     """
     An object that manages and orchestrates the lifecycle and execution of a
     Docker container.
     """
-
 
     def __init__(self, image_name, dockerd_url=None, pull_image=True, log=None):
         self.image_name = image_name.lower()
@@ -64,7 +65,7 @@ class DockerRunner(object):
 
         if pull_image or not found_image:
             if log:
-                log.write('Pulling image {}\n'.format(self.image_name))
+                log.write(f'Pulling image {self.image_name}\n')
             for data in self.docker_client.pull(self.image_name, stream=True, decode=True):
                 # Unused variable (see comment below about interactive mode)
                 _ = data
@@ -75,7 +76,6 @@ class DockerRunner(object):
                     #log.write('\r{}'.format(line.ljust(80)))
             if log:
                 log.write('\nImage pulled successfully\n')
-
 
     def start(
             self,
@@ -191,7 +191,6 @@ class DockerRunner(object):
 
         return self.container['Id']
 
-
     def stop(self):
         """
         Stop the backing Docker container.
@@ -201,7 +200,6 @@ class DockerRunner(object):
                 self.container['Id'],
                 timeout=0,
             )
-
 
     def cleanup(self):
         """
@@ -245,7 +243,6 @@ class DockerRunner(object):
 
         self.container = None
 
-
     def run(self, cmd, console=None, stream=True, log=None, workdir=None):
         """
         Run the given command in the container.
@@ -253,12 +250,13 @@ class DockerRunner(object):
         # Unused variable
         _ = workdir
 
-        if isinstance(cmd, six.string_types):
+        if isinstance(cmd, str):
             cmdv = [self.shell, '-xc', cmd]
-        elif hasattr(cmd, 'next') or hasattr(cmd, '__next__') or hasattr(cmd, '__iter__'):
+        elif hasattr(cmd, 'next') or hasattr(cmd, '__next__') or hasattr(cmd, '__iter__') or \
+                isinstance(cmd, GeneratorType):
             cmdv = cmd
         else:
-            raise TypeError('Unhandled command type: {0}:{1}'.format(type(cmd), cmd))
+            raise TypeError(f'Unhandled command type: {type(cmd)}:{cmd}')
         #if console is None:
         #    raise Exception('No console!')
         if not self.container:
@@ -269,7 +267,7 @@ class DockerRunner(object):
             )
 
         if log:
-            log.write('Executing: {}\n'.format(cmdv))
+            log.write(f'Executing: {cmdv}\n')
 
         create_res = self.docker_client.exec_create(
             self.container['Id'],
@@ -281,12 +279,12 @@ class DockerRunner(object):
             create_res,
             stream=stream,
         )
-        if isinstance(output_buffer, six.string_types):
+        if isinstance(output_buffer, (bytes, str)):
             if console:
                 console.write(output_buffer)
             if log:
                 log.write(output_buffer)
-        elif hasattr(output_buffer, 'next'):
+        elif hasattr(output_buffer, 'next') or isinstance(output_buffer, GeneratorType):
             try:
                 for line in output_buffer:
                     if console:
@@ -297,7 +295,7 @@ class DockerRunner(object):
                 # Ignore timeouts since we check for the exit code anyways at the end
                 pass
         else:
-            warning = 'WARNING: Unexpected output object: {0}'.format(output_buffer)
+            warning = f'WARNING: Unexpected output object: {output_buffer}'
             if console:
                 console.write(warning)
             if log:
@@ -305,10 +303,9 @@ class DockerRunner(object):
         inspect_res = self.docker_client.exec_inspect(create_res)
         if 'ExitCode' in inspect_res:
             if inspect_res['ExitCode'] == None:
-                raise BuildRunnerContainerError('Error running cmd ({0}): exit code is None'.format(cmd))
+                raise BuildRunnerContainerError(f'Error running cmd ({cmd}): exit code is None')
             return inspect_res['ExitCode']
         raise BuildRunnerContainerError('Error running cmd: no exit code')
-
 
     def run_script(
             self,
@@ -321,19 +318,15 @@ class DockerRunner(object):
         """
         # write temp file with script contents
         script_file_path = tempfile()
-        self.run('mkdir -p $(dirname %s)' % script_file_path, console=console)
+        self.run(f'mkdir -p $(dirname {script_file_path})', console=console)
         self.write_to_container_file(script, script_file_path)
-        self.run('chmod +x %s' % script_file_path, console=console)
+        self.run(f'chmod +x {script_file_path}', console=console)
 
         # execute the script
         return self.run(
-            '%s %s' % (
-                script_file_path,
-                args,
-            ),
+            f'{script_file_path} {args}',
             console=console,
         )
-
 
     def write_to_container_file(self, content, path):
         """
@@ -343,12 +336,8 @@ class DockerRunner(object):
         buf_size = 1024
         for index in range(0, len(content), buf_size):
             self.run(
-                'printf -- "%s" | base64 --decode >> %s' % (
-                    base64.standard_b64encode(content[index:index + buf_size]),
-                    path,
-                ),
+                f'printf -- "{base64.standard_b64encode(content[index:index + buf_size])}" | base64 --decode >> {path}',
             )
-
 
     def _get_status(self):
         """
@@ -378,7 +367,6 @@ class DockerRunner(object):
             pass
         return ipaddr
 
-
     def is_running(self):
         """
         Return whether the container backed by this Runner is currently
@@ -390,7 +378,6 @@ class DockerRunner(object):
         if 'State' not in status or 'Running' not in status['State']:
             return False
         return status['State']['Running']
-
 
     @property
     def exit_code(self):
@@ -405,31 +392,26 @@ class DockerRunner(object):
             return None
         return status['State']['ExitCode']
 
-
     def attach_until_finished(self, stream=None):
         """
         Attach to the container, writing output to the given log stream until
         the container exits.
         """
-        docksock = self.docker_client.attach_socket(
+        docker_socket: socket.SocketIO = self.docker_client.attach_socket(
             self.container['Id'],
         )
-        docksock.settimeout(1)
         running = True
         while running:
             running = self.is_running()
             try:
-                data = docksock.recv(4096)
-                while data:
+                for line in docker_socket:
                     if stream:
-                        stream.write(data)
-                    data = docksock.recv(4096)
+                        stream.write(line)
             except socket.timeout:
                 pass
             except ssl.SSLError as ssle:
-                if ssle.message != 'The read operation timed out':
+                if 'The read operation timed out' not in str(ssle):
                     raise
-
 
     def commit(self, stream):
         """
@@ -443,16 +425,12 @@ class DockerRunner(object):
         if self.is_running():
             raise BuildRunnerContainerError('Container is still running')
         stream.write(
-            'Committing build container %.10s as an image...\n' % (
-                self.container['Id'],
-            )
+            f"Committing build container {self.container['Id']:.10} as an image...\n"
         )
         self.committed_image = self.docker_client.commit(
             self.container['Id'],
         )['Id']
         stream.write(
-            'Resulting build container image: %.10s\n' % (
-                self.committed_image,
-            )
+            f'Resulting build container image: {self.committed_image:.10}\n'
         )
         return self.committed_image
