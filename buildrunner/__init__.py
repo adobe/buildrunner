@@ -771,7 +771,7 @@ class BuildRunner(object):
                     stream = _docker_client.push(_repo_tag, **push_kwargs)
                     previous_status = None
                     for msg_str in stream:
-                        for msg in msg_str.split("\n"):
+                        for msg in msg_str.decode('utf-8').split("\n"):
                             if not msg:
                                 continue
                             msg = json.loads(msg)

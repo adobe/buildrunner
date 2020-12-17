@@ -1,12 +1,8 @@
-from __future__ import print_function
-
 import os
-import shutil
 import sys
-import tempfile
 import unittest
 
-import test_runner as tr
+import tests.test_runner as tr
 
 class Test_buildrunner_files(unittest.TestCase):
 
@@ -25,7 +21,7 @@ class Test_buildrunner_files(unittest.TestCase):
 
         br_files = sorted([f for f in os.listdir(test_dir) if f.startswith('test-') and f.endswith('.yaml')])
         for br_file in br_files:
-            print('\n>>>> Testing Buildrunner file: {0}'.format(br_file))
+            print(f'\n>>>> Testing Buildrunner file: {br_file}')
             args = self._get_test_args(br_file)
             command_line = [
                 'buildrunner-test',
@@ -44,10 +40,10 @@ class Test_buildrunner_files(unittest.TestCase):
             assert_func(
                 tr.run_tests(
                     command_line,
-                    master_config_file = '{0}/test-data/etc-buildrunner.yaml'.format(test_dir_path),
+                    master_config_file = f'{test_dir_path}/test-data/etc-buildrunner.yaml',
                     global_config_files = [
-                        '{0}/test-data/etc-buildrunner.yaml'.format(test_dir_path),
-                        '{0}/test-data/dot-buildrunner.yaml'.format(test_dir_path),
+                        f'{test_dir_path}/test-data/etc-buildrunner.yaml',
+                        f'{test_dir_path}/test-data/dot-buildrunner.yaml',
                     ]
                 ),
                 os.EX_OK,
