@@ -1,7 +1,7 @@
 """
-Copyright (C) 2015-2020 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import
+
 from collections import OrderedDict
 import grp
 import os
@@ -78,9 +78,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 self._source_container,
             )
             self.step_runner.log.write(
-                'Created source container %.10s\n' % (
-                    self._source_container,
-                )
+                f'Created source container {self._source_container:.10}\n'
             )
         return self._source_container
 
@@ -97,16 +95,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             volume_option = None
             if len(volumes_from_definition) > 1:
                 volume_option = volumes_from_definition[1]
-            if service_container not in self._service_links.values():
+            if service_container not in list(self._service_links.values()):
                 raise BuildRunnerConfigurationError(
-                    '"volumes_from" configuration "%s" does not '
-                    'reference a valid service container\n' % sc_vf
+                    f'"volumes_from" configuration "{sc_vf}" does not reference a valid service container\n'
                 )
-            for container, service in self._service_links.iteritems():
+            for container, service in self._service_links.items():
                 if service == service_container:
                     if volume_option:
                         _volumes_from.append(
-                            "%s:%s" % (container, volume_option),
+                            f"{container}:{volume_option}",
                         )
                     else:
                         _volumes_from.append(container)
@@ -138,7 +135,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 pull_image=False,
             )
             #TODO: see if we can use archive commands to eliminate the need for
-            #the /stepresults volume when we can move to api v1.20
+            #      the /stepresults volume when we can move to api v1.20
             artifact_lister.start(
                 volumes_from=[self._get_source_container()],
                 volumes={
@@ -148,20 +145,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 shell='/bin/sh',
             )
 
-            for pattern, properties in self.config['artifacts'].iteritems():
+            for pattern, properties in self.config['artifacts'].items():
                 # query files for each artifacts pattern, capturing the output
                 # for parsing
-                stat_output_file = "%s.out" % str(uuid.uuid4())
+                stat_output_file = f"{str(uuid.uuid4())}.out"
                 stat_output_file_local = os.path.join(
                     self.step_runner.results_dir,
                     stat_output_file,
                 )
                 exit_code = artifact_lister.run(
-                    'stat -c "%%n%s%%F" %s >/stepresults/%s' % (
-                        FILE_INFO_DELIMITER,
-                        pattern,
-                        stat_output_file,
-                    ),
+                    f'stat -c "%n{FILE_INFO_DELIMITER}%F" {pattern} >/stepresults/{stat_output_file}',
                     console=console,
                     stream=True,
                     log=self.step_runner.log,
@@ -221,10 +214,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 # make sure the current user/group ids of our
                 # process are set as the owner of the files
                 exit_code = artifact_lister.run(
-                    'chown -R %d:%d /stepresults' % (
-                        os.getuid(),
-                        os.getgid(),
-                    ),
+                    f'chown -R {int(os.getuid())}:{int(os.getgid())} /stepresults',
                     console=console,
                     log=self.step_runner.log,
                 )
@@ -248,16 +238,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if properties and properties.pop('format', None) == 'uncompressed':
             # recursively find all files in dir and add
             # each one, passing any properties
-            find_output_file = "%s.out" % str(uuid.uuid4())
+            find_output_file = f"{str(uuid.uuid4())}.out"
             find_output_file_local = os.path.join(
                 self.step_runner.results_dir,
                 find_output_file,
             )
             find_exit_code = artifact_lister.run(
-                'find %s -type f >/stepresults/%s' % (
-                    artifact_file,
-                    find_output_file,
-                ),
+                f'find {artifact_file} -type f >/stepresults/{find_output_file}',
                 stream=False,
                 log=self.step_runner.log,
             )
@@ -282,9 +269,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     )
                     if exit_code != 0:
                         raise Exception(
-                            "Error gathering artifact %s" % (
-                                artifact_file,
-                            ),
+                            f"Error gathering artifact {artifact_file}",
                         )
                     archive_command = (
                         'cp',
@@ -325,7 +310,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 archive_command = [
                     'tar',
                     self.TAR_COMPRESSION_ARG.get(arch_props['compression'], '--auto-compress'),
-                    '--xform', 's|^{orig_dir}|{new_dir}|'.format(orig_dir=filename, new_dir=arch_props['name']),
+                    '--xform', f"s|^{filename}|{arch_props['name']}|",
                     '-cv',
                 ]
                 if os.path.dirname(artifact_file):
@@ -384,10 +369,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _ = new_artifact_file
 
         self.step_runner.log.write(
-            '- found {type} {name}\n'.format(
-                type=file_type,
-                name=filename,
-            )
+            f'- found {file_type} {filename}\n'
         )
 
         exit_code = artifact_lister.run(
@@ -397,9 +379,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         )
         if exit_code != 0:
             raise Exception(
-                "Error gathering artifact %s" % (
-                    artifact_file,
-                ),
+                f"Error gathering artifact {artifact_file}",
             )
 
         # register the artifact with the run controller
@@ -419,17 +399,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # validate that we have an 'image' or 'build' config
         if not ('image' in config or 'build' in config):
             raise BuildRunnerConfigurationError(
-                (
-                    'Step "%s", service "%s" must specify an '
-                    'image or docker build context'
-                ) % (self.step_runner.name, name)
+                f'Step "{self.step_runner.name}", service "{name}" must specify an image or docker build context'
             )
         if 'image' in config and 'build' in config:
             raise BuildRunnerConfigurationError(
-                (
-                    'Step "%s", service "%s" must specify either '
-                    'an image or docker build context, not both'
-                ) % (self.step_runner.name, name)
+                f'Step "{self.step_runner.name}", service "{name}" must specify '
+                f'either an image or docker build context, not both'
             )
 
         _image = None
@@ -448,10 +423,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         assert _image
 
         self.step_runner.log.write(
-            'Creating service container "%s" from image "%s"\n' % (
-                name,
-                _image,
-            )
+            f'Creating service container "{name}" from image "{_image}\"\n'
         )
         service_logger = ContainerLogger.for_service_container(
             self.step_runner.log,
@@ -525,14 +497,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _extra_hosts = None
         if 'extra_hosts' in config:
             _extra_hosts = {}
-            for extra_host, extra_host_ip in config['extra_hosts'].iteritems():
+            for extra_host, extra_host_ip in config['extra_hosts'].items():
                 _extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
 
         # set service specific environment variables
         _env['BUILDRUNNER_STEP_ID'] = self.step_runner.id
         _env['BUILDRUNNER_STEP_NAME'] = self.step_runner.name
         if 'env' in config:
-            for key, value in config['env'].iteritems():
+            for key, value in config['env'].items():
                 _env[key] = value
 
         # make buildrunner aware of spawned containers
@@ -554,7 +526,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             if ssh_container:
                 _volumes_from.append(ssh_container)
             if ssh_env:
-                for _var, _val in ssh_env.iteritems():
+                for _var, _val in ssh_env.items():
                     _env[_var] = _val
 
         # attach the docker daemon container
@@ -562,7 +534,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if daemon_container:
             _volumes_from.append(daemon_container)
         if daemon_env:
-            for _var, _val in daemon_env.iteritems():
+            for _var, _val in daemon_env.items():
                 _env[_var] = _val
 
         # see if we need to map any service container volumes
@@ -576,16 +548,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 ARTIFACTS_VOLUME_MOUNT + ':ro',
         }
         if 'files' in config:
-            for f_alias, f_path in config['files'].iteritems():
+            for f_alias, f_path in config['files'].items():
                 # lookup file from alias
                 f_local = self.step_runner.build_runner.get_local_files_from_alias(
                     f_alias,
                 )
                 if not f_local or not os.path.exists(f_local):
                     raise BuildRunnerConfigurationError(
-                        "Cannot find valid local file for alias '%s'" % (
-                            f_alias,
-                        )
+                        f"Cannot find valid local file for alias '{f_alias}'"
                     )
 
                 if f_path[-3:] not in [':ro', ':rw']:
@@ -594,7 +564,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 _volumes[f_local] = f_path
 
                 service_logger.write(
-                    "Mounting %s -> %s\n" % (f_local, f_path)
+                    f"Mounting {f_local} -> {f_path}\n"
                 )
 
         # instantiate and start the runner
@@ -637,10 +607,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 )
                 if exit_code != 0:
                     service_logger.write(
-                        'Service command "%s" exited with code %s\n' % (
-                            config['cmd'],
-                            exit_code,
-                        )
+                        f'Service command "{config["cmd"]}" exited with code {exit()}\n'
                     )
             else:
                 service_runner.attach_until_finished(service_logger)
@@ -648,7 +615,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # Attach to the container in a separate thread
         service_management_thread = threading.Thread(
-            name="%s--%s" % (self.step_runner.name, name),
+            name=f"{self.step_runner.name}--{name}",
             target=attach_to_service,
         )
         service_management_thread.daemon = True
@@ -659,10 +626,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.wait(cont_name, container_port)
 
         self.step_runner.log.write(
-            'Started service container "%s" (%.10s)\n' % (
-                name,
-                service_container_id,
-            )
+            f'Started service container "{name}" ({service_container_id:.10})\n'
         )
 
     def wait(self, name, port):
@@ -674,9 +638,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         while not socket_open:
             self.step_runner.log.write(
-                "Waiting for port %d to be listening for connections in container %s with IP address %s\n" % (
-                    port, name, ipaddr
-                ))
+                f"Waiting for port {port} to be listening for connections in container {name} "
+                f"with IP address {ipaddr}\n"
+            )
 
             # check that the container is still available
             container = self._docker_client.inspect_container(name)
@@ -703,7 +667,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 )
                 nc_tester.start(
                     # The shell is the command
-                    shell='-n -z {} {}'.format(ipaddr, port),
+                    shell=f'-n -z {ipaddr} {port}',
                 )
                 nc_tester.attach_until_finished()
                 exit_code = nc_tester.exit_code
@@ -715,7 +679,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             if not socket_open:
                 time.sleep(1)
 
-        self.step_runner.log.write("Port %d is listening in container %s with IP address %s\n" % (port, name, ipaddr))
+        self.step_runner.log.write(f"Port {int(port)} is listening in container {name} with IP address {ipaddr}\n")
 
     def _resolve_service_ip(self, service_name):
         """
@@ -723,7 +687,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         Otherwise, return the service_name
         """
         rval = service_name
-        if isinstance(service_name, basestring) and service_name in self._service_runners:
+        if isinstance(service_name, str) and service_name in self._service_runners:
             ipaddr = self._service_runners[service_name].get_ip()
             if ipaddr is not None:
                 rval = ipaddr
@@ -739,17 +703,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _lrun_image = _run_image.lower()
         if _lrun_image != _run_image:
             self.step_runner.log.write(
-                'Forcing image name to lowercase: {0} => {1}\n'.format(
-                    _run_image,
-                    _lrun_image,
-                )
+                f'Forcing image name to lowercase: {_run_image} => {_lrun_image}\n'
             )
             _run_image = _lrun_image
 
         self.step_runner.log.write(
-            'Creating build container from image "%s"\n' % (
-                _run_image,
-            )
+            f'Creating build container from image "{_run_image}\"\n'
         )
         container_logger = ContainerLogger.for_build_container(
             self.step_runner.log,
@@ -816,7 +775,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # start any service containers
         if 'services' in self.config:
-            for _name, _config in self.config['services'].iteritems():
+            for _name, _config in self.config['services'].items():
                 self._start_service_container(_name, _config)
 
         # determine if there is a command to run
@@ -864,7 +823,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # determine additional hosts to add
         if 'extra_hosts' in self.config:
             extra_hosts = {}
-            for extra_host, extra_host_ip in self.config['extra_hosts'].iteritems():
+            for extra_host, extra_host_ip in self.config['extra_hosts'].items():
                 extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
             container_args['extra_hosts'] = extra_hosts
 
@@ -872,7 +831,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         container_args['environment']['BUILDRUNNER_STEP_ID'] = self.step_runner.id
         container_args['environment']['BUILDRUNNER_STEP_NAME'] = self.step_runner.name
         if 'env' in self.config:
-            for key, value in self.config['env'].iteritems():
+            for key, value in self.config['env'].items():
                 container_args['environment'][key] = value
 
         # make buildrunner aware of spawned containers
@@ -891,7 +850,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             if ssh_container:
                 container_args['volumes_from'].append(ssh_container)
             if ssh_env:
-                for _var, _val in ssh_env.iteritems():
+                for _var, _val in ssh_env.items():
                     container_args['environment'][_var] = _val
 
         # attach the docker daemon container
@@ -899,12 +858,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if daemon_container:
             container_args['volumes_from'].append(daemon_container)
         if daemon_env:
-            for _var, _val in daemon_env.iteritems():
+            for _var, _val in daemon_env.items():
                 container_args['environment'][_var] = _val
 
         # see if we need to inject any files
         if 'files' in self.config:
-            for f_alias, f_path in self.config['files'].iteritems():
+            for f_alias, f_path in self.config['files'].items():
                 # lookup file from alias
                 f_local = self.step_runner.build_runner.get_local_files_from_alias(
                     f_alias,
@@ -919,16 +878,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                             and not f_local.startswith(self.step_runner.build_runner.build_dir + os.path.sep)
                     ):
                         raise BuildRunnerConfigurationError(
-                            'Mount path of "%s" attempts to step out of source directory "%s"' % (
-                                f_alias, self.step_runner.build_runner.build_dir,
-                            )
+                            f'Mount path of "{f_alias}" attempts to step out of '
+                            f'source directory "{self.step_runner.build_runner.build_dir}"'
                         )
 
                     if not os.path.exists(f_local):
                         raise BuildRunnerConfigurationError(
-                            "Cannot find valid alias for files entry '%s' nor path at '%s'" % (
-                                f_alias, f_local,
-                            )
+                            f"Cannot find valid alias for files entry '{f_alias}' nor path at '{f_local}'"
                         )
 
                 if f_path[-3:] not in [':ro', ':rw']:
@@ -937,19 +893,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 container_args['volumes'][f_local] = f_path
 
                 container_meta_logger.write(
-                    "Mounting %s -> %s\n" % (f_local, f_path)
+                    f"Mounting {f_local} -> {f_path}\n"
                 )
 
         # see if we need to mount any caches
         if 'caches' in self.config:
-            for cache_name, cache_path in self.config['caches'].iteritems():
+            for cache_name, cache_path in self.config['caches'].items():
                 # get the cache location from the main BuildRunner class
                 cache_local_path = self.step_runner.build_runner.get_cache_path(
                     cache_name,
                 )
                 container_args['volumes'][cache_local_path] = cache_path + ':rw'
                 container_meta_logger.write(
-                    "Mounting cache dir %s -> %s\n" % (cache_name, cache_path)
+                    f"Mounting cache dir {cache_name} -> {cache_path}\n"
                 )
 
         # add any capabilities when the container runs
@@ -983,14 +939,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
 
             self.step_runner.log.write(
-                'Started build container %.10s\n' % container_id
+                f'Started build container {container_id:.10}\n'
             )
 
             if _cmds:
                 # run each cmd
                 for _cmd in _cmds:
                     container_meta_logger.write(
-                        "cmd> %s\n" % _cmd
+                        f"cmd> {_cmd}\n"
                     )
                     exit_code = self.runner.run(
                         _cmd,
@@ -998,10 +954,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         #log=self.step_runner.log,
                     )
                     container_meta_logger.write(
-                        'Command "%s" exited with code %s\n' % (
-                            _cmd,
-                            exit_code,
-                        )
+                        f'Command "{_cmd}" exited with code {exit_code}\n'
                     )
 
                     if exit_code != 0:
@@ -1010,9 +963,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 self.runner.attach_until_finished(container_logger)
                 exit_code = self.runner.exit_code
                 container_meta_logger.write(
-                    'Container exited with code %s\n' % (
-                        exit_code,
-                    )
+                    f'Container exited with code {exit_code}\n'
                 )
 
         finally:
@@ -1068,16 +1019,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.runner:
             if self.runner.container:
                 self.step_runner.log.write(
-                    'Destroying build container %.10s\n' % (
-                        self.runner.container['Id'],
-                    )
+                    f"Destroying build container {self.runner.container['Id']:.10}\n"
                 )
             self.runner.cleanup()
 
         if self._service_runners:
-            for (_sname, _srun) in reversed(self._service_runners.items()):
+            for (_sname, _srun) in reversed(list(self._service_runners.items())):
                 self.step_runner.log.write(
-                    'Destroying service container "%s"\n' % _sname
+                    f'Destroying service container "{_sname}\"\n'
                 )
                 _srun.cleanup()
 
@@ -1089,9 +1038,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         if self._source_container:
             self.step_runner.log.write(
-                'Destroying source container %.10s\n' % (
-                    self._source_container,
-                )
+                f'Destroying source container {self._source_container:.10}\n'
             )
             self._docker_client.remove_container(
                 self._source_container,

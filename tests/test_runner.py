@@ -14,6 +14,7 @@ from buildrunner import (
     BuildRunnerConfigurationError,
 )
 
+
 def run_tests(argv, master_config_file=None, global_config_files=None):
     args = cli.parse_args(argv)
 

@@ -1,7 +1,7 @@
 """
-Copyright (C) 2014-2019 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import
+
 
 class BuildRunnerError(Exception):
     """Base BuildRunner Exception"""

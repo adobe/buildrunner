@@ -1,12 +1,11 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2020 Adobe
 """
 
 import argparse
 import os
 import sys
 
-import buildrunner
 from . import (
     __version__,
     BuildRunner,
@@ -39,7 +38,6 @@ def parse_args(argv):
         '-f', '--file',
         default=None,
         dest='config_file',
-        #pylint: disable=C0301
         help='build configuration file (defaults to "buildrunner.yaml", then "gauntlet.yaml")',
     )
 
@@ -63,7 +61,6 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='push',
-        #pylint: disable=C0301
         help='push images to remote registries (without this flag buildrunner simply tags images)',
     )
 
@@ -72,8 +69,8 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='keep_images',
-        #pylint: disable=C0301
-        help='keep generated images at the end of the build (images are by default deleted to prevent clutter on build machines)',
+        help='keep generated images at the end of the build (images are by default deleted to '
+             'prevent clutter on build machines)',
     )
 
     parser.add_argument(
@@ -81,8 +78,8 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='local_images',
-        #pylint: disable=C0301
-        help='Prefer local images rather than fetching remote images.  This can be used for testing images prior to pushing them.',
+        help='Prefer local images rather than fetching remote images. '
+             'This can be used for testing images prior to pushing them.',
     )
 
     parser.add_argument(
@@ -90,8 +87,8 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='keep_step_artifacts',
-        # pylint: disable=C0301
-        help='keep artifacts generated for each step of the build (step artifacts are by default deleted to prevent clutter on build machines)',
+        help='keep artifacts generated for each step of the build (step artifacts are by default deleted to '
+             'prevent clutter on build machines)',
     )
 
     parser.add_argument(
@@ -99,7 +96,6 @@ def parse_args(argv):
         default=[],
         dest='steps',
         action='append',
-        #pylint: disable=C0301
         help='only run the listed steps (use the argument multiple times or specify as comma-delimited)',
     )
 
@@ -108,7 +104,6 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='publish_ports',
-        #pylint: disable=C0301
         help='publish ports defined on a run step, this should never be used on a build server',
     )
 
@@ -117,7 +112,6 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='disable_timestamps',
-        #pylint: disable=C0301
         help='disables printing of timestamps in the logging output',
     )
 
@@ -126,7 +120,6 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='print_version',
-        #pylint: disable=C0301
         help='print the current buildrunner version and exit',
     )
 
@@ -135,7 +128,6 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='no_log_color',
-        #pylint: disable=C0301
         help='disable colors when logging',
     )
 
@@ -144,7 +136,6 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='print_generated_files',
-        #pylint: disable=C0301
         help='logs the Jinja generated file contents and stops',
     )
 
@@ -153,7 +144,6 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='log_generated_files',
-        #pylint: disable=C0301
         help='logs the Jinja generated file contents',
     )
 
@@ -201,7 +191,7 @@ def main(argv):
             if build_runner.exit_code:
                 return build_runner.exit_code
     except BuildRunnerConfigurationError as brce:
-        print(str(brce))
+        print((str(brce)))
         return os.EX_CONFIG
     return os.EX_OK
 

@@ -1,7 +1,7 @@
 """
-Copyright (C) 2014 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import, print_function
+
 import base64
 import codecs
 from collections import OrderedDict
@@ -10,7 +10,7 @@ import datetime
 import errno
 import fnmatch
 import getpass
-import imp
+import importlib.machinery
 import inspect
 import json
 import os
@@ -19,16 +19,12 @@ import shutil
 import sys
 import tarfile
 import tempfile
-import threading
-import uuid
+import types
 
 import jinja2
 import requests
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+from io import StringIO
 
 from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
@@ -52,7 +48,9 @@ __version__ = 'DEVELOPMENT'
 try:
     _VERSION_FILE = os.path.join(os.path.dirname(__file__), 'version.py')
     if os.path.exists(_VERSION_FILE):
-        _VERSION_MOD = imp.load_source('buildrunnerversion', _VERSION_FILE)
+        loader = importlib.machinery.SourceFileLoader('buildrunnerversion', _VERSION_FILE)
+        _VERSION_MOD = types.ModuleType(loader.name)
+        loader.exec_module(_VERSION_MOD)
         __version__ = _VERSION_MOD.__version__
 except:  # pylint: disable=bare-except
     pass
@@ -107,7 +105,7 @@ class BuildRunner(object):
         if ctx:
             context.update(ctx)
 
-        for env_name, env_value in os.environ.iteritems():
+        for env_name, env_value in os.environ.items():
             for prefix in self.CONTEXT_ENV_PREFIXES:
                 if env_name.startswith(prefix):
                     context[env_name] = env_value
@@ -125,9 +123,9 @@ class BuildRunner(object):
         Conditionally log the contents of a generated file.
         '''
         if self.log_generated_files:
-            self.log.write('Generated contents of {}:\n'.format(file_name))
+            self.log.write(f'Generated contents of {file_name}:\n')
             for line in file_contents.splitlines():
-                self.log.write('{}\n'.format(line))
+                self.log.write(f'{line}\n')
 
     def _read_yaml_file(self, filename):
         """
@@ -175,7 +173,7 @@ class BuildRunner(object):
                 # are dropped.
                 if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
                     scrubbed_local_files = {}
-                    for fname, fpath in ctx.get('local-files', {}).items():
+                    for fname, fpath in list(ctx.get('local-files', {}).items()):
                         if not isinstance(fpath, str):
                             self.log.write(
                                 'Bad "local-files" entry in {0!r}:'
@@ -297,7 +295,7 @@ class BuildRunner(object):
             fetch_file = redirect
             if fetch_file in visited:
                 raise BuildRunnerConfigurationError(
-                    "Redirect loop visiting previously visited file: {}".format(fetch_file)
+                    f"Redirect loop visiting previously visited file: {fetch_file}"
                 )
 
         return config
@@ -356,12 +354,12 @@ class BuildRunner(object):
             self.build_number = self.build_time
 
         self.vcs = detect_vcs(self.build_dir)
-        self.build_id = "%s-%s" % (self.vcs.id_string, self.build_number)
+        self.build_id = f"{self.vcs.id_string}-{self.build_number}"
 
         # cleanup existing results dir (if needed)
         if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
             shutil.rmtree(self.build_results_dir)
-            self.log.write('Cleaned existing results directory "{}"'.format(RESULTS_DIR))
+            self.log.write(f'Cleaned existing results directory "{RESULTS_DIR}"')
 
         # default environment - must come *after* VCS detection
         base_context = {}
@@ -371,13 +369,13 @@ class BuildRunner(object):
 
         # load global configuration
         _gc_files = [gcf for gcf in DEFAULT_GLOBAL_CONFIG_FILES]
-        _gc_files.append(global_config_file or '{0}/.buildrunner.yaml'.format(self.build_dir))
+        _gc_files.append(global_config_file or f'{self.build_dir}/.buildrunner.yaml')
 
         _global_config_files = self.to_abs_path(
             _gc_files, return_list=True
         )
 
-        self.log.write("\nGlobal configuration is from: {}\n".format(', '.join(_global_config_files)))
+        self.log.write(f"\nGlobal configuration is from: {', '.join(_global_config_files)}\n")
         self.global_config = {}
         self.global_config = self._load_config_files(_global_config_files, log_file=False)
 
@@ -433,7 +431,7 @@ class BuildRunner(object):
             return host
 
         build_servers = self.global_config['build-servers']
-        for _host, _host_aliases in build_servers.iteritems():
+        for _host, _host_aliases in build_servers.items():
             if host in _host_aliases:
                 return _host
 
@@ -473,7 +471,7 @@ class BuildRunner(object):
 
                     # Prompt for password if necessary.  Only once per key
                     if _prompt_for_password:
-                        _password = getpass.getpass("Password for SSH Key ({0}): ".format(alias))
+                        _password = getpass.getpass(f"Password for SSH Key ({alias}): ")
                         _prompt_for_password = False
 
                     if 'file' in key_info:
@@ -494,7 +492,7 @@ class BuildRunner(object):
         for alias in key_aliases:
             if alias not in _matched_aliases:
                 raise BuildRunnerConfigurationError(
-                    "Could not find valid SSH key matching alias '%s'" % alias
+                    f"Could not find valid SSH key matching alias '{alias}'"
                 )
 
         return _keys
@@ -510,7 +508,7 @@ class BuildRunner(object):
             return None
 
         local_files = self.global_config['local-files']
-        for local_alias, local_file in local_files.iteritems():
+        for local_alias, local_file in local_files.items():
             if file_alias == local_alias:
                 local_path = os.path.realpath(
                     os.path.expanduser(os.path.expandvars(local_file))
@@ -555,7 +553,7 @@ class BuildRunner(object):
         if not isinstance(path, list):
             paths = [path]
 
-        for i in xrange(len(paths)):
+        for i in range(len(paths)):
             _path = os.path.expanduser(paths[i])
             if os.path.isabs(_path):
                 paths[i] = os.path.realpath(_path)
@@ -652,7 +650,7 @@ class BuildRunner(object):
                 os.makedirs(self.build_results_dir)
             except OSError as exc:
                 if exc.errno != errno.EEXIST:
-                    sys.stderr.write('ERROR: {0}\n'.format(str(exc)))
+                    sys.stderr.write(f'ERROR: {str(exc)}\n')
                     sys.exit(os.EX_UNAVAILABLE)
 
             try:
@@ -665,7 +663,7 @@ class BuildRunner(object):
                     {'type': 'log'},
                 )
             except Exception as exc:  # pylint: disable=broad-except
-                sys.stderr.write('ERROR: failed to initialize ConsoleLogger: {0}\n'.format(str(exc)))
+                sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
                 self._log = sys.stderr
 
         return self._log
@@ -685,7 +683,7 @@ class BuildRunner(object):
             if os.path.exists(artifact_manifest):
                 with open(artifact_manifest, 'r') as _af:
                     data = json.load(_af, object_pairs_hook=OrderedDict)
-                    artifacts = OrderedDict(data.items() + self.artifacts.items())
+                    artifacts = OrderedDict(list(data.items()) + list(self.artifacts.items()))
             else:
                 artifacts = self.artifacts
 
@@ -712,7 +710,7 @@ class BuildRunner(object):
                 self._log_file.close()
         else:
             if exit_explanation:
-                print('\n{}'.format(exit_explanation))
+                print(f'\n{exit_explanation}')
             print(exit_message)
 
     def run(self):
@@ -734,7 +732,7 @@ class BuildRunner(object):
             _pypi_to_push = []
 
             # run each step
-            for step_name, step_config in self.run_config['steps'].iteritems():
+            for step_name, step_config in self.run_config['steps'].items():
                 if not self.steps_to_run or step_name in self.steps_to_run:
                     build_step_runner = BuildStepRunner(
                         self,
@@ -756,7 +754,7 @@ class BuildRunner(object):
                 _docker_client = docker.new_client(timeout=self.docker_timeout)
                 for _repo_tag, _insecure_registry in self.repo_tags_to_push:
                     self.log.write(
-                        '\nPushing %s\n' % _repo_tag
+                        f'\nPushing {_repo_tag}\n'
                     )
 
                     # Newer Python Docker bindings drop support for the insecure_registry
@@ -770,7 +768,7 @@ class BuildRunner(object):
                     stream = _docker_client.push(_repo_tag, **push_kwargs)
                     previous_status = None
                     for msg_str in stream:
-                        for msg in msg_str.split("\n"):
+                        for msg in msg_str.decode('utf-8').split("\n"):
                             if not msg:
                                 continue
                             msg = json.loads(msg)
@@ -780,9 +778,7 @@ class BuildRunner(object):
                                 self.log.write(msg['status'] + '\n')
                                 previous_status = msg['status']
                             elif 'errorDetail' in msg:
-                                error_detail = "Error pushing image: %s\n" % (
-                                    msg['errorDetail']
-                                )
+                                error_detail = f"Error pushing image: {msg['errorDetail']}\n"
                                 self.log.write("\n" + error_detail)
                                 self.log.write((
                                     "This could be because you are not "
@@ -797,7 +793,7 @@ class BuildRunner(object):
                 # Push to pypi repositories
                 # Placing the import here avoids the dependency when pypi is not needed
                 import twine.commands.upload
-                for _repository_name, _items in self.pypi_packages.iteritems():
+                for _repository_name, _items in self.pypi_packages.items():
                     twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
             else:
                 self.log.write(
@@ -841,10 +837,7 @@ class BuildRunner(object):
                         )
                     except Exception as _ex:  # pylint: disable=broad-except
                         self.log.write(
-                            'Error removing image %s: %s' % (
-                                _image,
-                                str(_ex),
-                            )
+                            f'Error removing image {_image}: {str(_ex)}'
                         )
             else:
                 self.log.write(
@@ -854,7 +847,7 @@ class BuildRunner(object):
             # cleanup the source image
             if self._source_image:
                 self.log.write(
-                    "Destroying source image %s\n" % self._source_image
+                    f"Destroying source image {self._source_image}\n"
                 )
                 _docker_client.remove_image(
                     self._source_image,

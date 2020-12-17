@@ -1,7 +1,7 @@
 """
-Copyright (C) 2015 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import
+
 import os
 import traceback
 import uuid
@@ -61,14 +61,14 @@ class BuildStepRunner(object):
         Run the build step.
         """
         # create the step results dir
-        self.log.write('\nRunning step "%s"\n' % self.name)
+        self.log.write(f'\nRunning step "{self.name}\"\n')
         self.log.write('________________________________________\n')
 
         _tasks = []
         _context = {}
         try:
-            for _task_name, _task_config in self.config.iteritems():
-                self.log.write('==> Running step: %s:%s\n' % (self.name, _task_name))
+            for _task_name, _task_config in self.config.items():
+                self.log.write(f'==> Running step: {self.name}:{_task_name}\n')
                 if _task_name in TASK_MAPPINGS:
                     if self.local_images:
                         _task_config['pull'] = False
@@ -80,14 +80,13 @@ class BuildStepRunner(object):
                         if not isinstance(_task_config, dict) or not _task_config.get('xfail', False):
                             raise
                         else:
-                            self.log.write('Step "%s" failed with exception: %s\n    Ignoring due to XFAIL\n' % (
-                                self.name, str(err)
-                            ))
+                            self.log.write(
+                                f'Step "{self.name}" failed with exception: {err}\n    '
+                                f'Ignoring due to XFAIL\n'
+                            )
                 else:
                     raise BuildRunnerConfigurationError(
-                        (
-                            'Step "%s" contains an unknown task "%s"\n'
-                        ) % (self.name, _task_name)
+                        f'Step "{self.name}" contains an unknown task "{_task_name}"\n'
                     )
         finally:
             for _task in _tasks:

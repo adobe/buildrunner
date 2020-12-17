@@ -1,10 +1,10 @@
 """
-Copyright (C) 2015-2020 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import
+
 import os
 import ssl
-import urlparse
+import urllib.parse
 
 import docker
 try:
@@ -74,9 +74,9 @@ def new_client(
 
     if _tls:
         # make sure the scheme is https
-        url_parts = urlparse.urlparse(_dockerd_url)
+        url_parts = urllib.parse.urlparse(_dockerd_url)
         if url_parts.scheme == 'tcp':
-            _dockerd_url = urlparse.urlunparse(('https',) + url_parts[1:])
+            _dockerd_url = urllib.parse.urlunparse(('https',) + url_parts[1:])
 
     args = {}
     if timeout is not None:

@@ -1,7 +1,7 @@
 """
-Copyright (C) 2016 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import
+
 import os
 
 from buildrunner.docker import DOCKER_DEFAULT_DOCKERD_URL
@@ -45,7 +45,7 @@ class DockerDaemonProxy(object):
 
         # setup docker env and mounts so that the docker daemon is accessible
         # from within the run container
-        for env_name, env_value in os.environ.iteritems():
+        for env_name, env_value in os.environ.items():
             if env_name == 'DOCKER_HOST':
                 self._env['DOCKER_HOST'] = env_value
             if env_name == 'DOCKER_TLS_VERIFY' and env_value:
@@ -75,7 +75,7 @@ class DockerDaemonProxy(object):
 
         # create and start the Docker container
         self._daemon_container = self.docker_client.create_container(
-            '{0}/busybox:latest'.format(self.docker_registry),
+            f'{self.docker_registry}/busybox:latest',
             command='/bin/sh',
             volumes=_volumes,
             host_config=self.docker_client.create_host_config(
@@ -84,7 +84,7 @@ class DockerDaemonProxy(object):
         )['Id']
         self.docker_client.start(self._daemon_container)
         self.log.write(
-            "Created Docker daemon container %.10s\n" % self._daemon_container
+            f"Created Docker daemon container {self._daemon_container:.10}\n"
         )
 
 
@@ -94,9 +94,7 @@ class DockerDaemonProxy(object):
         """
         # kill container
         self.log.write(
-            "Destroying Docker daemon container %.10s\n" % (
-                self._daemon_container,
-            )
+            f"Destroying Docker daemon container {self._daemon_container:.10}\n"
         )
         if self._daemon_container:
             self.docker_client.remove_container(

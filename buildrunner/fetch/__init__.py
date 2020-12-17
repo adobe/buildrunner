@@ -1,13 +1,10 @@
 '''
 File fetching engine.
 
-Copyright (C) 2019 Adobe
+Copyright (C) 2020 Adobe
 '''
 
-try:
-    import urllib.parse as urlparse
-except ImportError:
-    import urlparse
+import urllib.parse
 
 from . import github
 from . import http
@@ -22,7 +19,7 @@ def fetch_file(url, config):
     # FIXME: the handled checking should be in each handler module (possibly handle_file(parsed_url,
     # config) => bool)
 
-    parsed_url = urlparse.urlparse(url)
+    parsed_url = urllib.parse.urlparse(url)
 
     if parsed_url.scheme == 'github':
         file_contents = github.fetch_file(parsed_url, config)
@@ -30,14 +27,14 @@ def fetch_file(url, config):
     elif parsed_url.scheme == 'file' or (parsed_url.scheme == '' and parsed_url.netloc == ''):
         purl = list(parsed_url)
         purl[0] = 'file'
-        parsed_url = urlparse.ParseResult(*purl)
+        parsed_url = urllib.parse.ParseResult(*purl)
         file_contents = file.fetch_file(parsed_url, config)
 
     elif parsed_url.scheme in ('http', 'https'):
         file_contents = http.fetch_file(parsed_url, config)
 
     else:
-        raise NotImplementedError('Unknown fetch backend: {}'.format(parsed_url.scheme))
+        raise NotImplementedError(f'Unknown fetch backend: {parsed_url.scheme}')
 
     return file_contents
 

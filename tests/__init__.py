@@ -1,1 +1,1 @@
-import test_buildrunner_files
+import tests.test_buildrunner_files

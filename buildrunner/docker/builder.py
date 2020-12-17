@@ -1,7 +1,7 @@
 """
-Copyright (C) 2015-2020 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import
+
 import json
 import os
 import re
@@ -39,7 +39,7 @@ class DockerBuilder(object):
             else:
                 df_file = tempfile.NamedTemporaryFile(delete=False)
                 try:
-                    df_file.write(dockerfile)
+                    df_file.write(dockerfile.encode('utf-8'))
                     self.cleanup_dockerfile = True
                     self.dockerfile = df_file.name
                 finally:
@@ -69,7 +69,7 @@ class DockerBuilder(object):
         if not isinstance(buildargs, dict):
             raise TypeError('buildargs must be a dictionary of keys/values')
 
-        _buildargs = dict([(k, str(v)) for k, v in buildargs.items()])
+        _buildargs = dict([(k, str(v)) for k, v in list(buildargs.items())])
         return _buildargs
 
 
@@ -84,7 +84,7 @@ class DockerBuilder(object):
         if self.path:
             tfile.add(self.path, arcname='.')
         if self.inject:
-            for to_inject, dest in self.inject.iteritems():
+            for to_inject, dest in self.inject.items():
                 tfile.add(to_inject, arcname=dest)
         if self.dockerfile:
             tfile.add(self.dockerfile, arcname='./Dockerfile')
@@ -109,7 +109,7 @@ class DockerBuilder(object):
         exit_code = 0
         msg_buffer = ''
         for msg_str in stream:
-            for msg in msg_str.split("\n"):
+            for msg in msg_str.decode('utf-8').split("\n"):
                 if msg:
                     msg_buffer += msg
                     try:

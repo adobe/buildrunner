@@ -1,7 +1,7 @@
 """
-Copyright (C) 2019 Adobe
+Copyright (C) 2020 Adobe
 """
-from __future__ import absolute_import
+
 
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
@@ -93,14 +93,14 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
             return
 
         self.step_runner.log.write(
-            'Preparing resulting packages for push to "%s".\n' % self._repository
+            f'Preparing resulting packages for push to "{self._repository}".\n'
         )
 
         # get python-sdist packages for this step only
-        for _artifact, _attributes in self.step_runner.build_runner.artifacts.iteritems():
+        for _artifact, _attributes in self.step_runner.build_runner.artifacts.items():
             if _artifact.startswith(self.step_runner.name + "/") and \
                     'type' in _attributes and \
                     _attributes['type'] == "python-sdist":
                 self.step_runner.build_runner.pypi_packages[self._repository]['packages'].append(
-                    "{0}/{1}".format(self.step_runner.build_runner.build_results_dir, _artifact)
+                    f"{self.step_runner.build_runner.build_results_dir}/{_artifact}"
                 )

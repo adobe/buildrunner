@@ -1,7 +1,7 @@
 '''
 Fetch http/https files.
 
-Copyright (C) 2019 Adobe
+Copyright (C) 2020 Adobe
 '''
 
 def fetch_file(parsed_url, config):
