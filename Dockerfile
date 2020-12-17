@@ -1,5 +1,5 @@
 ARG DOCKER_REGISTRY
-FROM $DOCKER_REGISTRY/python:2.7
+FROM $DOCKER_REGISTRY/python:3.6
 
 COPY . /buildrunner-source
 

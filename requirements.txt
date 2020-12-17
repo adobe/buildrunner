@@ -1,18 +1,16 @@
 --extra-index-url https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple/vcsinfo/
 --extra-index-url https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple/
-PyYAML>=3.11
-vcsinfo<0.2.0
-requests>=2.6.0
-paramiko>=1.16.0
-pycrypto>=2.6.1
-bcrypt<3.2
-docker==3.6.0
-fabric==1.10.1
-Jinja2<3
-twine==1.13.0
-setuptools<45
-# >=2.0 versions of MarkupSafe no longer work with Python 2.7
-MarkupSafe<2.0
-# pyparsing>=3.0.0a1 versions are Python 3 only
+vcsinfo
+PyYAML==5.3.1
+requests==2.25.0
+paramiko==2.7.2
+pycrypto==2.6.1
+bcrypt==3.2.0
+docker==4.4.0
+fabric==2.5.0
+Jinja2==2.11.2
+twine==3.2.0
+MarkupSafe==1.1.1
 pyparsing==2.4.7
-
+# Required by vcsinfo, lock it to a version supported by python3
+mercurial==5.6

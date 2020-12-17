@@ -1,19 +1,19 @@
 """
-Copyright (C) 2014-2017 Adobe
+Copyright (C) 2020 Adobe
 """
 
 from __future__ import print_function
 
-import imp
+import importlib.machinery
 import os
 import subprocess
 import sys
-import unittest
+import types
 
 from setuptools import setup, find_packages
 
 
-_VERSION = '0.6'
+_VERSION = '1.0'
 
 _SOURCE_DIR = os.path.dirname(
     os.path.abspath(__file__)
@@ -70,11 +70,10 @@ def read_requirements(filename):
     return requires, dep_links
 
 
-requs = read_requirements('requirements.txt')
-(REQUIRES, DEP_LINKS) = requs
-requs = read_requirements('test_requirements.txt')
-TEST_REQUIRES = requs[0]
-DEP_LINKS.extend(requs[1])
+REQUIRES, DEP_LINKS = read_requirements('requirements.txt')
+requirements, dependency_links = read_requirements('test_requirements.txt')
+TEST_REQUIRES = requirements
+DEP_LINKS.extend(dependency_links)
 
 
 def get_version():
@@ -103,11 +102,13 @@ def get_version():
             if os.path.exists(_BUILDRUNNER_DIR):
                 with open(_VERSION_FILE, 'w') as _ver:
                     _ver.write("__version__ = '%s'\n" % _version)
-    except: #pylint: disable=bare-except
+    except:  # pylint: disable=bare-except
         pass
 
     if os.path.exists(_VERSION_FILE):
-        version_mod = imp.load_source('buildrunnerversion', _VERSION_FILE)
+        loader = importlib.machinery.SourceFileLoader('buildrunnerversion', _VERSION_FILE)
+        version_mod = types.ModuleType(loader.name)
+        loader.exec_module(version_mod)
         _version = version_mod.__version__
     else:
         _version += '.DEVELOPMENT'
@@ -118,11 +119,11 @@ def get_version():
 setup(
     name='buildrunner',
     version=get_version(),
-    author='***REMOVED***',
+    author='ADobe Analytics Cross Functional Engineering',
     author_email="***REMOVED***",
     license="Adobe",
     url="https://***REMOVED***/***REMOVED***/buildrunner",
-    description="Docker-based build enviroment",
+    description="Docker-based build tool",
     long_description="",
 
     packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
