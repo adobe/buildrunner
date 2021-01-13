@@ -75,7 +75,7 @@ def load_ssh_key_from_str(key_str, passwd):
         )
     except SSHException:
         try:
-            return DSSKey.from_private_key_file(
+            return DSSKey.from_private_key(
                 io.StringIO(key_str),
                 passwd,
             )
@@ -322,11 +322,11 @@ class CustomSSHAgent(AgentSSH):
         _ct.start()
 
 
-SSH2_AGENT_FAILURE = chr(30)
+SSH2_AGENT_FAILURE = bytes([30])
 SSH2_AGENTC_REQUEST_IDENTITIES = 11
-SSH2_AGENT_IDENTITIES_ANSWER = chr(12)
+SSH2_AGENT_IDENTITIES_ANSWER = bytes([12])
 SSH2_AGENTC_SIGN_REQUEST = 13
-SSH2_AGENT_SIGN_RESPONSE = chr(14)
+SSH2_AGENT_SIGN_RESPONSE = bytes([14])
 class CustomAgentConnectionThread(threading.Thread):
     """
     Class that manages a remote (upstream server) connection to a
