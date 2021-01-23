@@ -1,16 +1,52 @@
 """
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 """
 
 import argparse
+from collections import OrderedDict
+import logging
 import os
 import sys
+
 
 from . import (
     __version__,
     BuildRunner,
     BuildRunnerConfigurationError,
 )
+
+
+PROC_NAME = 'buildrunner'
+LOG_NAME = PROC_NAME
+
+
+LOGLEVEL_NAMES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+LOGLEVEL_LOOKUP = OrderedDict()
+for _ll_name, _ll_val in zip(LOGLEVEL_NAMES, range(len(LOGLEVEL_NAMES))):
+    LOGLEVEL_LOOKUP[str(_ll_val)] = _ll_name
+    LOGLEVEL_LOOKUP[_ll_name] = _ll_name
+
+
+def get_logger(loglevel):
+    formatter = logging.Formatter('%(asctime)s %(name)-30s %(levelname)-8s %(message)s')
+    logger = logging.getLogger(LOG_NAME)
+    logger.setLevel(loglevel)
+
+    console_handler = logging.StreamHandler(sys.stderr)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    return logger
+
+
+def loglevel_type(string):
+    ll_name = string.upper()
+    if ll_name not in LOGLEVEL_LOOKUP:
+        llevel_values = ', '.join(LOGLEVEL_LOOKUP.keys())
+        raise argparse.ArgumentTypeError(
+            f'Value "{string}" is not a valid loglevel: {llevel_values}'
+        )
+    return LOGLEVEL_LOOKUP[ll_name]
 
 
 def parse_args(argv):
@@ -39,6 +75,15 @@ def parse_args(argv):
         default=None,
         dest='config_file',
         help='build configuration file (defaults to "buildrunner.yaml", then "gauntlet.yaml")',
+    )
+
+    llevel_values = ', '.join(LOGLEVEL_LOOKUP.keys())
+    parser.add_argument(
+        '-l', '--loglevel',
+        dest='loglevel',
+        help=f'Verbosity of output:  Allowed values are {llevel_values}',
+        type=loglevel_type,
+        default='WARNING',
     )
 
     parser.add_argument(
@@ -163,6 +208,8 @@ def parse_args(argv):
 def main(argv):
     """Main program execution."""
     args = parse_args(argv)
+    logger = get_logger(args.loglevel)
+    logger.debug('Startup')
 
     # are we just printing the version?
     if args.print_version:
@@ -181,7 +228,7 @@ def main(argv):
             cleanup_step_artifacts=not args.keep_step_artifacts,
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,
-            log_generated_files=(True if (args.log_generated_files or args.print_generated_files) else False),
+            log_generated_files=(bool(args.log_generated_files or args.print_generated_files)),
             docker_timeout=args.docker_timeout,
             local_images=args.local_images,
         )
@@ -198,3 +245,8 @@ def main(argv):
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
+
+
+# Local Variables:
+# fill-column: 100
+# End:

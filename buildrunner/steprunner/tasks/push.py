@@ -1,5 +1,5 @@
 """
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 """
 
 import os
@@ -17,12 +17,7 @@ from buildrunner.utils import is_dict
 def sanitize_tag(tag, log=None):
     _tag = re.sub(r'[^-_\w.]+', '-', tag.lower())
     if _tag != tag and log:
-        log.write(
-            'Forcing tag to lowercase and removing illegal characters: {0} => {1}\n'.format(
-                tag,
-                _tag,
-            )
-        )
+        log.write(f'Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}\n')
     return _tag
 
 

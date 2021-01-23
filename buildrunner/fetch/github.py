@@ -1,13 +1,12 @@
 '''
 Fetch GitHub files.
 
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 '''
 
 
 
 import os
-import sys
 import base64
 import requests
 
@@ -15,11 +14,6 @@ from ..errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProtocolError,
 )
-
-try:
-    import urllib.parse as urlparse
-except ImportError:
-    import urllib.parse
 
 
 def v3_fetch_file(parsed_url, config):
@@ -90,15 +84,14 @@ def fetch_file(parsed_url, config):
 
     nlcfg = ghcfg.get(parsed_url.netloc)
     if not nlcfg:
+        gh_cfgs = ', '.join(ghcfg.keys())
         raise BuildRunnerConfigurationError(
-            (
-                'Missing github configuration for {} in buildrunner.yaml'
-                ' - known github configurations: {}'
-            ).format(parsed_url.netloc, list(ghcfg.keys()))
+            f'Missing github configuration for {parsed_url.netloc} in buildrunner.yaml'
+            f' - known github configurations: {gh_cfgs}'
         )
 
     ver = nlcfg.get('version')
-    # FIXME: potentially the v3_fetch_file() works for other github API versions.
+    # NOTE: potentially the v3_fetch_file() works for other github API versions.
     if ver == 'v3':
         contents = v3_fetch_file(parsed_url, nlcfg)
     else:
