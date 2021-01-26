@@ -71,7 +71,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             tag = self._repository[tag_index + 1:]
             if tag not in self._tags:
                 self._tags.append(tag)
-            _repository = self._repository[0:tag_index]
+            self._repository = self._repository[0:tag_index]
 
     def run(self, context):
         self.step_runner.log.write(
