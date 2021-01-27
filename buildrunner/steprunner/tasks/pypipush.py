@@ -1,5 +1,5 @@
 """
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 """
 
 
@@ -72,12 +72,10 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                         disable_progress_bar=True,
                         skip_existing=self._skip_existing,
                     )
-            except twine.exceptions.InvalidConfiguration as err:
+            except twine.exceptions.InvalidConfiguration:
                 raise BuildRunnerConfigurationError(
-                    (
-                        'Pypi is unable to find an entry for "{0}" in your .pypirc.\n'
-                        '    See documentation: https://***REMOVED***/xeng/build/tools/pypi-pip.html\n'
-                    ).format(self._repository)
+                    f'Pypi is unable to find an entry for "{self._repository}" in your .pypirc.\n'
+                    '    See documentation: https://***REMOVED***/xeng/build/tools/pypi-pip.html\n'
                 )
 
             self.step_runner.build_runner.pypi_packages[self._repository] = {
@@ -104,3 +102,8 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                 self.step_runner.build_runner.pypi_packages[self._repository]['packages'].append(
                     f"{self.step_runner.build_runner.build_results_dir}/{_artifact}"
                 )
+
+
+# Local Variables:
+# fill-column: 100
+# End:

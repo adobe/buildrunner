@@ -1,5 +1,5 @@
 """
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 """
 
 import base64
@@ -12,7 +12,9 @@ import fnmatch
 import getpass
 import importlib.machinery
 import inspect
+from io import StringIO
 import json
+import logging
 import os
 import re
 import shutil
@@ -24,7 +26,7 @@ import types
 import jinja2
 import requests
 
-from io import StringIO
+from vcsinfo import detect_vcs
 
 from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
@@ -41,8 +43,9 @@ from buildrunner.utils import (
     hash_sha1
 )
 from . import fetch
-from vcsinfo import detect_vcs
 
+
+LOGGER = logging.getLogger(__name__)
 
 __version__ = 'DEVELOPMENT'
 try:
@@ -51,7 +54,7 @@ try:
         loader = importlib.machinery.SourceFileLoader('buildrunnerversion', _VERSION_FILE)
         _VERSION_MOD = types.ModuleType(loader.name)
         loader.exec_module(_VERSION_MOD)
-        __version__ = _VERSION_MOD.__version__
+        __version__ = getattr(_VERSION_MOD, '__version__', __version__)
 except:  # pylint: disable=bare-except
     pass
 
@@ -176,8 +179,8 @@ class BuildRunner(object):
                     for fname, fpath in list(ctx.get('local-files', {}).items()):
                         if not isinstance(fpath, str):
                             self.log.write(
-                                'Bad "local-files" entry in {0!r}:'
-                                '\n    {1!r}: {2!r}\n'.format(cfg_path, fname, fpath)
+                                f'Bad "local-files" entry in {cfg_path!r}:\n'
+                                f'    {fname!r}: {fpath!r}\n'
                             )
                             continue
                         resolved_path = os.path.realpath(os.path.expanduser(fpath))
@@ -194,10 +197,9 @@ class BuildRunner(object):
                             scrubbed_local_files[fname] = resolved_path
                         else:
                             self.log.write(
-                                'Bad "local-files" entry in {0!r}:'
-                                '\n    User {1!r} is not allowed to mount {2!r}.'
-                                '\n    You may need an entry in {3!r}.'
-                                '\n'.format(cfg_path, username, resolved_path, MASTER_GLOBAL_CONFIG_FILE)
+                                f'Bad "local-files" entry in {cfg_path!r}:\n'
+                                f'    User {username!r} is not allowed to mount {resolved_path!r}.\n'
+                                f'    You may need an entry in {MASTER_GLOBAL_CONFIG_FILE!r}.\n'
                             )
                     ctx['local-files'] = scrubbed_local_files
 
@@ -366,9 +368,13 @@ class BuildRunner(object):
         if push:
             base_context['BUILDRUNNER_DO_PUSH'] = 1
         self.env = self._get_config_context(base_context)
+        key_len = max([len(key) for key in self.env.keys()])
+        for key in sorted(self.env.keys()):
+            val = self.env[key]
+            LOGGER.debug(f'Environment: {key!s:>{key_len}}: {val}')
 
         # load global configuration
-        _gc_files = [gcf for gcf in DEFAULT_GLOBAL_CONFIG_FILES]
+        _gc_files = DEFAULT_GLOBAL_CONFIG_FILES[:]
         _gc_files.append(global_config_file or f'{self.build_dir}/.buildrunner.yaml')
 
         _global_config_files = self.to_abs_path(
@@ -402,16 +408,12 @@ class BuildRunner(object):
             self.run_config = self._load_config(_run_config_file)
 
         if not isinstance(self.run_config, dict) or 'steps' not in self.run_config:
-            raise BuildRunnerConfigurationError(
-                'Could not find a "steps" attribute in {}'.format(
-                    _run_config_file if _run_config_file else 'provided config'
-                )
-            )
+            cfg_file = _run_config_file if _run_config_file else 'provided config'
+            raise BuildRunnerConfigurationError(f'Could not find a "steps" attribute in {cfg_file}')
         if not self.run_config['steps'] or not isinstance(self.run_config['steps'], dict):
+            cfg_file = _run_config_file if _run_config_file else 'provided config'
             raise BuildRunnerConfigurationError(
-                'The "steps" attribute is not a non-empty dictionary in {}'.format(
-                    _run_config_file if _run_config_file else 'provided config'
-                )
+                f'The "steps" attribute is not a non-empty dictionary in {cfg_file}'
             )
 
     def get_docker_registry(self):
@@ -579,7 +581,7 @@ class BuildRunner(object):
             excludes = []
             if os.path.exists(buildignore):
                 with open(buildignore, 'r') as _file:
-                    excludes = [_ex for _ex in _file.read().splitlines()]
+                    excludes = _file.read().splitlines()
 
             def _exclude_working_dir(tarinfo):
                 """
@@ -633,10 +635,10 @@ class BuildRunner(object):
                 pull=False,
             )
             if exit_code != 0 or not source_builder.image:
-                raise BuildRunnerProcessingError((
-                    'Error building source image ({0}), this may be a transient docker'
+                raise BuildRunnerProcessingError(
+                    f'Error building source image ({exit_code}), this may be a transient docker'
                     ' error if no output is available above'
-                ).format(exit_code))
+                )
             self._source_image = source_builder.image
         return self._source_image
 
@@ -729,8 +731,6 @@ class BuildRunner(object):
 
             self.get_source_archive_path()
 
-            _pypi_to_push = []
-
             # run each step
             for step_name, step_config in self.run_config['steps'].items():
                 if not self.steps_to_run or step_name in self.steps_to_run:
@@ -793,7 +793,7 @@ class BuildRunner(object):
                 # Push to pypi repositories
                 # Placing the import here avoids the dependency when pypi is not needed
                 import twine.commands.upload
-                for _repository_name, _items in self.pypi_packages.items():
+                for _, _items in self.pypi_packages.items():
                     twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
             else:
                 self.log.write(

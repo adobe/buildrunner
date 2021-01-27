@@ -1,5 +1,5 @@
 """
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 """
 
 from collections import OrderedDict
@@ -304,7 +304,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
             workdir = None
             if arch_props['type'] == 'tar':
-                suffix = arch_props.get('suffix', '.{type}.{compression}'.format(**arch_props))
+                suffix = arch_props.get('suffix', f'.{arch_props["type"]}.{arch_props["compression"]}')
                 output_file_name = arch_props['name'] + suffix
                 new_artifact_file = '/stepresults/' + output_file_name
                 archive_command = [
@@ -323,7 +323,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 ))
 
             elif arch_props['type'] == 'zip':
-                output_file_name = '{name}.{type}'.format(**arch_props)
+                output_file_name = f'{arch_props["name"]}.{arch_props["type"]}'
                 new_artifact_file = '/stepresults/' + output_file_name
                 archive_command = [
                     'zip',
@@ -607,7 +607,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 )
                 if exit_code != 0:
                     service_logger.write(
-                        f'Service command "{config["cmd"]}" exited with code {exit()}\n'
+                        f'Service command "{config["cmd"]}" exited with code {exit_code}\n'
                     )
             else:
                 service_runner.attach_until_finished(service_logger)
@@ -647,11 +647,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             container_status = container.get('State', {}).get('Status')
             if container_status not in ['created', 'running']:
                 raise BuildRunnerProcessingError(
-                    'Unable to wait for a service port {0} to be ready, the container {1} status is {2}'.format(
-                        port,
-                        name,
-                        container_status
-                    ))
+                    f'Unable to wait for a service port {port} to be ready, the container'
+                    f' {name} status is {container_status}'
+                )
 
             # Use a small nc image to test if the port is open from within the docker network
             # Linux can talk to containers directly, but mac and other OSes cannot
@@ -1061,3 +1059,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # Labels will be set as the string value.  Make sure we handle '0' and 'False'
         return bool(rval and rval != '0' and rval != 'False')
+
+
+# Local Variables:
+# fill-column: 100
+# End:

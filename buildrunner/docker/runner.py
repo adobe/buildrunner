@@ -1,5 +1,5 @@
 """
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 """
 
 import base64
@@ -29,9 +29,7 @@ class DockerRunner(object):
     def __init__(self, image_name, dockerd_url=None, pull_image=True, log=None):
         self.image_name = image_name.lower()
         if log and self.image_name != image_name:
-            log.write('Forcing image_name to lowercase: {0} => {1}\n'.format(
-                image_name, self.image_name
-            ))
+            log.write(f'Forcing image_name to lowercase: {image_name} => {self.image_name}\n')
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
             # Disable timeouts for running commands
@@ -227,13 +225,9 @@ class DockerRunner(object):
                                     v=True,
                                 )
                         else:
-                            print("Unable to find docker container with name or label '{}'".format(
-                                container
-                            ))
+                            print(f'Unable to find docker container with name or label "{container}"')
                     except docker.errors.NotFound:
-                        print("Unable to find docker container with name or label '{}'".format(
-                            container
-                        ))
+                        print(f'Unable to find docker container with name or label "{container}"')
 
             self.docker_client.remove_container(
                 self.container['Id'],
@@ -434,3 +428,8 @@ class DockerRunner(object):
             f'Resulting build container image: {self.committed_image:.10}\n'
         )
         return self.committed_image
+
+
+# Local Variables:
+# fill-column: 100
+# End:

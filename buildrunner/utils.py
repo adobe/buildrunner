@@ -1,5 +1,5 @@
 """
-Copyright (C) 2020 Adobe
+Copyright (C) 2020-2021 Adobe
 """
 
 
@@ -68,10 +68,10 @@ def load_config(stream, cfg_file):
             ),
             Loader=OrderedLoader,
         )
-    except yaml.scanner.ScannerError as e:
+    except yaml.scanner.ScannerError as err:
         raise BuildRunnerConfigurationError(
-            'The {} file contains malformed yaml, '
-            'please check the syntax and try again: {}'.format(cfg_file, e)
+            f'The {cfg_file} file contains malformed yaml, '
+            f'please check the syntax and try again: {err}'
         )
 
 
@@ -267,3 +267,8 @@ class ContainerLogger(object):
         colors[-1] = current
 
         return current
+
+
+# Local Variables:
+# fill-column: 100
+# End:
