@@ -30,7 +30,6 @@ from buildrunner.errors import (
 )
 from buildrunner.docker.builder import DockerBuilder
 
-
 SSH_AGENT_PROXY_BUILD_CONTEXT = os.path.join(
     os.path.dirname(__file__),
     'SSHAgentProxyImage'
@@ -43,21 +42,21 @@ def load_ssh_key_from_file(key_file, passwd):
     """
     try:
         return RSAKey.from_private_key_file(key_file, passwd)
-    except PasswordRequiredException:
+    except PasswordRequiredException as pwdreqe:
         raise BuildRunnerConfigurationError(
             f"Key at {key_file} requires a password"
-        )
+        ) from pwdreqe
     except SSHException:
         try:
             return DSSKey.from_private_key_file(key_file, passwd)
-        except PasswordRequiredException:
+        except PasswordRequiredException as pwdreqe:
             raise BuildRunnerConfigurationError(
                 f"Key at {key_file} requires a password"
-            )
-        except SSHException:
+            ) from pwdreqe
+        except SSHException as sshe:
             raise BuildRunnerConfigurationError(
                 f"Unable to load key at {key_file}"
-            )
+            ) from sshe
 
 
 def load_ssh_key_from_str(key_str, passwd):
@@ -69,34 +68,33 @@ def load_ssh_key_from_str(key_str, passwd):
             io.StringIO(key_str),
             passwd
         )
-    except PasswordRequiredException:
+    except PasswordRequiredException as pwdreqe:
         raise BuildRunnerConfigurationError(
             "Provided key requires a password"
-        )
+        ) from pwdreqe
     except SSHException:
         try:
             return DSSKey.from_private_key(
                 io.StringIO(key_str),
                 passwd,
             )
-        except PasswordRequiredException:
+        except PasswordRequiredException as pwdreqe:
             raise BuildRunnerConfigurationError(
                 "Provided key requires a password"
-            )
-        except SSHException:
+            ) from pwdreqe
+        except SSHException as sshe:
             raise BuildRunnerConfigurationError(
                 "Unable to load provided key"
-            )
+            ) from sshe
 
 
-class DockerSSHAgentProxy(object):
+class DockerSSHAgentProxy:
     """
     Class used to manage a Docker container that exposes a ssh-agent socket
     through a volume that can be mounted within other containers running within
     the same Docker host. Keys are loaded and shared through a custom ssh-agent
     implementation that is managed by this class.
     """
-
 
     def __init__(self, docker_client, log, docker_registry):
         """
@@ -108,7 +106,6 @@ class DockerSSHAgentProxy(object):
         self._ssh_agent_container = None
         self._ssh_client = None
         self._ssh_channel = None
-
 
     def get_info(self):
         """
@@ -123,7 +120,6 @@ class DockerSSHAgentProxy(object):
                 'SSH_AUTH_SOCK': '/ssh-agent/agent'
             }
         )
-
 
     def start(self, keys):
         """
@@ -190,7 +186,7 @@ class DockerSSHAgentProxy(object):
         # setup ssh connection with fake agent in own thread
         self._ssh_client = SSHClient()
         self._ssh_client.set_missing_host_key_policy(MissingHostKeyPolicy())
-        #pylint: disable=W0212
+        # pylint: disable=W0212
         self._ssh_client._agent = CustomSSHAgent(keys)
         self._ssh_client.connect(
             _ssh_host,
@@ -200,14 +196,13 @@ class DockerSSHAgentProxy(object):
             look_for_keys=False,
         )
         self._ssh_channel = self._ssh_client.get_transport().open_session()
-        #AgentRequestHandler(channel)
+        # AgentRequestHandler(channel)
         self._ssh_channel.request_forward_agent(
             self._ssh_client._agent.forward_agent_handler
         )
         self._ssh_channel.get_pty()
         self._ssh_channel.exec_command('/login.sh')
         self.log.write("Established ssh-agent container connection\n")
-
 
     def stop(self):
         """
@@ -217,18 +212,18 @@ class DockerSSHAgentProxy(object):
         # kill ssh connection thread
         self.log.write("Closing ssh-agent container connection\n")
         if self._ssh_client:
-            #pylint: disable=W0212
+            # pylint: disable=W0212
             if self._ssh_client._agent:
                 try:
                     self._ssh_client._agent.close()
-                #pylint: disable=W0703
+                # pylint: disable=W0703
                 except Exception as _ex:
                     self.log.write(
                         f"Error stopping ssh-agent: {_ex}\n"
                     )
             try:
                 self._ssh_client.close()
-            #pylint: disable=W0703
+            # pylint: disable=W0703
             except Exception as _ex:
                 self.log.write(
                     f"Error stopping ssh-agent connection: {_ex}\n"
@@ -244,7 +239,6 @@ class DockerSSHAgentProxy(object):
                 force=True,
                 v=True,
             )
-
 
     def get_ssh_agent_image(self):
         """
@@ -273,13 +267,11 @@ class CustomSSHAgent(AgentSSH):
     Custom class implementing the paramiko ssh agent apis.
     """
 
-
     def __init__(self, keys):
         AgentSSH.__init__(self)
         self._conn = None
         self._keys = keys
         self._connection_threads = []
-
 
     def _connect(self, conn):
         """
@@ -287,10 +279,8 @@ class CustomSSHAgent(AgentSSH):
         """
         pass
 
-
     def __del__(self):
         self.close()
-
 
     def close(self):
         """
@@ -301,13 +291,11 @@ class CustomSSHAgent(AgentSSH):
                 _ct.stop()
         self._keys = []
 
-
     def get_keys(self):
         """
         Return the keys.
         """
         return tuple(self._keys)
-
 
     def forward_agent_handler(self, remote_channel):
         """
@@ -327,11 +315,14 @@ SSH2_AGENTC_REQUEST_IDENTITIES = 11
 SSH2_AGENT_IDENTITIES_ANSWER = bytes([12])
 SSH2_AGENTC_SIGN_REQUEST = 13
 SSH2_AGENT_SIGN_RESPONSE = bytes([14])
+
+
 class CustomAgentConnectionThread(threading.Thread):
     """
     Class that manages a remote (upstream server) connection to a
     CustomSSHAgent.
     """
+
     def __init__(self, agent, remote_channel):
         threading.Thread.__init__(self, target=self.run)
         self._agent = agent
@@ -361,13 +352,12 @@ class CustomAgentConnectionThread(threading.Thread):
                             self._send_reply(SSH2_AGENT_FAILURE)
                 except SSHException:
                     raise
-                except Exception: #pylint: disable=broad-except
+                except Exception:  # pylint: disable=broad-except
                     pass
                 time.sleep(io_sleep)
-        #pylint: disable=W0703
+        # pylint: disable=W0703
         except Exception:
             self.stop()
-
 
     def _agent_identities_answer(self):
         """
@@ -382,7 +372,6 @@ class CustomAgentConnectionThread(threading.Thread):
             msg.add_string(_key.asbytes())
             msg.add_string('')
         self._send_reply(msg)
-
 
     def _agent_sign_response(self, request):
         """
@@ -404,7 +393,6 @@ class CustomAgentConnectionThread(threading.Thread):
             msg.add_byte(SSH2_AGENT_FAILURE)
         self._send_reply(msg)
 
-
     def _send_reply(self, msg):
         """
         Send a reply back to the upstream agent.
@@ -412,7 +400,6 @@ class CustomAgentConnectionThread(threading.Thread):
         raw_msg = asbytes(msg)
         length = struct.pack('>I', len(raw_msg))
         self._remote_channel.send(length + raw_msg)
-
 
     def _receive_request(self):
         """
@@ -422,7 +409,6 @@ class CustomAgentConnectionThread(threading.Thread):
         message_length = self._read_all(4)
         msg = Message(self._read_all(struct.unpack('>I', message_length)[0]))
         return ord(msg.get_byte()), msg
-
 
     def _read_all(self, wanted):
         """
@@ -437,7 +423,6 @@ class CustomAgentConnectionThread(threading.Thread):
                 raise SSHException('lost upstream ssh-agent connection')
             result += extra
         return result
-
 
     def stop(self):
         """

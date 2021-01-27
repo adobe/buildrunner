@@ -2,7 +2,6 @@
 Copyright (C) 2020-2021 Adobe
 """
 
-
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
 )
@@ -16,7 +15,7 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
     """
 
     def __init__(self, step_runner, config):
-        super(PypiPushBuildStepRunnerTask, self).__init__(step_runner, config)
+        super().__init__(step_runner, config)
 
         if not self.step_runner.build_runner.push:
             # Was not invoked with ``--push`` so just skip this.  This avoids twine
@@ -56,7 +55,7 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
 
         if self._repository not in self.step_runner.build_runner.pypi_packages:
             # Importing here avoids twine dependency when it is unnecessary
-            import twine.settings
+            import twine.settings  # pylint: disable=import-outside-toplevel
             try:
                 if self._username is not None and self._password is not None:
                     upload_settings = twine.settings.Settings(
@@ -72,11 +71,11 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                         disable_progress_bar=True,
                         skip_existing=self._skip_existing,
                     )
-            except twine.exceptions.InvalidConfiguration:
+            except twine.exceptions.InvalidConfiguration as twe:
                 raise BuildRunnerConfigurationError(
                     f'Pypi is unable to find an entry for "{self._repository}" in your .pypirc.\n'
                     '    See documentation: https://***REMOVED***/xeng/build/tools/pypi-pip.html\n'
-                )
+                ) from twe
 
             self.step_runner.build_runner.pypi_packages[self._repository] = {
                 'upload_settings': upload_settings,
@@ -102,7 +101,6 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                 self.step_runner.build_runner.pypi_packages[self._repository]['packages'].append(
                     f"{self.step_runner.build_runner.build_results_dir}/{_artifact}"
                 )
-
 
 # Local Variables:
 # fill-column: 100

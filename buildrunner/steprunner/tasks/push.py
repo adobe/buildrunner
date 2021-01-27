@@ -15,6 +15,10 @@ from buildrunner.utils import is_dict
 
 
 def sanitize_tag(tag, log=None):
+    """
+    :param tag:
+    :param log:
+    """
     _tag = re.sub(r'[^-_\w.]+', '-', tag.lower())
     if _tag != tag and log:
         log.write(f'Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}\n')
@@ -29,7 +33,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
     """
 
     def __init__(self, step_runner, config):
-        super(PushBuildStepRunnerTask, self).__init__(step_runner, config)
+        super().__init__(step_runner, config)
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
@@ -39,8 +43,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         if is_dict(config):
             if 'repository' not in config:
                 raise BuildRunnerConfigurationError(
-                    'Docker push configuration must at least specify a '
-                    '"repository" attribute'
+                    'Docker push configuration must at least specify a "repository" attribute'
                 )
             self._repository = config['repository']
 
@@ -128,7 +131,6 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 'docker:tags': self._tags,
             },
         )
-
 
 # Local Variables:
 # fill-column: 100

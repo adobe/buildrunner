@@ -12,7 +12,6 @@ import types
 
 from setuptools import setup, find_packages
 
-
 _VERSION = '1.0'
 
 _SOURCE_DIR = os.path.dirname(
@@ -23,7 +22,11 @@ _VERSION_FILE = os.path.join(_BUILDRUNNER_DIR, 'version.py')
 
 THIS_DIR = os.path.dirname(__file__)
 
+
 def read_requirements(filename):
+    """
+    :param filename:
+    """
     requires = []
     dep_links = []
     try:
@@ -102,14 +105,14 @@ def get_version():
             if os.path.exists(_BUILDRUNNER_DIR):
                 with open(_VERSION_FILE, 'w') as _ver:
                     _ver.write("__version__ = '%s'\n" % _version)
-    except:  # pylint: disable=bare-except
+    except:
         pass
 
     if os.path.exists(_VERSION_FILE):
         loader = importlib.machinery.SourceFileLoader('buildrunnerversion', _VERSION_FILE)
         version_mod = types.ModuleType(loader.name)
         loader.exec_module(version_mod)
-        _version = version_mod.__version__
+        _version = version_mod.__version__  # pylint: disable=no-member
     else:
         _version += '.DEVELOPMENT'
 
@@ -131,8 +134,8 @@ setup(
         'bin/buildrunner',
     ],
     package_data={
-        'buildrunner' : ['SourceDockerfile'],
-        'buildrunner.sshagent' : [
+        'buildrunner': ['SourceDockerfile'],
+        'buildrunner.sshagent': [
             'SSHAgentProxyImage/Dockerfile',
             'SSHAgentProxyImage/run.sh',
             'SSHAgentProxyImage/login.sh',
@@ -143,7 +146,6 @@ setup(
     dependency_links=DEP_LINKS,
     test_suite='tests',
 )
-
 
 # Local Variables:
 # fill-column: 100

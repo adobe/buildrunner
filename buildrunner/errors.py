@@ -26,8 +26,3 @@ class BuildRunnerProcessingError(BuildRunnerError):
 class BuildRunnerProvisionerError(BuildRunnerError):
     """Error indicating an issue with a provisioner"""
     pass
-
-
-# Local Variables:
-# fill-column: 100
-# End:

@@ -9,16 +9,14 @@ import requests
 from buildrunner.errors import BuildRunnerProvisionerError
 
 
-class SaltProvisioner(object):
+class SaltProvisioner:
     """
     Provisioner used to apply a salt state defined in the run configuration.
     """
 
-
     def __init__(self, sls, console=None):
         self.sls = sls
         self.console = console
-
 
     def provision(self, runner):
         """

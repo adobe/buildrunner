@@ -5,7 +5,7 @@ Copyright (C) 2020 Adobe
 import os
 from io import StringIO
 
-from fabric import Connection, Config
+from fabric import Connection
 
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
@@ -20,7 +20,7 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
     """
 
     def __init__(self, step_runner, config):
-        super(RemoteBuildStepRunnerTask, self).__init__(step_runner, config)
+        super().__init__(step_runner, config)
 
         # must have a 'host' attribute
         if 'host' not in self.config:
@@ -40,7 +40,7 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
 
         self.artifacts = self.config.get('artifacts', {})
 
-    def run(self, step_context): #pylint: disable=unused-argument
+    def run(self, context):  # pylint: disable=unused-argument,too-many-branches,too-many-locals
         self.step_runner.log.write(
             f"Building on remote host {self.host}\n\n"
         )
@@ -64,7 +64,7 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                     "Error creating remote directory"
                 )
 
-            try:
+            try:  # pylint: disable=too-many-nested-blocks
                 self.step_runner.log.write(
                     f"[{self.host}] Pushing archive file to remote directory\n"
                 )
@@ -86,55 +86,55 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                         raise BuildRunnerProcessingError(
                             "Error extracting archive file"
                         )
-                    else:
-                        self.step_runner.log.write(f"[{self.host}] Running command '{self.cmd}'\n")
-                        package_result = connection.run(
-                            f"(cd {remote_build_dir}; {self.cmd})",
-                            warn=True,
-                            out_stream=self.step_runner.log,
-                            err_stream=self.step_runner.log,
-                        )
 
-                        if self.artifacts:
-                            _arts = []
-                            for _art, _props in self.artifacts.items():
-                                # check to see if there are artifacts
-                                # that match the pattern
-                                dummy_out = StringIO()
-                                art_result = connection.run(
-                                    f'ls -A1 {remote_build_dir}/{_art}',
-                                    hide=True,
-                                    warn=True,
-                                    out_stream=dummy_out,
-                                    err_stream=dummy_out,
-                                )
-                                if art_result.return_code:
-                                    continue
+                    self.step_runner.log.write(f"[{self.host}] Running command '{self.cmd}'\n")
+                    package_result = connection.run(
+                        f"(cd {remote_build_dir}; {self.cmd})",
+                        warn=True,
+                        out_stream=self.step_runner.log,
+                        err_stream=self.step_runner.log,
+                    )
 
-                                # we have at least one match--run the get
-                                for _ca in connection.get(
-                                        f"{remote_build_dir}/{_art}",
-                                        f"{self.step_runner.results_dir}/%(basename)s"
-                                ):
-                                    _arts.append(_ca)
-                                    self.step_runner.build_runner.add_artifact(
-                                        os.path.join(
-                                            self.step_runner.name,
-                                            os.path.basename(_ca),
-                                        ),
-                                        _props,
-                                    )
-                            self.step_runner.log.write("\nGathered artifacts:\n")
-                            for _art in _arts:
-                                self.step_runner.log.write(
-                                    f'- found {os.path.basename(_art)}\n',
-                                )
-                            self.step_runner.log.write("\n")
-
-                        if package_result.return_code:
-                            raise BuildRunnerProcessingError(
-                                "Error running remote build"
+                    if self.artifacts:
+                        _arts = []
+                        for _art, _props in self.artifacts.items():
+                            # check to see if there are artifacts
+                            # that match the pattern
+                            dummy_out = StringIO()
+                            art_result = connection.run(
+                                f'ls -A1 {remote_build_dir}/{_art}',
+                                hide=True,
+                                warn=True,
+                                out_stream=dummy_out,
+                                err_stream=dummy_out,
                             )
+                            if art_result.return_code:
+                                continue
+
+                            # we have at least one match--run the get
+                            for _ca in connection.get(  # pylint: disable=not-an-iterable
+                                    f"{remote_build_dir}/{_art}",
+                                    f"{self.step_runner.results_dir}/%(basename)s"
+                            ):
+                                _arts.append(_ca)
+                                self.step_runner.build_runner.add_artifact(
+                                    os.path.join(
+                                        self.step_runner.name,
+                                        os.path.basename(_ca),
+                                    ),
+                                    _props,
+                                )
+                        self.step_runner.log.write("\nGathered artifacts:\n")
+                        for _art in _arts:
+                            self.step_runner.log.write(
+                                f'- found {os.path.basename(_art)}\n',
+                            )
+                        self.step_runner.log.write("\n")
+
+                    if package_result.return_code:
+                        raise BuildRunnerProcessingError(
+                            "Error running remote build"
+                        )
 
                 else:
                     raise BuildRunnerProcessingError(

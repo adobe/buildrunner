@@ -11,12 +11,11 @@ from buildrunner.errors import BuildRunnerProcessingError
 from buildrunner.utils import is_dict
 
 
-class DockerImporter(object):
+class DockerImporter:
     """
     An object that orchestrates importing a Docker image from
     a tar file.
     """
-
 
     def __init__(
             self,
@@ -31,7 +30,6 @@ class DockerImporter(object):
         )
         self.image = None
 
-
     def import_image(self):
         """
         Run a docker import using the configured src archive.
@@ -42,7 +40,7 @@ class DockerImporter(object):
         except docker.errors.APIError as apie:
             raise BuildRunnerProcessingError(
                 f'Error importing image from archive file {self.src}: {apie}'
-            )
+            ) from apie
         if not is_dict(import_return):
             import_return = yaml.load(import_return)
         if 'status' not in import_return:

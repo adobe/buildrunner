@@ -19,8 +19,7 @@ from buildrunner.docker import (
 from buildrunner.utils import tempfile
 
 
-class DockerRunner(object):
-
+class DockerRunner:
     """
     An object that manages and orchestrates the lifecycle and execution of a
     Docker container.
@@ -70,8 +69,8 @@ class DockerRunner(object):
                 if log:
                     log.write('.')
                     # If we implement an interactive mode, this could be used instead
-                    #line = data.get('progress', data.get('status')) or '...'
-                    #log.write('\r{}'.format(line.ljust(80)))
+                    # line = data.get('progress', data.get('status')) or '...'
+                    # log.write(f'\r{line:<80}')
             if log:
                 log.write('\nImage pulled successfully\n')
 
@@ -95,7 +94,7 @@ class DockerRunner(object):
             systemd=None,
             cap_add=None,
             privileged=False
-    ): #pylint: disable=too-many-arguments
+    ):  # pylint: disable=too-many-arguments,too-many-locals
         """
         Kwargs:
           volumes (dict): mount the local dir (key) to the given container
@@ -214,7 +213,7 @@ class DockerRunner(object):
                 except docker.errors.NotFound:
                     try:
                         container_ids = self.docker_client.containers(
-                            filters={'label':container},
+                            filters={'label': container},
                             quiet=True
                         )
                         if container_ids:
@@ -237,6 +236,7 @@ class DockerRunner(object):
 
         self.container = None
 
+    # pylint: disable=too-many-branches,too-many-arguments
     def run(self, cmd, console=None, stream=True, log=None, workdir=None):
         """
         Run the given command in the container.
@@ -251,7 +251,7 @@ class DockerRunner(object):
             cmdv = cmd
         else:
             raise TypeError(f'Unhandled command type: {type(cmd)}:{cmd}')
-        #if console is None:
+        # if console is None:
         #    raise Exception('No console!')
         if not self.container:
             raise BuildRunnerContainerError('Container has not been started')
@@ -267,7 +267,7 @@ class DockerRunner(object):
             self.container['Id'],
             cmdv,
             tty=False,
-            #workdir=workdir,
+            # workdir=workdir,
         )
         output_buffer = self.docker_client.exec_start(
             create_res,
@@ -296,7 +296,7 @@ class DockerRunner(object):
                 log.write(warning)
         inspect_res = self.docker_client.exec_inspect(create_res)
         if 'ExitCode' in inspect_res:
-            if inspect_res['ExitCode'] == None:
+            if inspect_res['ExitCode'] is None:
                 raise BuildRunnerContainerError(f'Error running cmd ({cmd}): exit code is None')
             return inspect_res['ExitCode']
         raise BuildRunnerContainerError('Error running cmd: no exit code')
@@ -428,8 +428,3 @@ class DockerRunner(object):
             f'Resulting build container image: {self.committed_image:.10}\n'
         )
         return self.committed_image
-
-
-# Local Variables:
-# fill-column: 100
-# End:

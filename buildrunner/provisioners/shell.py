@@ -2,20 +2,17 @@
 Copyright (C) 2020 Adobe
 """
 
-import sys
 from buildrunner.errors import BuildRunnerProvisionerError
 
 
-class ShellProvisioner(object):
+class ShellProvisioner:
     """
     Provisioner used to run a shell script.
     """
 
-
     def __init__(self, script, console=None):
         self.script = script
         self.console = console
-
 
     def provision(self, runner):
         """
@@ -29,8 +26,3 @@ class ShellProvisioner(object):
         )
         if exit_code != 0:
             raise BuildRunnerProvisionerError("Shell provisioner failed")
-
-
-# Local Variables:
-# fill-column: 100
-# End:
