@@ -55,7 +55,7 @@ try:
         _VERSION_MOD = types.ModuleType(loader.name)
         loader.exec_module(_VERSION_MOD)
         __version__ = getattr(_VERSION_MOD, '__version__', __version__)
-except:  # pylint: disable=bare-except
+except:
     pass
 
 
@@ -73,7 +73,7 @@ RESULTS_DIR = 'buildrunner.results'
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
 
 
-class BuildRunner(object):
+class BuildRunner:  # pylint: disable=too-many-instance-attributes
     """
     Class used to manage running a build.
     """
@@ -115,7 +115,8 @@ class BuildRunner(object):
 
         return context
 
-    def _raise_exception_jinja(self, message):
+    @staticmethod
+    def _raise_exception_jinja(message):
         """
         Raises an exception from a jinja template.
         """
@@ -184,6 +185,7 @@ class BuildRunner(object):
                             )
                             continue
                         resolved_path = os.path.realpath(os.path.expanduser(fpath))
+                        # pylint: disable=too-many-boolean-expressions
                         if (
                                 username == 'root'
                                 or resolved_path == homedir
@@ -319,7 +321,7 @@ class BuildRunner(object):
             log_generated_files=False,
             docker_timeout=None,
             local_images=False,
-    ):
+    ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         """
         """
         self.build_dir = build_dir
@@ -417,10 +419,15 @@ class BuildRunner(object):
             )
 
     def get_docker_registry(self):
-        # Default to docker.io if none is configured
+        """
+        Default to docker.io if none is configured
+        """
         return self.global_config.get('docker-registry', 'docker.io')
 
     def get_temp_dir(self):
+        """
+        Get temp dir
+        """
         return self.global_config.get('temp-dir', tempfile.gettempdir())
 
     def get_build_server_from_alias(self, host):
@@ -439,7 +446,7 @@ class BuildRunner(object):
 
         return host
 
-    def get_ssh_keys_from_aliases(self, key_aliases):
+    def get_ssh_keys_from_aliases(self, key_aliases):  # pylint: disable=too-many-branches
         """
         Given a list of key aliases return Paramiko key objects based on keys
         registered in the global config.
@@ -555,12 +562,12 @@ class BuildRunner(object):
         if not isinstance(path, list):
             paths = [path]
 
-        for i in range(len(paths)):
-            _path = os.path.expanduser(paths[i])
+        for index, _ in enumerate(paths):
+            _path = os.path.expanduser(paths[index])
             if os.path.isabs(_path):
-                paths[i] = os.path.realpath(_path)
+                paths[index] = os.path.realpath(_path)
             else:
-                paths[i] = os.path.realpath(os.path.join(self.build_dir, _path))
+                paths[index] = os.path.realpath(os.path.join(self.build_dir, _path))
         if return_list:
             return paths
         return paths[0]
@@ -715,7 +722,7 @@ class BuildRunner(object):
                 print(f'\n{exit_explanation}')
             print(exit_message)
 
-    def run(self):
+    def run(self):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
         """
         Run the build.
         """
@@ -723,7 +730,7 @@ class BuildRunner(object):
         self.exit_code = None
 
         exit_explanation = None
-        try:
+        try:  # pylint: disable=too-many-nested-blocks
 
             if not os.path.exists(self.build_results_dir):
                 # create a new results dir
@@ -762,7 +769,7 @@ class BuildRunner(object):
                     push_kwargs = {
                         'stream': True,
                     }
-                    if 'insecure_registry' in inspect.getargspec(_docker_client.push).args:
+                    if 'insecure_registry' in inspect.getfullargspec(_docker_client.push).args:
                         push_kwargs['insecure_registry'] = _insecure_registry
 
                     stream = _docker_client.push(_repo_tag, **push_kwargs)
@@ -792,7 +799,7 @@ class BuildRunner(object):
 
                 # Push to pypi repositories
                 # Placing the import here avoids the dependency when pypi is not needed
-                import twine.commands.upload
+                import twine.commands.upload  # pylint: disable=import-outside-toplevel
                 for _, _items in self.pypi_packages.items():
                     twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
             else:

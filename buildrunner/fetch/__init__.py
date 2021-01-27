@@ -38,7 +38,6 @@ def fetch_file(url, config):
 
     return file_contents
 
-
 # Local Variables:
 # fill-column: 100
 # End:

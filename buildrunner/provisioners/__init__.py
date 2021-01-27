@@ -7,7 +7,6 @@ from buildrunner.errors import BuildRunnerProvisionerError
 from buildrunner.provisioners.salt import SaltProvisioner
 from buildrunner.provisioners.shell import ShellProvisioner
 
-
 PROVISIONERS = {
     'shell': ShellProvisioner,
     'salt': SaltProvisioner,
@@ -27,8 +26,6 @@ def create_provisioners(provisioners_config, logger):
                     PROVISIONERS[_type](_value, console=logger)
                 )
             else:
-                raise BuildRunnerProvisionerError(
-                    f'Unknown provisioner type "{_type}"'
-                )
+                raise BuildRunnerProvisionerError(f'Unknown provisioner type "{_type}"')
 
     return _provisioners

@@ -1,10 +1,8 @@
-'''
+"""
 Fetch GitHub files.
 
 Copyright (C) 2020-2021 Adobe
-'''
-
-
+"""
 
 import os
 import base64
@@ -17,9 +15,9 @@ from ..errors import (
 
 
 def v3_fetch_file(parsed_url, config):
-    '''
+    """
     Fetch files using Github v3 protocol.
-    '''
+    """
 
     endpoint = config.get('endpoint')
     version = config.get('version')
@@ -71,9 +69,9 @@ def v3_fetch_file(parsed_url, config):
 
 
 def fetch_file(parsed_url, config):
-    '''
+    """
     Fetch a file from Github.
-    '''
+    """
 
     if parsed_url.scheme != 'github':
         raise ValueError(f'URL scheme must be "github" but is "{parsed_url.github}"')
@@ -98,8 +96,3 @@ def fetch_file(parsed_url, config):
         raise NotImplementedError(f'No version support for github API version {ver}')
 
     return contents
-
-
-# Local Variables:
-# fill-column: 100
-# End:

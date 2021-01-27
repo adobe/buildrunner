@@ -17,7 +17,6 @@ from buildrunner.steprunner.tasks.remote import RemoteBuildStepRunnerTask
 from buildrunner.steprunner.tasks.run import RunBuildStepRunnerTask
 from buildrunner.steprunner.tasks.pypipush import PypiPushBuildStepRunnerTask
 
-
 TASK_MAPPINGS = {
     'remote': RemoteBuildStepRunnerTask,
     'build': BuildBuildStepRunnerTask,
@@ -27,11 +26,10 @@ TASK_MAPPINGS = {
 }
 
 
-class BuildStepRunner(object):
+class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
     """
     Class used to manage running a build step.
     """
-
 
     def __init__(self, build_runner, step_name, step_config, local_images=False):
         """
@@ -53,16 +51,15 @@ class BuildStepRunner(object):
         self.log = self.build_runner.log
 
         # generate a unique step id
-        self.id = str(uuid.uuid4())
-
+        self.id = str(uuid.uuid4())  # pylint: disable=invalid-name
 
     def run(self):
         """
         Run the build step.
         """
         # create the step results dir
-        self.log.write(f'\nRunning step "{self.name}\"\n')
-        self.log.write('________________________________________\n')
+        self.log.write(f'\nRunning step "{self.name}"\n')
+        self.log.write(f"{'_' * 40}\n")
 
         _tasks = []
         _context = {}
@@ -79,11 +76,11 @@ class BuildStepRunner(object):
                     except BuildRunnerError as err:
                         if not isinstance(_task_config, dict) or not _task_config.get('xfail', False):
                             raise
-                        else:
-                            self.log.write(
-                                f'Step "{self.name}" failed with exception: {err}\n    '
-                                f'Ignoring due to XFAIL\n'
-                            )
+
+                        self.log.write(
+                            f'Step "{self.name}" failed with exception: {err}\n    '
+                            f'Ignoring due to XFAIL\n'
+                        )
                 else:
                     raise BuildRunnerConfigurationError(
                         f'Step "{self.name}" contains an unknown task "{_task_name}"\n'
@@ -92,6 +89,6 @@ class BuildStepRunner(object):
             for _task in _tasks:
                 try:
                     _task.cleanup(_context)
-                except: #pylint: disable=bare-except
+                except:
                     self.log.write('\nError cleaning up task:\n')
                     traceback.print_exc(file=self.log)

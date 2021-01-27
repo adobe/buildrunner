@@ -28,6 +28,9 @@ for _ll_name, _ll_val in zip(LOGLEVEL_NAMES, range(len(LOGLEVEL_NAMES))):
 
 
 def get_logger(loglevel):
+    """
+    :param loglevel:
+    """
     formatter = logging.Formatter('%(asctime)s %(name)-30s %(levelname)-8s %(message)s')
     logger = logging.getLogger(LOG_NAME)
     logger.setLevel(loglevel)
@@ -40,6 +43,9 @@ def get_logger(loglevel):
 
 
 def loglevel_type(string):
+    """
+    :param string:
+    """
     ll_name = string.upper()
     if ll_name not in LOGLEVEL_LOOKUP:
         llevel_values = ', '.join(LOGLEVEL_LOOKUP.keys())

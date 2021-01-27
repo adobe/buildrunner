@@ -3,12 +3,10 @@ Copyright (C) 2020 Adobe
 """
 
 
-
-class BuildStepRunnerTask(object):
+class BuildStepRunnerTask:
     """
     Base task class.
     """
-
 
     def __init__(self, step_runner, config):
         """
@@ -18,13 +16,11 @@ class BuildStepRunnerTask(object):
         self.step_runner = step_runner
         self.config = config
 
-
     def run(self, context):
         """
         Subclasses override this method to perform their task.
         """
         pass
-
 
     def cleanup(self, context):
         """

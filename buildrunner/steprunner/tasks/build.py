@@ -16,19 +16,18 @@ from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.utils import is_dict
 
 
-class BuildBuildStepRunnerTask(BuildStepRunnerTask):
+class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many-instance-attributes
     """
     Class used to manage "build" build tasks.
     """
-
 
     def __init__(
             self,
             step_runner,
             config,
             image_to_prepend_to_dockerfile=None,
-    ):
-        super(BuildBuildStepRunnerTask, self).__init__(step_runner, config)
+    ):  # pylint: disable=too-many-statements,too-many-branches
+        super().__init__(step_runner, config)
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
@@ -136,8 +135,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
                     self.dockerfile = path_dockerfile
             for src_file, dest_file in self.to_inject.items():
                 if os.path.normpath(dest_file) in [
-                        'Dockerfile',
-                        '/Dockerfile',
+                    'Dockerfile',
+                    '/Dockerfile',
                 ]:
                     self.dockerfile = src_file
 
@@ -156,7 +155,6 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):
             if self.image_to_prepend_to_dockerfile:
                 # prepend the given image to the dockerfile
                 self.dockerfile = f'FROM {self.image_to_prepend_to_dockerfile}\n{self.dockerfile}'
-
 
     def run(self, context):
         # 'import' will override other configuration and perform a 'docker

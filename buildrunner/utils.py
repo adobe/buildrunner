@@ -2,7 +2,6 @@
 Copyright (C) 2020-2021 Adobe
 """
 
-
 from collections import OrderedDict
 from datetime import datetime
 from time import strftime, gmtime
@@ -18,7 +17,7 @@ from typing import Union
 from buildrunner import BuildRunnerConfigurationError
 
 
-class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
+class OrderedLoader(yaml.Loader):  # pylint: disable=too-many-ancestors
     """
     Custom loader class that preserves dictionary order.
     """
@@ -26,6 +25,10 @@ class OrderedLoader(yaml.Loader): #pylint: disable=too-many-ancestors
 
 
 def construct_mapping(loader, node):
+    """
+    :param loader:
+    :param node:
+    """
     loader.flatten_mapping(node)
     return OrderedDict(loader.construct_pairs(node))
 
@@ -46,10 +49,11 @@ yaml.add_representer(
 )
 
 
-class IgnoreAliasesDumper(yaml.Dumper): #pylint: disable=too-many-ancestors
+class IgnoreAliasesDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
     """
     Custom dumper class that removes aliases.
     """
+
     def ignore_aliases(self, data):
         return True
 
@@ -72,7 +76,7 @@ def load_config(stream, cfg_file):
         raise BuildRunnerConfigurationError(
             f'The {cfg_file} file contains malformed yaml, '
             f'please check the syntax and try again: {err}'
-        )
+        ) from err
 
 
 def is_dict(obj):
@@ -114,27 +118,28 @@ def hash_sha1(file_name_globs=None):
     """
     if not file_name_globs:
         file_name_globs = []
-    BLOCKSIZE = 2**16  # 65,536
+    blocksize = 2 ** 16  # 65,536
     hasher = hashlib.sha1()
     for file_name_glob in file_name_globs:
-        for fileName in sorted(glob.glob(file_name_glob)):
+        for file_name in sorted(glob.glob(file_name_glob)):
             try:
-                # Use BLOCKSIZE to ensure python memory isn't too full
-                with open(fileName, 'rb') as open_file:
-                    buf = open_file.read(BLOCKSIZE)
+                # Use blocksize to ensure python memory isn't too full
+                with open(file_name, 'rb') as open_file:
+                    buf = open_file.read(blocksize)
                     while len(buf) > 0:
                         hasher.update(buf)
-                        buf = open_file.read(BLOCKSIZE)
+                        buf = open_file.read(blocksize)
             except:
-                print(f"WARNING: Error reading file: {fileName}")
+                print(f"WARNING: Error reading file: {file_name}")
     return hasher.hexdigest()
 
 
-class ConsoleLogger(object):
+class ConsoleLogger:
     """
     Class used to write decorated output to stdout while also redirecting
     non-decorated output to one or more streams.
     """
+
     def __init__(self, colorize_log, *streams):
         self.colorize_log = colorize_log
         self.streams = []
@@ -171,7 +176,7 @@ class ConsoleLogger(object):
         pass
 
 
-class ContainerLogger(object):
+class ContainerLogger:
     """
     Class used to write container specific output to a ConsoleLogger.
 
@@ -267,7 +272,6 @@ class ContainerLogger(object):
         colors[-1] = current
 
         return current
-
 
 # Local Variables:
 # fill-column: 100

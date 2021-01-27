@@ -7,11 +7,10 @@ import os
 from buildrunner.docker import DOCKER_DEFAULT_DOCKERD_URL
 
 
-class DockerDaemonProxy(object):
+class DockerDaemonProxy:
     """
     Class used to encapsulate Docker daemon information within a container.
     """
-
 
     def __init__(self, docker_client, log, docker_registry):
         """
@@ -24,7 +23,6 @@ class DockerDaemonProxy(object):
             'DOCKER_HOST': DOCKER_DEFAULT_DOCKERD_URL,
         }
 
-
     def get_info(self):
         """
         Return a tuple where the first item is the daemon container id and
@@ -32,8 +30,7 @@ class DockerDaemonProxy(object):
         containers providing settings for docker clients to connect to the
         encapsulated daemon.
         """
-        return (self._daemon_container, self._env)
-
+        return self._daemon_container, self._env
 
     def start(self):
         """
@@ -86,7 +83,6 @@ class DockerDaemonProxy(object):
         self.log.write(
             f"Created Docker daemon container {self._daemon_container:.10}\n"
         )
-
 
     def stop(self):
         """

@@ -5,11 +5,13 @@ Copyright (C) 2020 Adobe
 import os
 import ssl
 import urllib.parse
-
 import docker
+
+from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
+
 try:
     # Newer API
-    Client = docker.client.Client
+    Client = docker.client.Client  # pylint: disable=no-member
 except:
     try:
         # Older API
@@ -18,10 +20,6 @@ except:
     except:
         # Older API
         Client = docker.api.client.APIClient
-
-
-from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
-
 
 DOCKER_API_VERSION = 'auto'
 DOCKER_DEFAULT_DOCKERD_URL = 'unix:///var/run/docker.sock'
@@ -90,8 +88,3 @@ def new_client(
         tls=tls_config,
         **args
     )
-
-
-# Local Variables:
-# fill-column: 100
-# End:

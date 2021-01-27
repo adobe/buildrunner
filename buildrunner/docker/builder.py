@@ -13,12 +13,11 @@ import docker
 from buildrunner.docker import new_client
 
 
-class DockerBuilder(object):
+class DockerBuilder:  # pylint: disable=too-many-instance-attributes
     """
     An object that manages and orchestrates building a Docker image from
     a Dockerfile.
     """
-
 
     def __init__(
             self,
@@ -28,7 +27,7 @@ class DockerBuilder(object):
             dockerd_url=None,
             timeout=None,
             docker_registry=None,
-    ):
+    ):  # pylint: disable=too-many-arguments
         self.path = path
         self.inject = inject
         self.dockerfile = None
@@ -53,9 +52,9 @@ class DockerBuilder(object):
         self.image = None
         self.intermediate_containers = []
 
-
-    def _sanitize_buildargs(self, buildargs=None):
-        '''
+    @staticmethod
+    def _sanitize_buildargs(buildargs=None):
+        """
         Ensure that buildargs are correct for the Docker API.
 
         Args:
@@ -65,19 +64,22 @@ class DockerBuilder(object):
         Returns:
 
             :dict: sanitized arguments to be passed to the Docker client.
-        '''
+        """
         if not isinstance(buildargs, dict):
             raise TypeError('buildargs must be a dictionary of keys/values')
 
-        _buildargs = dict([(k, str(v)) for k, v in list(buildargs.items())])
-        return _buildargs
+        return {k: str(v) for k, v in list(buildargs.items())}
 
-
-    def build(self, console=None, nocache=False, cache_from=[], rm=True, pull=True, buildargs={}):
+    # pylint: disable=too-many-branches,too-many-locals,too-many-arguments,invalid-name
+    def build(self, console=None, nocache=False, cache_from=None, rm=True, pull=True, buildargs=None):
         """
         Run a docker build using the configured context, constructing the
         context tar file if necessary.
         """
+        if cache_from is None:
+            cache_from = []
+        if buildargs is None:
+            buildargs = {}
         # create our own tar file, injecting the appropriate paths
         _fileobj = tempfile.NamedTemporaryFile()
         tfile = tarfile.open(mode='w', fileobj=_fileobj)
@@ -108,7 +110,7 @@ class DockerBuilder(object):
         # monitor output for logs and status
         exit_code = 0
         msg_buffer = ''
-        for msg_str in stream:
+        for msg_str in stream:  # pylint: disable=too-many-nested-blocks
             for msg in msg_str.decode('utf-8').split("\n"):
                 if msg:
                     msg_buffer += msg
@@ -152,7 +154,6 @@ class DockerBuilder(object):
                                 console.write('\n')
 
         return exit_code
-
 
     def cleanup(self):
         """

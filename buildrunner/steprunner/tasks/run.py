@@ -1,6 +1,7 @@
 """
 Copyright (C) 2020-2021 Adobe
 """
+# pylint: disable=too-many-lines
 
 from collections import OrderedDict
 import grp
@@ -22,7 +23,6 @@ from buildrunner.sshagent import DockerSSHAgentProxy
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
 from buildrunner.utils import ContainerLogger, is_dict
-
 
 DEFAULT_SHELL = '/bin/sh'
 SOURCE_VOLUME_MOUNT = '/source'
@@ -50,9 +50,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         'z': '-Z',
     }
 
-
     def __init__(self, step_runner, config):
-        super(RunBuildStepRunnerTask, self).__init__(step_runner, config)
+        super().__init__(step_runner, config)
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
@@ -62,7 +61,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._sshagent = None
         self._dockerdaemonproxy = None
         self.runner = None
-
 
     def _get_source_container(self):
         """
@@ -81,7 +79,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 f'Created source container {self._source_container:.10}\n'
             )
         return self._source_container
-
 
     def _process_volumes_from(self, volumes_from):
         """
@@ -110,8 +107,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     break
         return _volumes_from
 
-
-    def _retrieve_artifacts(self, console=None):
+    def _retrieve_artifacts(self, console=None):  # pylint: disable=too-many-locals
         """
         Gather artifacts from the build container and place in the
         step-specific results dir.
@@ -134,8 +130,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 log=self.step_runner.log,
                 pull_image=False,
             )
-            #TODO: see if we can use archive commands to eliminate the need for
-            #      the /stepresults volume when we can move to api v1.20
+            # NOTE: see if we can use archive commands to eliminate the need for
+            #       the /stepresults volume when we can move to api v1.20
             artifact_lister.start(
                 volumes_from=[self._get_source_container()],
                 volumes={
@@ -205,7 +201,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                                 properties,
                             )
 
-                #remove the stat output file
+                # remove the stat output file
                 if os.path.exists(stat_output_file_local):
                     os.remove(stat_output_file_local)
 
@@ -225,13 +221,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                 artifact_lister.cleanup()
 
-
     def _archive_dir(
             self,
             artifact_lister,
             properties,
             artifact_file,
-    ):
+    ):  # pylint: disable=too-many-locals
         """
         Archive the given directory.
         """
@@ -288,7 +283,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         properties,
                     )
 
-                #remove the find output file
+                # remove the find output file
                 if os.path.exists(find_output_file_local):
                     os.remove(find_output_file_local)
 
@@ -349,7 +344,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 workdir=workdir,
             )
 
-
     def _archive_file(
             self,
             artifact_lister,
@@ -361,7 +355,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             output_file_name,
             properties,
             workdir=None,
-    ):
+    ):  # pylint: disable=too-many-arguments
         """
         Archive the given file.
         """
@@ -391,7 +385,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             properties,
         )
 
-
+    # pylint: disable=too-many-statements,too-many-branches,too-many-locals
     def _start_service_container(self, name, config):
         """
         Start a service container.
@@ -603,7 +597,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 exit_code = service_runner.run(
                     config['cmd'],
                     console=service_logger,
-                    #log=self.step_runner.log,
+                    # log=self.step_runner.log,
                 )
                 if exit_code != 0:
                     service_logger.write(
@@ -691,7 +685,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 rval = ipaddr
         return rval
 
-    def run(self, context):
+    def run(self, context):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
         _run_image = self.config.get('image', context.get('image', None))
         if not _run_image:
             raise BuildRunnerConfigurationError(
@@ -743,7 +737,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             'volumes_from': [_source_container],
             'volumes': {
                 self.step_runner.build_runner.build_results_dir: (
-                    ARTIFACTS_VOLUME_MOUNT + ':ro'
+                        ARTIFACTS_VOLUME_MOUNT + ':ro'
                 ),
             },
             'cap_add': None,
@@ -949,7 +943,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     exit_code = self.runner.run(
                         _cmd,
                         console=container_logger,
-                        #log=self.step_runner.log,
+                        # log=self.step_runner.log,
                     )
                     container_meta_logger.write(
                         f'Command "{_cmd}" exited with code {exit_code}\n'
@@ -987,7 +981,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if 'post-build' in self.config:
             self._run_post_build(context)
 
-
     def _run_post_build(self, context):
         """
         Commit the run image and perform a docker build, prepending the run
@@ -1012,8 +1005,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         build_image_task.run(_build_context)
         context['run-image'] = _build_context.get('image', None)
 
-
-    def cleanup(self, context): #pylint: disable=unused-argument
+    def cleanup(self, context):  # pylint: disable=unused-argument
         if self.runner:
             if self.runner.container:
                 self.step_runner.log.write(
@@ -1059,7 +1051,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # Labels will be set as the string value.  Make sure we handle '0' and 'False'
         return bool(rval and rval != '0' and rval != 'False')
-
 
 # Local Variables:
 # fill-column: 100
