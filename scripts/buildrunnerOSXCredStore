@@ -22,6 +22,12 @@ then
 	CONFIG_OVERRIDE_OPTION="-v /${SHADOW_CONFIG_FILE}:$CONFIG_FILE"
 fi
 
+if [ "$(uname)" == "Darwin" ]; then
+    docker_sock="/run/host-services/docker.proxy.sock"
+else
+    docker_sock="//var/run/docker.sock"
+fi
+
 # stdbuf disables buffering
 docker run \
         $env_vars \
