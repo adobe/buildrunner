@@ -44,11 +44,14 @@ on ``BASH``, which can be found at `Git Bash <https://git-for-windows.github.io/
 Buildrunner can be run as a Docker container.  This works cross-platform and
 is the easiest way to keep up to date.
 
-To install, simply clone this repo and add the ``scripts`` directory to your 
-``$PATH``.  ``scripts`` contains wrapper scripts that pass the appropriate
-context to the Docker container.  There is a `BASH <scripts/buildrunner>`_ script
-and a Windows `batch file <scripts/buildrunner.bat>`_, which simply calls the ``BASH``
-script.
+To install, simply clone the `buildrunner repository
+<https://***REMOVED***/***REMOVED***/buildrunner>`_  and add the
+``scripts`` directory to your ``$PATH``.  ``scripts`` contains wrapper scripts
+that pass the appropriate context to the Docker container.  There is a `BASH
+<https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunner>`_
+script and a Windows `batch file
+<https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunner.bat>`_,
+which simply calls the ``BASH`` script.
 
 .. note:: WINDOWS USERS: This is the recommended method for Windows users, however, you must make
    sure that you are using the `BASH shell
@@ -67,7 +70,8 @@ script.
    1. If the authentication information for the docker registry in question is in your
       ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
    2. Use this `BASH <scripts/buildrunnerOSXCredStore>`_ script along with this `python
-      <scripts/resolve-config.py>`_ script - this will pull the docker credentials from the OSX
+      <https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunner/scripts/resolve-config.py>`_
+      script - this will pull the docker credentials from the OSX
       keychain and inject them into the docker container
 
 **2. Pip**
