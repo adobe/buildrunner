@@ -69,8 +69,8 @@ which simply calls the ``BASH`` script.
 
    1. If the authentication information for the docker registry in question is in your
       ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
-   2. Use this `BASH <scripts/buildrunnerOSXCredStore>`_ script along with this `python
-      <https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunner/scripts/resolve-config.py>`_
+   2. Use this `BASH <https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunnerOSXCredStore>`_ script along with this `python
+      <https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/resolve-config.py>`_
       script - this will pull the docker credentials from the OSX
       keychain and inject them into the docker container
 
