@@ -5,5 +5,6 @@ alexandria:
       description: |
         Build and publish Docker images, run builds within Docker containers.
       short_url: buildrunner
+      api_docs: true
       collections:
         team: XEng
