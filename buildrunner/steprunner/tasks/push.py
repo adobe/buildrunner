@@ -39,6 +39,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         )
         self._repository = None
         self._insecure_registry = None
+        self._commit_only = False
         self._tags = []
         if is_dict(config):
             if 'repository' not in config:
@@ -53,6 +54,8 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
             if 'insecure_registry' in config:
                 self._insecure_registry = config['insecure_registry'] is True
+            if 'commit_only' in config:
+                self._commit_only = config['commit_only']
         else:
             self._repository = config
 
@@ -72,9 +75,14 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             self._repository = self._repository[0:tag_index]
 
     def run(self, context):
-        self.step_runner.log.write(
-            f'Preparing resulting image for push to "{self._repository}".\n'
-        )
+        if self._commit_only:
+            self.step_runner.log.write(
+                f'Committing resulting image as "{self._repository}".\n'
+            )
+        else:
+            self.step_runner.log.write(
+                f'Preparing resulting image for push to "{self._repository}".\n'
+            )
 
         # first see if a run task produced an image (via a post-build config)
         if 'run-image' in context:
@@ -116,21 +124,23 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 tag=_tag,
                 force=True,
             )
-            self.step_runner.build_runner.repo_tags_to_push.append((
-                f"{self._repository}:{_tag}",
-                self._insecure_registry,
-            ))
+            if not self._commit_only:
+                self.step_runner.build_runner.repo_tags_to_push.append((
+                    f"{self._repository}:{_tag}",
+                    self._insecure_registry,
+                ))
 
         # add image as artifact
-        self.step_runner.build_runner.add_artifact(
-            os.path.join(self.step_runner.name, image_to_use),
-            {
-                'type': 'docker-image',
-                'docker:image': image_to_use,
-                'docker:repository': self._repository,
-                'docker:tags': self._tags,
-            },
-        )
+        if not self._commit_only:
+            self.step_runner.build_runner.add_artifact(
+                os.path.join(self.step_runner.name, image_to_use),
+                {
+                    'type': 'docker-image',
+                    'docker:image': image_to_use,
+                    'docker:repository': self._repository,
+                    'docker:tags': self._tags,
+                },
+            )
 
 # Local Variables:
 # fill-column: 100
