@@ -32,14 +32,14 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
     given registry/repository.
     """
 
-    def __init__(self, step_runner, config):
+    def __init__(self, step_runner, config, commit_only=False):
         super().__init__(step_runner, config)
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
+        self._commit_only = commit_only
         self._repository = None
         self._insecure_registry = None
-        self._commit_only = False
         self._tags = []
         if is_dict(config):
             if 'repository' not in config:
@@ -54,8 +54,6 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
             if 'insecure_registry' in config:
                 self._insecure_registry = config['insecure_registry'] is True
-            if 'commit_only' in config:
-                self._commit_only = config['commit_only']
         else:
             self._repository = config
 
@@ -141,6 +139,18 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                     'docker:tags': self._tags,
                 },
             )
+
+
+class CommitBuildStepRunnerTask(PushBuildStepRunnerTask):
+    """
+    Class used to commit the resulting image (either from the build task, or if
+    there is a run task, the snapshot of the resulting run container) with a
+    tag matching the given registry/repository.
+    """
+
+    def __init__(self, step_runner, config):
+        # Subclasses the push task, just set commit only to true
+        super().__init__(step_runner, config, commit_only=True)
 
 # Local Variables:
 # fill-column: 100

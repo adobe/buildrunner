@@ -208,9 +208,9 @@ Artifacts can be collected from tasks run within containers or remote hosts
 when they have finished running and archived in your build system (Jenkins, for
 instance).
 
-Resulting images (either from a build phase or a run phase) can be pushed to
-the central or a private Docker image registry for use in other builds or to
-run services in other environments.
+Resulting images (either from a build phase or a run phase) can be committed or
+pushed to the central or a private Docker image registry for use in other
+builds or to run services in other environments.
 
 Build definitions are found in the root of your source tree, either in a file
 named 'buildrunner.yaml'. The build definition is simply a
@@ -224,6 +224,7 @@ attribute) or a 'remote' attribute:
     step1-name:
       build: <build config>
       run: <run config>
+      commit: <commit config>
       push: <push config>
       # or
       remote: <remote config>
@@ -848,31 +849,36 @@ integration test:
         # Run a simple 'test' to verify the app is responding.
         cmd: 'curl -v http://tomcat-server:8080/myapp/test.html'
 
-Tagging/Pushing Docker Images (the 'push' step attribute)
-=========================================================
+Tagging/Pushing Docker Images
+=============================
 
-The 'push' step attribute is used to tag and push a Docker image to a remote
-registry.
+The 'commit' or 'push' step attributes are used to tag and push a Docker image
+to a remote registry. The 'commit' attribute is used to tag the image to be
+used in later steps, while the 'push' attribute is used to tag the image and
+push it. Each is configured with the same properties.
 
 If a 'run' configuration is present the end state of the run container is
-committed, tagged and pushed. If there is no 'run' configuration for a given
+used for committing or pushing. If there is no 'run' configuration for a given
 step the image produced from the 'build' configuration is tagged and pushed.
 
 Any published Docker images are tagged with source tree branch and commit
 information as well as a provided or generated build number for tracking
-purposes. Additional tags may be added in the 'push' configuration.
+purposes. Additional tags may be added in the 'commit' or 'push' configuration.
 
 To push the image to a registry, you must add the --push argument to buildrunner.
 
-The following is an example of a simple 'push' configuration where only the
-repository is defined:
+The following is an example of simple configuration where only the repository
+is defined:
 
 .. code:: yaml
 
   steps:
     build-my-container:
       build: .
+      # To push the docker image to a registry
       push: ***REMOVED***/***REMOVED***
+      # OR to just commit it locally to use in subsequent steps
+      commit: ***REMOVED***/***REMOVED***
 
 The configuration may also specify additional tags to add to the image:
 
@@ -881,7 +887,12 @@ The configuration may also specify additional tags to add to the image:
   steps:
     build-my-container:
       build: .
+      # To push the docker image to a registry
       push:
+        repository: ***REMOVED***/***REMOVED***
+        tags: [ 'latest' ]
+      # OR to just commit it locally to use in subsequent steps
+      commit:
         repository: ***REMOVED***/***REMOVED***
         tags: [ 'latest' ]
 
