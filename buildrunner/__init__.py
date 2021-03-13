@@ -835,7 +835,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                     'Removing local copy of generated images\n'
                 )
                 # cleanup all registered docker images
-                for _image in self.generated_images:
+                # reverse the order of the images since child images would likely come after parent images
+                for _image in self.generated_images[::-1]:
                     try:
                         _docker_client.remove_image(
                             _image,
