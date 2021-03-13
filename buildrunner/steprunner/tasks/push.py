@@ -122,6 +122,8 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 tag=_tag,
                 force=True,
             )
+            self.step_runner.build_runner.committed_images.add(f'{self._repository}:{_tag}')
+
             if not self._commit_only:
                 self.step_runner.build_runner.repo_tags_to_push.append((
                     f"{self._repository}:{_tag}",

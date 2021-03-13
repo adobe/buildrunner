@@ -330,6 +330,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.cleanup_images = cleanup_images
         self.cleanup_step_artifacts = cleanup_step_artifacts
         self.generated_images = []
+        # The set of images (including tag) that were committed as part of this build
+        # This is used to check if images should be pulled by default or not
+        self.committed_images = set()
         self.repo_tags_to_push = []
         self.colorize_log = colorize_log
         self.steps_to_run = steps_to_run

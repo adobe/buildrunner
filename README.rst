@@ -369,12 +369,13 @@ shows the different configuration options available:
         # Whether to do a docker pull of the "FROM" image prior to the build.
         # This is critical if you are building from images that are changing
         # with regularity.
-        # NOTE: If the image is prior in this ``buildrunner.yaml`` then this should be
-        #       set to "false" because the image will not be in the repo yet.
+        # NOTE: If the image was created from a 'push' or 'commit' earlier in
+        #       this ``buildrunner.yaml`` then this will default to false
         # NOTE: The command line argument ``--local-images`` can be used to temporarily
         #       override and assume ``pull: false`` for the build without rewriting
         #       ``buildrunner.yaml``.
-        pull: true/false (defaults to true)
+        pull: true/false # (default changes depending on if the
+                         # image was created via buildrunner or not)
 
         # Specify the build args that should be used when building your image,
         # similar to the --build-args option used by Docker
@@ -590,12 +591,11 @@ the run step:
 
         # Whether or not to pull the image from upstream prior to running
         # the step.  This is almost always desirable, as it ensures the
-        # most up to date source image.  There are situations, however, when
-        # this can be set to false as an optimization.  For example, if a
-        # container is built at the beginning of a buildrunner file and then
-        # used repeatedly.  In this case, it is clear that the cached version
-        # is appropriate and we don't need to check upstream for changes.
-        pull: true/false (defaults to true)
+        # most up to date source image.
+        # NOTE: If the image was created from a 'push' or 'commit' earlier in
+        #       this ``buildrunner.yaml`` then this will default to false
+        pull: true/false # (default changes depending on if the
+                         # image was created via buildrunner or not)
 
         # systemd doesn't play well with docker, but our base development
         # environment is transitioning to Cent 7, which uses systemd.

@@ -1,0 +1,58 @@
+steps:
+
+  test-push:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push:
+      repository: ***REMOVED***/releng/test-buildrunner-build1
+      tags: [latest]
+
+  test-commit:
+    build:
+      # Use random specific version here to test if a new image is pulled
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+        RUN touch /root/file1
+    commit:
+      repository: {{ DOCKER_REGISTRY }}/busybox
+      tags: ['{{ BUILDRUNNER_BUILD_TIME }}']
+
+  test-pull-build-defaults:
+    build:
+      # pull defaults to false
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:{{ BUILDRUNNER_BUILD_TIME }}
+    run:
+      cmds:
+        # File should exist since the locally committed version is used
+        - 'test -f /root/file1'
+
+  test-pull-run-defaults:
+    run:
+      image: {{ DOCKER_REGISTRY }}/busybox:{{ BUILDRUNNER_BUILD_TIME }}
+      # pull defaults to false
+      cmds:
+        # File should exist since the locally committed version is used
+        - 'test -f /root/file1'
+
+  test-pull-build-override:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+      # Override to pull latest
+      pull: true
+    run:
+      cmds:
+        # File should not exist since the upstream version is used
+        - '! test -f /root/file1'
+
+  test-pull-run-override:
+    run:
+      image: {{ DOCKER_REGISTRY }}/busybox:latest
+      # Override to pull latest
+      pull: true
+      cmds:
+        # File should not exist since the upstream version is used
+        - '! test -f /root/file1'
+
