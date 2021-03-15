@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from bottle import route, run, HTTPError
 import pika
@@ -35,7 +35,6 @@ def index(message):
 
     method_frame, _, message_body = channel.basic_get(
         queue='message',
-        no_ack=True,
     )
     if not method_frame or method_frame.NAME == 'Basic.GetEmpty':
         raise HTTPError(500)

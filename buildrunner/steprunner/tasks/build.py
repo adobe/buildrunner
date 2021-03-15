@@ -167,7 +167,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     dockerfile_image = match.group(1)
 
         # Set the pull attribute based on configuration or the image itself
-        if pull_from_config:
+        if pull_from_config is not None:
             self.pull = pull_from_config
             self.step_runner.log.write(f'Pulling image was overridden via config to {self.pull}\n')
         elif not dockerfile_image:
@@ -178,7 +178,6 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             # If the image was previously committed in this run, do not pull by default
             self.pull = dockerfile_image not in self.step_runner.build_runner.committed_images
             self.step_runner.log.write(f'Pull was not specified in configuration, defaulting to {self.pull}\n')
-
 
     def run(self, context):
         # 'import' will override other configuration and perform a 'docker
