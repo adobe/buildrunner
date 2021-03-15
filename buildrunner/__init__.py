@@ -36,6 +36,7 @@ from buildrunner.errors import (
 )
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
+from buildrunner.steprunner.tasks.push import sanitize_tag
 from buildrunner.utils import (
     ConsoleLogger,
     epoch_time,
@@ -95,6 +96,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         context = {
             'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
             'BUILDRUNNER_BUILD_ID': str(self.build_id),
+            'BUILDRUNNER_BUILD_DOCKER_TAG': str(sanitize_tag(self.build_id)),
             'BUILDRUNNER_BUILD_TIME': str(self.build_time),
             'VCSINFO_NAME': str(self.vcs.name),
             'VCSINFO_BRANCH': str(self.vcs.branch),

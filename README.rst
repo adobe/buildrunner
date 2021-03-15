@@ -411,6 +411,8 @@ every run container:
 :``BUILDRUNNER_BUILD_NUMBER``: the build number
 :``BUILDRUNNER_BUILD_ID``: a unique id identifying the build (includes vcs and build number
                            information)
+:``BUILDRUNNER_BUILD_DOCKER_TAG``: identical to ``BUILDRUNNER_BUILD_ID`` but formatted for
+                                   use as a Docker tag
 :``BUILDRUNNER_BUILD_TIME``: the "unix" time or "epoch" time of the build (in seconds)
 :``BUILDRUNNER_STEP_ID``: a UUID representing the step
 :``BUILDRUNNER_STEP_NAME``: The name of the Buildrunner step
@@ -896,12 +898,30 @@ The configuration may also specify additional tags to add to the image:
         repository: ***REMOVED***/***REMOVED***
         tags: [ 'latest' ]
 
+The configuration may also specify multiple repositories with their own tags
+(each list entry may be a string or specify additional tags):
+
+.. code:: yaml
+
+  steps:
+    build-my-container:
+      build: .
+      # To push the docker image to multiple repositories
+      push:
+        - ***REMOVED***/***REMOVED***1
+        - repository: ***REMOVED***/***REMOVED***2
+          tags: [ 'latest' ]
+      # OR to just commit it locally to use in subsequent steps
+      commit:
+        repository: ***REMOVED***/***REMOVED***
+        tags: [ 'latest' ]
+
 Pushing One Image To Multiple Repositories
 ------------------------------------------
 
-To push a single image to multiple repositories, multiple steps must be used. The image
-will only be built once. The key is to set the ``pull`` attribute to ``false`` on the
-any steps that want to re-use the same image.
+To push a single image to multiple repositories, use a list for the push or commit
+configuration. Note that each list entry may be a string or a dictionary with
+additional tags.
 
 .. code:: yaml+jinja
 
@@ -909,16 +929,18 @@ any steps that want to re-use the same image.
     build-my-container:
       build: .
       push:
-        repository: ***REMOVED***/***REMOVED***
-        tags: [ 'latest' ]
-    push-again:
-      build:
-        dockerfile: |
-          FROM ***REMOVED***/***REMOVED***:{{ BUILDRUNNER_BUILD_ID|lower }}
-        pull: false
-      push:
-        repository: docker-xeng-release2.dr.corp.adobe.com/another/path/test-image
-        tags: [ 'latest' ]
+        - repository: ***REMOVED***/***REMOVED***1
+          tags: [ 'latest' ]
+        - ***REMOVED***/***REMOVED***2
+        - repository: ***REMOVED***/***REMOVED***3
+          tags: [ 'latest' ]
+      # OR
+      commit:
+        - repository: ***REMOVED***/***REMOVED***1
+          tags: [ 'latest' ]
+        - ***REMOVED***/***REMOVED***2
+        - repository: ***REMOVED***/***REMOVED***3
+          tags: [ 'latest' ]
 
 Pushing To PyPI Repository
 ==========================
