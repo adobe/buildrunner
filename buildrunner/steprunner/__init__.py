@@ -12,7 +12,7 @@ from buildrunner.errors import (
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
-from buildrunner.steprunner.tasks.push import PushBuildStepRunnerTask
+from buildrunner.steprunner.tasks.push import CommitBuildStepRunnerTask, PushBuildStepRunnerTask
 from buildrunner.steprunner.tasks.remote import RemoteBuildStepRunnerTask
 from buildrunner.steprunner.tasks.run import RunBuildStepRunnerTask
 from buildrunner.steprunner.tasks.pypipush import PypiPushBuildStepRunnerTask
@@ -22,6 +22,7 @@ TASK_MAPPINGS = {
     'build': BuildBuildStepRunnerTask,
     'run': RunBuildStepRunnerTask,
     'push': PushBuildStepRunnerTask,
+    'commit': CommitBuildStepRunnerTask,
     'pypi-push': PypiPushBuildStepRunnerTask,
 }
 

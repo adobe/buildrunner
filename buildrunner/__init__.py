@@ -36,6 +36,7 @@ from buildrunner.errors import (
 )
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
+from buildrunner.steprunner.tasks.push import sanitize_tag
 from buildrunner.utils import (
     ConsoleLogger,
     epoch_time,
@@ -95,6 +96,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         context = {
             'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
             'BUILDRUNNER_BUILD_ID': str(self.build_id),
+            'BUILDRUNNER_BUILD_DOCKER_TAG': str(sanitize_tag(self.build_id)),
             'BUILDRUNNER_BUILD_TIME': str(self.build_time),
             'VCSINFO_NAME': str(self.vcs.name),
             'VCSINFO_BRANCH': str(self.vcs.branch),
@@ -330,6 +332,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.cleanup_images = cleanup_images
         self.cleanup_step_artifacts = cleanup_step_artifacts
         self.generated_images = []
+        # The set of images (including tag) that were committed as part of this build
+        # This is used to check if images should be pulled by default or not
+        self.committed_images = set()
         self.repo_tags_to_push = []
         self.colorize_log = colorize_log
         self.steps_to_run = steps_to_run
@@ -835,7 +840,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                     'Removing local copy of generated images\n'
                 )
                 # cleanup all registered docker images
-                for _image in self.generated_images:
+                # reverse the order of the images since child images would likely come after parent images
+                for _image in self.generated_images[::-1]:
                     try:
                         _docker_client.remove_image(
                             _image,

@@ -686,6 +686,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         return rval
 
     def run(self, context):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
+        # Set pull attribute based on configured image
+        # Default to configuration
+        if self.config.get('pull') is not None:
+            pull_image = self.config.get('pull')
+            self.step_runner.log.write(f'Pulling image was overridden via config to {pull_image}\n')
+        else:
+            # Default to pulling, but check if image was committed by buildrunner and set to false if so
+            pull_image = True
+            config_image = self.config.get('image')
+            if config_image:
+                pull_image = config_image not in self.step_runner.build_runner.committed_images
+                self.step_runner.log.write(f'Pull was not specified in configuration, defaulting to {pull_image}\n')
+
         _run_image = self.config.get('image', context.get('image', None))
         if not _run_image:
             raise BuildRunnerConfigurationError(
@@ -919,7 +932,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             # create and start runner, linking any service containers
             self.runner = DockerRunner(
                 _run_image,
-                pull_image=self.config.get('pull', True),
+                pull_image=pull_image,
                 log=self.step_runner.log,
             )
             # Figure out if we should be running systemd.  Has to happen after docker pull

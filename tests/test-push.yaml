@@ -1,0 +1,68 @@
+steps:
+
+  test-push-simple:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    # String format
+    push: ***REMOVED***/releng/test-buildrunner-build1
+
+  test-push-with-tags:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push:
+      # Dictionary format
+      repository: ***REMOVED***/releng/test-buildrunner-build2
+      tags: [latest]
+
+  test-commit-list:
+    build:
+      # Use random specific version here to test if a new image is pulled
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+        RUN touch /root/file1
+    commit:
+      # Use a list with both a string and dictionary
+      - ***REMOVED***/releng/test-buildrunner-build3
+      - repository: ***REMOVED***/releng/test-buildrunner-build4
+        tags: ["{{ BUILDRUNNER_BUILD_TIME }}"]
+
+  test-pull-build-defaults:
+    build:
+      # pull defaults to false
+      dockerfile: |
+        FROM ***REMOVED***/releng/test-buildrunner-build3:{{ BUILDRUNNER_BUILD_DOCKER_TAG }}
+    run:
+      cmds:
+        # File should exist since the locally committed version is used
+        - 'test -f /root/file1'
+
+  test-pull-run-defaults:
+    run:
+      # pull defaults to false
+      image: ***REMOVED***/releng/test-buildrunner-build4:{{ BUILDRUNNER_BUILD_TIME }}
+      cmds:
+        # File should exist since the locally committed version is used
+        - 'test -f /root/file1'
+
+  test-pull-build-override:
+    build:
+      # Override to pull latest
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+      pull: true
+    run:
+      cmds:
+        # File should not exist since the upstream version is used
+        - '! test -f /root/file1'
+
+  test-pull-run-override:
+    run:
+      # Override to pull latest
+      image: {{ DOCKER_REGISTRY }}/busybox:latest
+      pull: true
+      cmds:
+        # File should not exist since the upstream version is used
+        - '! test -f /root/file1'
+

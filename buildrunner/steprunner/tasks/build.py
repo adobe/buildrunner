@@ -2,10 +2,11 @@
 Copyright (C) 2020 Adobe
 """
 
-import buildrunner.docker
 import glob
 import os
+import re
 
+import buildrunner.docker
 from buildrunner.docker.importer import DockerImporter
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
@@ -20,6 +21,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
     """
     Class used to manage "build" build tasks.
     """
+
+    DOCKERFILE_IMAGE_REGEX = re.compile(r'^FROM (.*)', re.IGNORECASE)
 
     def __init__(
             self,
@@ -37,10 +40,10 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
         self.image_to_prepend_to_dockerfile = image_to_prepend_to_dockerfile
         self.nocache = False
         self.cache_from = []
-        self.pull = True
         self.buildargs = {}
         self._import = None
 
+        pull_from_config = None
         if not is_dict(self.config):
             self.path = self.config
             self.config = {}
@@ -49,7 +52,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             self.path = self.config.get('path', self.path)
             self.dockerfile = self.config.get('dockerfile', self.dockerfile)
             self.nocache = self.config.get('no-cache', self.nocache)
-            self.pull = self.config.get('pull', self.pull)
+            pull_from_config = self.config.get('pull')
 
             if not is_dict(self.config.get('buildargs', self.buildargs)):
                 raise BuildRunnerConfigurationError(
@@ -140,6 +143,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 ]:
                     self.dockerfile = src_file
 
+        dockerfile_image = None
         if self.dockerfile:
             _dockerfile_abs_path = self.step_runner.build_runner.to_abs_path(
                 self.dockerfile,
@@ -155,6 +159,26 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             if self.image_to_prepend_to_dockerfile:
                 # prepend the given image to the dockerfile
                 self.dockerfile = f'FROM {self.image_to_prepend_to_dockerfile}\n{self.dockerfile}'
+                dockerfile_image = self.image_to_prepend_to_dockerfile
+            else:
+                # Find from image in dockerfile
+                match = self.DOCKERFILE_IMAGE_REGEX.match(self.dockerfile)
+                if match:
+                    dockerfile_image = match.group(1)
+
+        # Set the pull attribute based on configuration or the image itself
+        if pull_from_config:
+            self.pull = pull_from_config
+            self.step_runner.log.write(f'Pulling image was overridden via config to {self.pull}\n')
+        elif not dockerfile_image:
+            # Default to true if we could not determine the image
+            self.pull = True
+            self.step_runner.log.write('Could not determine docker image, defaulting pull to true\n')
+        else:
+            # If the image was previously committed in this run, do not pull by default
+            self.pull = dockerfile_image not in self.step_runner.build_runner.committed_images
+            self.step_runner.log.write(f'Pull was not specified in configuration, defaulting to {self.pull}\n')
+
 
     def run(self, context):
         # 'import' will override other configuration and perform a 'docker

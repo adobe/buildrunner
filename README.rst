@@ -208,9 +208,9 @@ Artifacts can be collected from tasks run within containers or remote hosts
 when they have finished running and archived in your build system (Jenkins, for
 instance).
 
-Resulting images (either from a build phase or a run phase) can be pushed to
-the central or a private Docker image registry for use in other builds or to
-run services in other environments.
+Resulting images (either from a build phase or a run phase) can be committed or
+pushed to the central or a private Docker image registry for use in other
+builds or to run services in other environments.
 
 Build definitions are found in the root of your source tree, either in a file
 named 'buildrunner.yaml'. The build definition is simply a
@@ -224,6 +224,7 @@ attribute) or a 'remote' attribute:
     step1-name:
       build: <build config>
       run: <run config>
+      commit: <commit config>
       push: <push config>
       # or
       remote: <remote config>
@@ -368,12 +369,13 @@ shows the different configuration options available:
         # Whether to do a docker pull of the "FROM" image prior to the build.
         # This is critical if you are building from images that are changing
         # with regularity.
-        # NOTE: If the image is prior in this ``buildrunner.yaml`` then this should be
-        #       set to "false" because the image will not be in the repo yet.
+        # NOTE: If the image was created from a 'push' or 'commit' earlier in
+        #       this ``buildrunner.yaml`` then this will default to false
         # NOTE: The command line argument ``--local-images`` can be used to temporarily
         #       override and assume ``pull: false`` for the build without rewriting
         #       ``buildrunner.yaml``.
-        pull: true/false (defaults to true)
+        pull: true/false # (default changes depending on if the
+                         # image was created via buildrunner or not)
 
         # Specify the build args that should be used when building your image,
         # similar to the --build-args option used by Docker
@@ -409,6 +411,8 @@ every run container:
 :``BUILDRUNNER_BUILD_NUMBER``: the build number
 :``BUILDRUNNER_BUILD_ID``: a unique id identifying the build (includes vcs and build number
                            information)
+:``BUILDRUNNER_BUILD_DOCKER_TAG``: identical to ``BUILDRUNNER_BUILD_ID`` but formatted for
+                                   use as a Docker tag
 :``BUILDRUNNER_BUILD_TIME``: the "unix" time or "epoch" time of the build (in seconds)
 :``BUILDRUNNER_STEP_ID``: a UUID representing the step
 :``BUILDRUNNER_STEP_NAME``: The name of the Buildrunner step
@@ -589,12 +593,11 @@ the run step:
 
         # Whether or not to pull the image from upstream prior to running
         # the step.  This is almost always desirable, as it ensures the
-        # most up to date source image.  There are situations, however, when
-        # this can be set to false as an optimization.  For example, if a
-        # container is built at the beginning of a buildrunner file and then
-        # used repeatedly.  In this case, it is clear that the cached version
-        # is appropriate and we don't need to check upstream for changes.
-        pull: true/false (defaults to true)
+        # most up to date source image.
+        # NOTE: If the image was created from a 'push' or 'commit' earlier in
+        #       this ``buildrunner.yaml`` then this will default to false
+        pull: true/false # (default changes depending on if the
+                         # image was created via buildrunner or not)
 
         # systemd doesn't play well with docker, but our base development
         # environment is transitioning to Cent 7, which uses systemd.
@@ -848,31 +851,36 @@ integration test:
         # Run a simple 'test' to verify the app is responding.
         cmd: 'curl -v http://tomcat-server:8080/myapp/test.html'
 
-Tagging/Pushing Docker Images (the 'push' step attribute)
-=========================================================
+Tagging/Pushing Docker Images
+=============================
 
-The 'push' step attribute is used to tag and push a Docker image to a remote
-registry.
+The 'commit' or 'push' step attributes are used to tag and push a Docker image
+to a remote registry. The 'commit' attribute is used to tag the image to be
+used in later steps, while the 'push' attribute is used to tag the image and
+push it. Each is configured with the same properties.
 
 If a 'run' configuration is present the end state of the run container is
-committed, tagged and pushed. If there is no 'run' configuration for a given
+used for committing or pushing. If there is no 'run' configuration for a given
 step the image produced from the 'build' configuration is tagged and pushed.
 
 Any published Docker images are tagged with source tree branch and commit
 information as well as a provided or generated build number for tracking
-purposes. Additional tags may be added in the 'push' configuration.
+purposes. Additional tags may be added in the 'commit' or 'push' configuration.
 
 To push the image to a registry, you must add the --push argument to buildrunner.
 
-The following is an example of a simple 'push' configuration where only the
-repository is defined:
+The following is an example of simple configuration where only the repository
+is defined:
 
 .. code:: yaml
 
   steps:
     build-my-container:
       build: .
+      # To push the docker image to a registry
       push: ***REMOVED***/***REMOVED***
+      # OR to just commit it locally to use in subsequent steps
+      commit: ***REMOVED***/***REMOVED***
 
 The configuration may also specify additional tags to add to the image:
 
@@ -881,16 +889,39 @@ The configuration may also specify additional tags to add to the image:
   steps:
     build-my-container:
       build: .
+      # To push the docker image to a registry
       push:
+        repository: ***REMOVED***/***REMOVED***
+        tags: [ 'latest' ]
+      # OR to just commit it locally to use in subsequent steps
+      commit:
+        repository: ***REMOVED***/***REMOVED***
+        tags: [ 'latest' ]
+
+The configuration may also specify multiple repositories with their own tags
+(each list entry may be a string or specify additional tags):
+
+.. code:: yaml
+
+  steps:
+    build-my-container:
+      build: .
+      # To push the docker image to multiple repositories
+      push:
+        - ***REMOVED***/***REMOVED***1
+        - repository: ***REMOVED***/***REMOVED***2
+          tags: [ 'latest' ]
+      # OR to just commit it locally to use in subsequent steps
+      commit:
         repository: ***REMOVED***/***REMOVED***
         tags: [ 'latest' ]
 
 Pushing One Image To Multiple Repositories
 ------------------------------------------
 
-To push a single image to multiple repositories, multiple steps must be used. The image
-will only be built once. The key is to set the ``pull`` attribute to ``false`` on the
-any steps that want to re-use the same image.
+To push a single image to multiple repositories, use a list for the push or commit
+configuration. Note that each list entry may be a string or a dictionary with
+additional tags.
 
 .. code:: yaml+jinja
 
@@ -898,16 +929,18 @@ any steps that want to re-use the same image.
     build-my-container:
       build: .
       push:
-        repository: ***REMOVED***/***REMOVED***
-        tags: [ 'latest' ]
-    push-again:
-      build:
-        dockerfile: |
-          FROM ***REMOVED***/***REMOVED***:{{ BUILDRUNNER_BUILD_ID|lower }}
-        pull: false
-      push:
-        repository: docker-xeng-release2.dr.corp.adobe.com/another/path/test-image
-        tags: [ 'latest' ]
+        - repository: ***REMOVED***/***REMOVED***1
+          tags: [ 'latest' ]
+        - ***REMOVED***/***REMOVED***2
+        - repository: ***REMOVED***/***REMOVED***3
+          tags: [ 'latest' ]
+      # OR
+      commit:
+        - repository: ***REMOVED***/***REMOVED***1
+          tags: [ 'latest' ]
+        - ***REMOVED***/***REMOVED***2
+        - repository: ***REMOVED***/***REMOVED***3
+          tags: [ 'latest' ]
 
 Pushing To PyPI Repository
 ==========================
