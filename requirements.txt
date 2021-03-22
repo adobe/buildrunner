@@ -6,7 +6,7 @@ requests==2.25.0
 paramiko==2.7.2
 pycrypto==2.6.1
 bcrypt==3.2.0
-docker==4.4.0
+docker==4.4.4
 fabric==2.5.0
 Jinja2==2.11.2
 twine==3.2.0
