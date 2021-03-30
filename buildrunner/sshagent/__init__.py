@@ -188,13 +188,9 @@ class DockerSSHAgentProxy:
         self._ssh_client.set_missing_host_key_policy(MissingHostKeyPolicy())
         # pylint: disable=W0212
         self._ssh_client._agent = CustomSSHAgent(keys)
-        self._ssh_client.connect(
-            _ssh_host,
-            port=_ssh_port,
-            username='root',
-            allow_agent=True,
-            look_for_keys=False,
-        )
+
+        self._try_connect(_ssh_host, _ssh_port)
+
         self._ssh_channel = self._ssh_client.get_transport().open_session()
         # AgentRequestHandler(channel)
         self._ssh_channel.request_forward_agent(
@@ -203,6 +199,33 @@ class DockerSSHAgentProxy:
         self._ssh_channel.get_pty()
         self._ssh_channel.exec_command('/login.sh')
         self.log.write("Established ssh-agent container connection\n")
+
+    def _try_connect(self, ssh_host, ssh_port):
+        """
+        Try to connect ssh_client with a retry/backoff. The retry is to help deal with situations where the sshd process
+        may not yet be ready. Retrying with a backoff gives it a chance before we give up for good
+        """
+        previous_backoff = 0
+        backoff = 1
+        while backoff <= 8:
+            try:
+                self._ssh_client.connect(
+                    ssh_host,
+                    port=ssh_port,
+                    username='root',
+                    allow_agent=True,
+                    look_for_keys=False,
+                )
+                break
+            except Exception as e:
+                self.log.write(f'there was an issue trying to connect to container : {e}')
+            next_backoff = backoff + previous_backoff
+            previous_backoff = backoff
+            backoff = next_backoff
+            time.sleep(backoff)
+        else:
+            self.log.write(f'Unable to successfully connect to {ssh_host}')
+            raise
 
     def stop(self):
         """
