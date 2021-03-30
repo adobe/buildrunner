@@ -207,8 +207,7 @@ class DockerSSHAgentProxy:
         """
         previous_backoff = 0
         backoff = 1
-        trying_to_connect = True
-        while trying_to_connect:
+        while backoff <= 8:
             try:
                 self._ssh_client.connect(
                     ssh_host,
@@ -217,17 +216,16 @@ class DockerSSHAgentProxy:
                     allow_agent=True,
                     look_for_keys=False,
                 )
-                trying_to_connect = False
+                break
             except Exception as e:
                 self.log.write(f'there was an issue trying to connect to container : {e}')
-                if backoff <= 8:
-                    next_backoff = backoff + previous_backoff
-                    previous_backoff = backoff
-                    backoff = next_backoff
-                    time.sleep(backoff)
-                else:
-                    self.log.write(f'Unable to successfully connect to {ssh_host}')
-                    raise
+            next_backoff = backoff + previous_backoff
+            previous_backoff = backoff
+            backoff = next_backoff
+            time.sleep(backoff)
+        else:
+            self.log.write(f'Unable to successfully connect to {ssh_host}')
+            raise
 
     def stop(self):
         """
