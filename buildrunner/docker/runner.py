@@ -394,9 +394,8 @@ class DockerRunner:
         docker_socket: socket.SocketIO = self.docker_client.attach_socket(
             self.container['Id'],
         )
-        running = True
+        running = self.is_running()
         while running:
-            running = self.is_running()
             try:
                 for line in docker_socket:
                     if stream:
@@ -406,6 +405,7 @@ class DockerRunner:
             except ssl.SSLError as ssle:
                 if 'The read operation timed out' not in str(ssle):
                     raise
+            running = self.is_running()
 
     def commit(self, stream):
         """
