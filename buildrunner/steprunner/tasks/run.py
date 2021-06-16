@@ -40,6 +40,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
     # Lightweight docker image for running nc
     NC_DOCKER_IMAGE = 'subfuzion/netcat:latest'
 
+    # Default to 10 min when waiting for ports to be opened
+    WAIT_FOR_DEFAULT_TIMEOUT = 600
+
     TAR_COMPRESSION_ARG = {
         'gz': '--gzip',
         'bz2': '--bzip2',
@@ -616,24 +619,37 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         service_management_thread.start()
 
         # wait for listening ports on this container
-        for container_port in _wait_for:
-            self.wait(cont_name, container_port)
+        for wait_for_data in _wait_for:
+            self.wait(cont_name, wait_for_data)
 
         self.step_runner.log.write(
             f'Started service container "{name}" ({service_container_id:.10})\n'
         )
 
-    def wait(self, name, port):
+    def wait(self, name, wait_for_data):
         """
         Wait for listening port on named container
         """
         ipaddr = self._docker_client.inspect_container(name)['NetworkSettings']['IPAddress']
         socket_open = False
 
+        if isinstance(wait_for_data, dict):
+            port = wait_for_data.get('port')
+            if not port:
+                raise BuildRunnerProcessingError('Configuration error, wait_for must include a port')
+            timeout = wait_for_data.get('timeout', self.WAIT_FOR_DEFAULT_TIMEOUT)
+            if not isinstance(timeout, int):
+                timeout = int(timeout)
+        else:
+            port = wait_for_data
+            timeout = self.WAIT_FOR_DEFAULT_TIMEOUT
+
+        start_time = time.time()
         while not socket_open:
+            time_spent = int(time.time() - start_time)
             self.step_runner.log.write(
                 f"Waiting for port {port} to be listening for connections in container {name} "
-                f"with IP address {ipaddr}\n"
+                f"with IP address {ipaddr} ({time_spent}/{timeout} seconds elapsed)\n"
             )
 
             # check that the container is still available
@@ -669,6 +685,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     nc_tester.cleanup()
 
             if not socket_open:
+                # Make sure we have not yet timed out
+                if time_spent > timeout:
+                    raise BuildRunnerProcessingError(
+                        f'Timed out waiting for port {port} to be opened in container {name} '
+                        f'with IP address {ipaddr} after {timeout} seconds'
+                    )
                 time.sleep(1)
 
         self.step_runner.log.write(f"Port {int(port)} is listening in container {name} with IP address {ipaddr}\n")

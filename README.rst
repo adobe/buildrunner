@@ -777,10 +777,13 @@ within service container configuration:
 
             # Wait for ports to be open this container before moving on.
             # This allows dependent services to know that a service inside the
-            # container is running.
+            # container is running. This times out automatically after 10 minutes
+            # or after the configured timeout.
             wait_for:
               - 80
-              - 9999
+              # A timeout in seconds may optionally be specified
+              - port: 9999
+                timeout: 30
 
             # If ssh-keys are specified in the run step, an ssh agent will be started
             # and mounted inside the running docker container.  If inject-ssh-agent
