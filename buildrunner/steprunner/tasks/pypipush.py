@@ -95,9 +95,12 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
 
         # get python-sdist packages for this step only
         for _artifact, _attributes in self.step_runner.build_runner.artifacts.items():
-            if _artifact.startswith(self.step_runner.name + "/") and \
-                    'type' in _attributes and \
-                    _attributes['type'] == "python-sdist":
+            if (
+                    _artifact.startswith(self.step_runner.name + "/")
+                    and _attributes
+                    and 'type' in _attributes
+                    and _attributes['type'] == "python-sdist"
+            ):
                 self.step_runner.build_runner.pypi_packages[self._repository]['packages'].append(
                     f"{self.step_runner.build_runner.build_results_dir}/{_artifact}"
                 )
