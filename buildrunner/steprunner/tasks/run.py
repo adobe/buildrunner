@@ -667,7 +667,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             nc_tester = None
             try:
                 nc_tester = DockerRunner(
-                    self.NC_DOCKER_IMAGE,
+                    f'{self.step_runner.build_runner.get_docker_registry()}/{self.NC_DOCKER_IMAGE}',
                     pull_image=False,
                     # Do not log anything from this container
                     log=None,
