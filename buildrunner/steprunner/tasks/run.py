@@ -129,7 +129,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         artifact_lister = None
         try:
             artifact_lister = DockerRunner(
-                self.ARTIFACT_LISTER_DOCKER_IMAGE,
+                f'{self.step_runner.build_runner.get_docker_registry()}/{self.ARTIFACT_LISTER_DOCKER_IMAGE}',
                 log=self.step_runner.log,
                 pull_image=False,
             )
@@ -666,7 +666,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             # See https://github.com/docker/for-mac/issues/155 for more info for mac
             nc_tester = None
             try:
-
                 nc_tester = DockerRunner(
                     self.NC_DOCKER_IMAGE,
                     pull_image=False,
@@ -677,6 +676,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     # The shell is the command
                     shell=f'-n -z {ipaddr} {port}',
                 )
+
                 nc_tester.attach_until_finished()
                 exit_code = nc_tester.exit_code
                 socket_open = exit_code is not None and not exit_code
