@@ -16,7 +16,6 @@ from buildrunner.errors import (
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
-from buildrunner.utils import is_dict
 
 
 def sanitize_tag(tag, log=None):
@@ -31,6 +30,10 @@ def sanitize_tag(tag, log=None):
 
 
 class RepoDefinition:
+    """
+    Contains the definition for a push repository.
+    """
+
     def __init__(
             self,
             log,
@@ -68,7 +71,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
     given registry/repository.
     """
     def _get_repo_definition(self, config: Union[dict, str]) -> RepoDefinition:
-        if is_dict(config):
+        if isinstance(config, dict):
             if 'repository' not in config:
                 raise BuildRunnerConfigurationError(
                     'Docker push configuration must at least specify a "repository" attribute'
@@ -79,8 +82,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 config.get('tags'),
                 config.get('insecure_registry'),
             )
-        else:
-            return RepoDefinition(self.step_runner.log, config)
+        return RepoDefinition(self.step_runner.log, config)
 
     def __init__(self, step_runner, config, commit_only=False):
         super().__init__(step_runner, config)

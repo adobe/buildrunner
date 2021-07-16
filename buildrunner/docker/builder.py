@@ -13,8 +13,9 @@ import tarfile
 import tempfile
 
 import docker
+import docker.errors
 
-from buildrunner.docker import new_client
+from buildrunner.docker import new_client, force_remove_container
 
 
 class DockerBuilder:  # pylint: disable=too-many-instance-attributes
@@ -171,10 +172,6 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         # iterate through and destory intermediate containers
         for container in self.intermediate_containers:
             try:
-                self.docker_client.remove_container(
-                    container,
-                    force=True,
-                    v=True,
-                )
+                force_remove_container(self.docker_client, container)
             except docker.errors.APIError:
                 pass

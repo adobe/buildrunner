@@ -221,8 +221,8 @@ class DockerSSHAgentProxy:
                     look_for_keys=False,
                 )
                 break
-            except Exception as e:
-                self.log.write(f'there was an issue trying to connect to container : {e}')
+            except Exception as exc:  # pylint: disable=broad-except
+                self.log.write(f'there was an issue trying to connect to container : {exc}')
             next_backoff = backoff + previous_backoff
             previous_backoff = backoff
             backoff = next_backoff

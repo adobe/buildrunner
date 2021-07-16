@@ -92,3 +92,16 @@ def new_client(
         tls=tls_config,
         **args
     )
+
+
+def force_remove_container(docker_client, container):
+    """
+    Force removes a container from the given docker client.
+    :param docker_client: the docker client
+    :param container: the container
+    """
+    docker_client.remove_container(
+        container,
+        force=True,
+        v=True,
+    )
