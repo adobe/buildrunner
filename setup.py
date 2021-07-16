@@ -122,9 +122,9 @@ def get_version():
 setup(
     name='buildrunner',
     version=get_version(),
-    author='ADobe Analytics Cross Functional Engineering',
+    author='Adobe Analytics Cross Functional Engineering',
     author_email="***REMOVED***",
-    license="Adobe",
+    license="MIT",
     url="https://***REMOVED***/***REMOVED***/buildrunner",
     description="Docker-based build tool",
     long_description="",

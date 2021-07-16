@@ -1,5 +1,9 @@
 """
-Copyright (C) 2020 Adobe
+Copyright 2021 Adobe
+All Rights Reserved.
+
+NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
+with the terms of the Adobe license agreement accompanying it.
 """
 
 import fcntl
@@ -225,7 +229,7 @@ class DockerSSHAgentProxy:
             time.sleep(backoff)
         else:
             self.log.write(f'Unable to successfully connect to {ssh_host}')
-            raise
+            raise Exception(f'Unable to successfully connect to {ssh_host}')
 
     def stop(self):
         """
