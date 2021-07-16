@@ -18,6 +18,7 @@ from docker.utils import compare_version
 
 from buildrunner.docker import (
     new_client,
+    force_remove_container,
     BuildRunnerContainerError,
 )
 from buildrunner.utils import tempfile
@@ -209,11 +210,7 @@ class DockerRunner:
         if self.container:
             for container in self.containers:
                 try:
-                    self.docker_client.remove_container(
-                        container,
-                        force=True,
-                        v=True,
-                    )
+                    force_remove_container(self.docker_client, container)
                 except docker.errors.NotFound:
                     try:
                         container_ids = self.docker_client.containers(

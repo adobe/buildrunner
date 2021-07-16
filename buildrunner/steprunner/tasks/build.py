@@ -33,7 +33,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             step_runner,
             config,
             image_to_prepend_to_dockerfile=None,
-    ):  # pylint: disable=too-many-statements,too-many-branches
+    ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
         super().__init__(step_runner, config)
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,

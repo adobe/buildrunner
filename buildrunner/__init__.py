@@ -379,6 +379,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if push:
             base_context['BUILDRUNNER_DO_PUSH'] = 1
         self.env = self._get_config_context(base_context)
+        # pylint: disable=consider-iterating-dictionary
         key_len = max([len(key) for key in self.env.keys()])
         for key in sorted(self.env.keys()):
             val = self.env[key]

@@ -14,10 +14,11 @@ from . import file
 
 
 def fetch_file(url, config):
-    '''
+    """
     Fetch a file from a provider.
-    '''
+    """
 
+    # pylint: disable=fixme
     # FIXME: the handled checking should be in each handler module (possibly handle_file(parsed_url,
     # config) => bool)
 
