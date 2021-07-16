@@ -1,7 +1,9 @@
 """
-Fetch files from the file system.
+Copyright 2021 Adobe
+All Rights Reserved.
 
-Copyright (C) 2020 Adobe
+NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
+with the terms of the Adobe license agreement accompanying it.
 """
 
 import codecs
