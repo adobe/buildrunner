@@ -18,6 +18,9 @@ jobs:
     steps:
     - checkout
     - run: pyenv versions
+    - run:
+        name: Upgrade pip
+        command: pip install -U pip
     - python/install-packages:
         pkg-manager: pip
     - python/install-packages:
