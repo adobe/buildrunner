@@ -45,7 +45,7 @@ To install, simply clone the `buildrunner repository
 <https://github.com/adobe/buildrunner>`_  and add the
 ``scripts`` directory to your ``$PATH``.  ``scripts`` contains wrapper scripts
 that pass the appropriate context to the Docker container.  There is a `BASH
-<https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner>`_
+<https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner>`__
 script and a Windows `batch file
 <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner.bat>`_,
 which simply calls the ``BASH`` script.
@@ -66,7 +66,7 @@ which simply calls the ``BASH`` script.
 
    1. If the authentication information for the docker registry in question is in your
       ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
-   2. Use this `BASH <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunnerOSXCredStore>`_ script along with this `python
+   2. Use this `BASH <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunnerOSXCredStore>`__ script along with this `python
       <https://github.com/adobe/buildrunner/blob/master/scripts/resolve-config.py>`_
       script - this will pull the docker credentials from the OSX
       keychain and inject them into the docker container
@@ -257,9 +257,9 @@ below contains available variables and methods.
                      fail
 
 Jinja filters
-~~~~~~~~~~~~~
+-------------
 
-:``hash_sha1`: SHA1 hash filter
+:``hash_sha1``: SHA1 hash filter
 :``base64encode``:  Base64 encoding filter
 :``base64decode``: Base64 decoding filter
 :``re_sub``: performs a regular expression replacement on text
