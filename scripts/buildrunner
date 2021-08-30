@@ -17,7 +17,6 @@ else
     docker_sock="//var/run/docker.sock"
 fi
 
-
 # stdbuf disables buffering
 docker run \
         $env_vars \
@@ -25,5 +24,5 @@ docker run \
         --tty --interactive \
         -v $docker_sock:/var/run/docker.sock \
         -w /`pwd` \
-        ***REMOVED***/releng/buildrunner:latest \
+        adobe/buildrunner:latest \
         stdbuf -oL buildrunner $@

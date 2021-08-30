@@ -1,6 +1,6 @@
-===========
-BuildRunner
-===========
+#############
+ Buildrunner
+#############
 
 Build and publish Docker images, run builds/tasks within Docker containers or
 on remote hosts.
@@ -11,7 +11,7 @@ on remote hosts.
 Overview
 ========
 
-BuildRunner is a tool written on top of Docker and ssh remoting frameworks that
+Buildrunner is a tool written on top of Docker and ssh remoting frameworks that
 allows engineers to do the following:
 
 - Build and publish Docker images
@@ -22,15 +22,12 @@ allows engineers to do the following:
 - Creating ad-hoc environments using Docker containers for running automated,
   self-contained integration and functional tests
 
-BuildRunner runs builds and tests by reading configuration files within a given
+Buildrunner runs builds and tests by reading configuration files within a given
 source tree. This allows build and continuous integration test configurations
 to live close to source files, providing engineers the ability to update and
 version the build and test configuration right along with the code that is
 being built and tested. This also allows build tools and infrastructures to
-very easily import and setup builds for new modules and branches (see the
-associated BuildRunner Jenkins plugin project located
-`here <https://***REMOVED***/***REMOVED***/buildrunner-plugin>`_
-for an example).
+very easily import and setup builds for new modules and branches.
 
 Installation
 ============
@@ -45,12 +42,12 @@ Buildrunner can be run as a Docker container.  This works cross-platform and
 is the easiest way to keep up to date.
 
 To install, simply clone the `buildrunner repository
-<https://***REMOVED***/***REMOVED***/buildrunner>`_  and add the
+<https://github.com/adobe/buildrunner>`_  and add the
 ``scripts`` directory to your ``$PATH``.  ``scripts`` contains wrapper scripts
 that pass the appropriate context to the Docker container.  There is a `BASH
-<https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunner>`_
+<https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner>`_
 script and a Windows `batch file
-<https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunner.bat>`_,
+<https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner.bat>`_,
 which simply calls the ``BASH`` script.
 
 .. note:: WINDOWS USERS: This is the recommended method for Windows users, however, you must make
@@ -69,8 +66,8 @@ which simply calls the ``BASH`` script.
 
    1. If the authentication information for the docker registry in question is in your
       ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
-   2. Use this `BASH <https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/buildrunnerOSXCredStore>`_ script along with this `python
-      <https://***REMOVED***/***REMOVED***/buildrunner/blob/master/scripts/resolve-config.py>`_
+   2. Use this `BASH <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunnerOSXCredStore>`_ script along with this `python
+      <https://github.com/adobe/buildrunner/blob/master/scripts/resolve-config.py>`_
       script - this will pull the docker credentials from the OSX
       keychain and inject them into the docker container
 
@@ -80,13 +77,13 @@ If you wish to install buildrunner directly on your local machine, install via
 pip, pointing at the Release Engineering internal pypi server (hosted on the
 corporate artifactory instance). This is best done when installing into a
 virtual environment using virtualenv. The following commands will create a new
-virtual environment, activate it, and install BuildRunner within it:
+virtual environment, activate it, and install Buildrunner within it:
 
 .. code:: bash
 
   virtualenv buildrunner
   source buildrunner/bin/activate
-  pip install -i https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple buildrunner
+  pip install buildrunner
 
 The buildrunner executable is now available at buildrunner/bin/buildrunner and
 can be added to your path.
@@ -109,9 +106,9 @@ published by RelEng.
 Global Configuration
 ====================
 
-BuildRunner can be configured globally on a given build system to account for
+Buildrunner can be configured globally on a given build system to account for
 installation specific properties. This feature makes project build
-configuration files more portable, allowing specific BuildRunner installations
+configuration files more portable, allowing specific Buildrunner installations
 to map remote hosts and local files to aliases defined in the project build
 configuration.
 
@@ -125,7 +122,7 @@ they are used when put into the global configuration file:
 
   # The 'build-servers' global configuration consists of a map where each key
   # is a server user@host string and the value is a list of host aliases that
-  # map to the server. This allows builders to configure BuildRunner to talk to
+  # map to the server. This allows builders to configure Buildrunner to talk to
   # specific servers within their environment on a project by project basis.
   build-servers:
     user@host:
@@ -172,7 +169,7 @@ they are used when put into the global configuration file:
   caches-root: ~/.buildrunner/caches
 
   # Change the default docker registry, see the FAQ below for more information
-  docker-registry: ***REMOVED***
+  docker-registry: docker-mirror.example.com
 
   # Change the temp directory used for *most* files
   # Setting the TMP, TMPDIR, or TEMP env vars should do the same thing,
@@ -196,10 +193,10 @@ appearing in the master configuration file
 that can be manipulated by users).
 
 
-BuildRunner Builds
+Buildrunner Builds
 ==================
 
-A BuildRunner build consists of one or more build steps.
+A Buildrunner build consists of one or more build steps.
 
 Each step may build a custom Docker image and run a task within a specific
 Docker container or run commands on a remote host.
@@ -272,7 +269,7 @@ Jinja filters
 Standard Docker Builds (the ``build`` step attribute)
 =====================================================
 
-BuildRunner allows you to build a Docker image using a standard Dockerfile.
+Buildrunner allows you to build a Docker image using a standard Dockerfile.
 This is done using the top-level 'build' attribute in a step configuration. The
 value of the 'build' attribute can either be a single string value indicating
 the directory to use for the Docker build context (the directory containing the
@@ -404,7 +401,7 @@ There are 2 reasons for running a Docker container within a build:
 2. To run scripts and operations within an existing image to create a new image
    (similar to how Packer_ creates Docker images)
 
-BuildRunner injects special environment variables and volume mounts into every
+Buildrunner injects special environment variables and volume mounts into every
 run container. The following environment variables are set and available in
 every run container:
 
@@ -467,9 +464,9 @@ the run step:
         # attribute will be used.
         image: <the Docker image to run>
 
-        # The command(s) to run. If omitted BuildRunner runs the command
+        # The command(s) to run. If omitted Buildrunner runs the command
         # configured in the Docker image without modification. If provided
-        # BuildRunner always sets the container command to a shell, running the
+        # Buildrunner always sets the container command to a shell, running the
         # given command here within the shell. If both 'cmd' and 'cmds' are
         # present the command in 'cmd' is run before the commands in the 'cmds'
         # list are run.
@@ -480,9 +477,9 @@ the run step:
 
         # A collection of provisioners to run. Provisioners work similar to the
         # way Packer provisioners do and are always run within a shell.
-        # When a provisioner is specified BuildRunner always sets the container
+        # When a provisioner is specified Buildrunner always sets the container
         # command to a shell, running the provisioners within the shell.
-        # Currently BuildRunner supports shell and salt provisioners.
+        # Currently Buildrunner supports shell and salt provisioners.
         provisioners:
           shell: path/to/script.sh | [path/to/script.sh, ARG1, ...]
           salt: <simple salt sls yaml config>
@@ -682,17 +679,17 @@ within service container configuration:
             # container context.
             image: <the Docker image to run>
 
-            # The command to run. If ommitted BuildRunner runs the command
+            # The command to run. If ommitted Buildrunner runs the command
             # configured in the Docker image without modification. If provided
-            # BuildRunner always sets the container command to a shell, running
+            # Buildrunner always sets the container command to a shell, running
             # the given command here within the shell.
             cmd: <a command to run>
 
             # A collection of provisioners to run. Provisioners work similar to
             # the way Packer provisioners do and are always run within a shell.
-            # When a provisioner is specified BuildRunner always sets the
+            # When a provisioner is specified Buildrunner always sets the
             # container command to a shell, running the provisioners within the
-            # shell. Currently BuildRunner supports shell and salt
+            # shell. Currently Buildrunner supports shell and salt
             # provisioners.
             provisioners:
               shell: path/to/script.sh
@@ -800,7 +797,7 @@ from the specified Docker image and archives the given artifacts:
   steps:
     package:
       run:
-        image: ***REMOVED***/***REMOVED***:latest
+        image: myimages/image-with-cmd:latest
         artifacts:
           omtr_tmp/artifacts/*.x86_64.rpm: {platform: 'centos-6-x86_64'}
 
@@ -881,9 +878,9 @@ is defined:
     build-my-container:
       build: .
       # To push the docker image to a registry
-      push: ***REMOVED***/***REMOVED***
+      push: myimages/image1
       # OR to just commit it locally to use in subsequent steps
-      commit: ***REMOVED***/***REMOVED***
+      commit: myimages/image1
 
 The configuration may also specify additional tags to add to the image:
 
@@ -894,11 +891,11 @@ The configuration may also specify additional tags to add to the image:
       build: .
       # To push the docker image to a registry
       push:
-        repository: ***REMOVED***/***REMOVED***
+        repository: myimages/image1
         tags: [ 'latest' ]
       # OR to just commit it locally to use in subsequent steps
       commit:
-        repository: ***REMOVED***/***REMOVED***
+        repository: myimages/image1
         tags: [ 'latest' ]
 
 The configuration may also specify multiple repositories with their own tags
@@ -911,12 +908,12 @@ The configuration may also specify multiple repositories with their own tags
       build: .
       # To push the docker image to multiple repositories
       push:
-        - ***REMOVED***/***REMOVED***1
-        - repository: ***REMOVED***/***REMOVED***2
+        - myimages/image1
+        - repository: myimages/image2
           tags: [ 'latest' ]
       # OR to just commit it locally to use in subsequent steps
       commit:
-        repository: ***REMOVED***/***REMOVED***
+        repository: myimages/image1
         tags: [ 'latest' ]
 
 Pushing One Image To Multiple Repositories
@@ -932,17 +929,17 @@ additional tags.
     build-my-container:
       build: .
       push:
-        - repository: ***REMOVED***/***REMOVED***1
+        - repository: myimages/image1
           tags: [ 'latest' ]
-        - ***REMOVED***/***REMOVED***2
-        - repository: ***REMOVED***/***REMOVED***3
+        - myimages/image2
+        - repository: myimages/image3
           tags: [ 'latest' ]
       # OR
       commit:
-        - repository: ***REMOVED***/***REMOVED***1
+        - repository: myimages/image1
           tags: [ 'latest' ]
-        - ***REMOVED***/***REMOVED***2
-        - repository: ***REMOVED***/***REMOVED***3
+        - myimages/image2
+        - repository: myimages/image3
           tags: [ 'latest' ]
 
 Pushing To PyPI Repository
@@ -983,7 +980,7 @@ doing this:
         artifacts:
           "dist/*.tar.gz": { type: 'python-sdist' }
       pypi-push:
-        repository: https://***REMOVED***/artifactory/api/pypi/pypi-myownrepo
+        repository: https://artifactory.example.com/artifactory/api/pypi/pypi-myownrepo
         username: myuser
         password: mypass
 
@@ -1000,7 +997,7 @@ cause port mapping conflicts.
 Remote Builds (the 'remote' step attribute)
 ===========================================
 
-BuildRunner was built to utilize Docker containers for builds, but there are
+Buildrunner was built to utilize Docker containers for builds, but there are
 times when a build or task needs to be performed within an environment that
 cannot be duplicated within a Docker container. In these situations the
 'remote' step attribute can be used to perform a build or task on a remote
@@ -1019,7 +1016,7 @@ configuration:
         # A specific host or host alias to run the remote build/task on. A host
         # alias is an arbitrary string that can be configured to map to a
         # specific user@host value within the global buildrunner configuration
-        # file. BuildRunner first tries to lookup the host value in the
+        # file. Buildrunner first tries to lookup the host value in the
         # 'build-servers' configuration map. If found the resulting host is
         # used. If not, the string here is used as the remote host.
         host: <user@host or alias to ssh to>
@@ -1056,7 +1053,7 @@ server:
     user@myserver2: [ alias3, alias4 ]
 
 Namespacing aliases allows build configurations to be portable while also
-allowing builders to configure BuildRunner to talk to specific servers within
+allowing builders to configure Buildrunner to talk to specific servers within
 their environment on a project by project basis.
 
 
@@ -1091,8 +1088,8 @@ The available ``fetch`` back-ends are the following:
 Github
 ``````
 
-Files can be retrieved from Github - either central ``github.com`` location or the Adobe-specific
-``***REMOVED***``.  The fetch syntax is the following:
+Files can be retrieved from Github - either central ``github.com`` location or
+GitHub Enterprise servers. The fetch syntax is the following:
 
   ``github://LABEL/GROUP/REPO/PATH``
 
@@ -1114,18 +1111,18 @@ The ``github://`` facility requires the following configuration entries:
       username: 'USERNAME'
       app_token: 'APP_TOKEN'
 
-The following is suggested for an entry to reference files on Adobe Github:
+The following is suggested for an entry to reference files for GitHub Enterprise:
 
 .. code:: yaml
 
   github:
-    adobe_github:
-      endpoint: 'https://***REMOVED***/api'
+    company_github:
+      endpoint: 'https://git.company.com/api'
       version: 'v3'
       username: 'USERNAME'
       app_token: 'APP_TOKEN'
 
-:username: The individual Adobe LDAP username used to access Github.
+:username: The individual username used to access the Github Enterprise instance.
 :app_token: The user-specific application token generated by the user on Github for Buildrunner
             access.  It is a 40 hex digit token.
 
@@ -1162,7 +1159,7 @@ problems in updating and synchronizing copies to possibly unknown locations.
 
 To redirect ``buildrunner.yaml`` only a single entry should be in the file:
 
-  redirect: 'github://adobe_github/***REMOVED***/buildrunner.yaml'
+  redirect: 'github://gh-label/org/repo/sample-buildrunner.yaml'
 
 Buildrunner will repeatedly redirect, fetch and interpret the new ``buildrunner.yaml`` until it
 finds one that no longer finds a ``redirect`` directive.  At that point it will interpret the final
@@ -1222,7 +1219,7 @@ global configuration file (typically ``~/.buildrunner.yaml``):
 
 .. code:: yaml
 
-    docker-registry: ***REMOVED***
+    docker-registry: docker-mirror.example.com
 
 This will point to the Docker Hub proxy located in Artifactory.
 
@@ -1234,7 +1231,7 @@ you will need to generate a new key with the ``-m PEM`` parameter:
 
 .. code:: bash
 
-  ssh-keygen -m PEM -t rsa -b 4096 -C "username@adobe.com"
+  ssh-keygen -m PEM -t rsa -b 4096 -C "username@example.com"
 
 This will no longer be necessary if the Paramiko library addresses this issue. There
 are several issues logged in the git repo, most of which are closed, such as:
