@@ -28,7 +28,9 @@ jobs:
         pip-dependency-file: test_requirements.txt
     - run:
         name: Run tests
-        command: pytest --pylint
+        command: |
+          pylint buildrunner
+          pytest
   pypi:
     docker:
     - image: cimg/python:3.6
