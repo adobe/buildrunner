@@ -17,12 +17,12 @@ steps:
         RUN echo 'hi'
         RUN echo 'hi'
     push:
-      repository: ***REMOVED***/releng/test-buildrunner-build
+      repository: adobe/buildrunner-test-build
       tags: [latest]
 
   artifacts:
     run:
-      image: ***REMOVED***/releng/releng-java7-maven:latest
+      image: {{ DOCKER_REGISTRY}}/centos:7
       cmds: [
         'echo "test" > test.txt',
         'echo "success" > success.comment',
@@ -78,7 +78,7 @@ steps:
       cmd: 'echo "hello" > /hello.txt'
       post-build: tests/postbuildpath
     push:
-      repository: ***REMOVED***/releng/test-buildrunner-hello-path
+      repository: adobe/hello-path
 
   run-post-build-inline:
     run:
@@ -88,7 +88,7 @@ steps:
         dockerfile: |
           RUN cat /hello.txt
     push:
-      repository: ***REMOVED***/releng/test-buildrunner-hello-inline
+      repository: adobe/hello-inline
 
   run-post-build-inject:
     run:
@@ -100,7 +100,7 @@ steps:
         inject:
           'tests/postbuildpath/Dockerfile': '/'
     push:
-      repository: ***REMOVED***/releng/test-buildrunner-hello-inline
+      repository: adobe/hello-inline
       tags: *tags
 
   archive-container-config:
@@ -118,7 +118,7 @@ steps:
       inject:
         'buildrunner.results/artifacts/*.txt': files/
     push:
-      repository: ***REMOVED***/releng/test-buildrunner
+      repository: adobe/buildrunner-test
       tags: ['latest']
 
   test-dir-archive:

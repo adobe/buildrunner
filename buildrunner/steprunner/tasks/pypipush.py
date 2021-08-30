@@ -78,7 +78,6 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
             except twine.exceptions.InvalidConfiguration as twe:
                 raise BuildRunnerConfigurationError(
                     f'Pypi is unable to find an entry for "{self._repository}" in your .pypirc.\n'
-                    '    See documentation: https://***REMOVED***/xeng/build/tools/pypi-pip.html\n'
                 ) from twe
 
             self.step_runner.build_runner.pypi_packages[self._repository] = {

@@ -12,7 +12,7 @@ import types
 
 from setuptools import setup, find_packages
 
-_VERSION = '1.0'
+_VERSION = '1.1'
 
 _SOURCE_DIR = os.path.dirname(
     os.path.abspath(__file__)
@@ -119,16 +119,19 @@ def get_version():
     return _version
 
 
+with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as fobj:
+    long_description = fobj.read().strip()
+
 setup(
     name='buildrunner',
     version=get_version(),
-    author='Adobe Analytics Cross Functional Engineering',
-    author_email="***REMOVED***",
+    author='Adobe',
+    author_email="noreply@adobe.com",
     license="MIT",
-    url="https://***REMOVED***/***REMOVED***/buildrunner",
+    url="https://github.com/adobe/buildrunner",
     description="Docker-based build tool",
-    long_description="",
-
+    long_description=long_description,
+    long_description_content_type='text/x-rst',
     packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
     scripts=[
         'bin/buildrunner',

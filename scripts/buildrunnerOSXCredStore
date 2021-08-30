@@ -35,7 +35,7 @@ docker run \
 	-v //var/run/docker.sock:/var/run/docker.sock \
 	$CONFIG_OVERRIDE_OPTION \
 	-w /`pwd` \
-        ***REMOVED***/releng/buildrunner:latest \
+        adobe/buildrunner:latest \
         stdbuf -oL buildrunner $@
 
 # Remove the shadow config file, if it exists

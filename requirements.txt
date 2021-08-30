@@ -1,6 +1,4 @@
---extra-index-url https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple/vcsinfo/
---extra-index-url https://***REMOVED***/artifactory/api/pypi/***REMOVED***/simple/
-vcsinfo>=0.2.69
+vcsinfo>=1.0.0
 PyYAML==5.3.1
 requests==2.25.0
 paramiko==2.7.2
@@ -12,5 +10,4 @@ Jinja2==2.11.2
 twine==3.2.0
 MarkupSafe==1.1.1
 pyparsing==2.4.7
-# Required by vcsinfo, lock it to a version supported by python3
-mercurial==5.6
+
