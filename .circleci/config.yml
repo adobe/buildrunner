@@ -6,7 +6,7 @@ orbs:
 workflows:
   build:
     jobs:
-    - package:
+    - package
     - pypi:
         requires:
         - package
