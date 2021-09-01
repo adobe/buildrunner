@@ -1,4 +1,4 @@
-vcsinfo>=1.0.0
+vcsinfo>=1.0.2
 PyYAML==5.3.1
 requests==2.25.0
 paramiko==2.7.2
