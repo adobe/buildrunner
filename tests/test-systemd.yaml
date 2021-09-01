@@ -10,7 +10,7 @@ steps:
   # Remove the centos image
   clean-images-1:
     run:
-      image: adobe/buildrunner:latest
+      image: {{ DOCKER_REGISTRY }}/busybox:latest
       pull:  false
       cmd:   python -c 'import docker; docker.from_env().images.remove("centos:7")'
   # Start up a container, it should NOT fail based on centos:7 not existing

@@ -113,7 +113,7 @@ steps:
 
   containerize:
     build:
-      path: .
+      path: tests
       no-cache: true
       inject:
         'buildrunner.results/artifacts/*.txt': files/
