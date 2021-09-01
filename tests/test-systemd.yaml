@@ -10,9 +10,8 @@ steps:
   # Remove the centos image
   clean-images-1:
     run:
-      image: {{ DOCKER_REGISTRY }}/busybox:latest
-      pull:  false
-      cmd:   python -c 'import docker; docker.from_env().images.remove("centos:7")'
+      image: {{ DOCKER_REGISTRY }}/docker:20.10-dind
+      cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/centos:7
   # Start up a container, it should NOT fail based on centos:7 not existing
   test-without-systemd:
     run:
@@ -26,9 +25,9 @@ steps:
       cmd:   /bin/true
   clean-images-2:
     run:
-      image: ***REMOVED***/buildrunner:latest
+      image: {{ DOCKER_REGISTRY }}/docker:20.10-dind
       pull:  false
-      cmd:   python -c 'import docker; docker.from_env().images.remove("centos:7"); docker.from_env().images.remove("alpine:latest");'
+      cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/centos:7 {{ DOCKER_REGISTRY }}/alpine:latest
   test-service-without-systemd:
      run:
        services:
@@ -79,6 +78,6 @@ steps:
           image:   {{ DOCKER_REGISTRY }}/centos:7
           systemd: true
           cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init && python -m SimpleHTTPServer 8001
-      image: ***REMOVED***/buildrunner:latest
+      image: docker-xeng-release.dr.corp.adobe.com/releng/buildrunner:latest
       pull: false
       cmd: curl http://s1:8001 1>/dev/null 2>&1
