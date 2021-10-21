@@ -1170,17 +1170,10 @@ files - all other content is ignored when the ``redirect`` directive is found.
 Testing
 =======
 
-The test suite is located in the `tests subdirectory <tests>`_.  These are not
-integrated into the main `buildrunner.yaml <buildrunner.yaml>`_ - this is due to
-the test suite invoking ``docker`` which does not work well from inside a Docker
-container.  Consequently the test suite is invoked through the `Jenkinsfile
-<Jenkinsfile>`_.
-
-The test suite can be invoked manually from the top of the source directory:
-
-.. code:: bash
-
-  >$ python tests/test_buildrunner_files.py
+The test suite is located in the `tests subdirectory <tests>`_. These tests are invoked
+on every build.
+ 
+The test suite can be invoked manually from the top of the source directory by using ``pytest``.
 
 
 Common Issues
