@@ -1167,28 +1167,11 @@ finds one that no longer finds a ``redirect`` directive.  At that point it will 
 files - all other content is ignored when the ``redirect`` directive is found.
 
 
-Testing
-=======
-
-The test suite is located in the `tests subdirectory <tests>`_.  These are not
-integrated into the main `buildrunner.yaml <buildrunner.yaml>`_ - this is due to
-the test suite invoking ``docker`` which does not work well from inside a Docker
-container.  Consequently the test suite is invoked through the `Jenkinsfile
-<Jenkinsfile>`_.
-
-The test suite can be invoked manually from the top of the source directory:
-
-.. code:: bash
-
-  >$ python tests/test_buildrunner_files.py
-
-
 Common Issues
 =============
 
-.. warning::
-    Always update to the latest version of buildrunner before troubleshooting as new features
-    may be required.
+**WARNING**: Always update to the latest version of buildrunner before troubleshooting as new features
+may be required.
 
 Docker Hub rate limit
 ---------------------
@@ -1236,6 +1219,20 @@ you will need to generate a new key with the ``-m PEM`` parameter:
 This will no longer be necessary if the Paramiko library addresses this issue. There
 are several issues logged in the git repo, most of which are closed, such as:
 https://github.com/paramiko/paramiko/issues/1348
+
+
+
+Contributing
+============
+
+Pull requests are welcome to the project, please see the
+`contribution guidelines <.github/CONTRIBUTING.md>`_.
+
+The test suite is located in the `tests subdirectory <tests>`_. These tests are invoked
+on every PR build and every build.
+
+The test suite can be invoked manually from the top of the source directory by using
+``pytest`` after installing all of the requirements and test requirements with ``pip``.
 
 
 .. Links
