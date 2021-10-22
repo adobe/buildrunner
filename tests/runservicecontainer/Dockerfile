@@ -1,3 +1,3 @@
 ARG DOCKER_REGISTRY
-FROM $DOCKER_REGISTRY/centos:7
+FROM $DOCKER_REGISTRY/centos:8
 RUN yum -y install curl
