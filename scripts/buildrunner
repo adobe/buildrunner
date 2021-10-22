@@ -27,5 +27,4 @@ docker run \
         --tty --interactive \
         -v $docker_sock:/var/run/docker.sock \
         -w /`pwd` \
-        adobe/buildrunner:latest \
-        stdbuf -oL buildrunner $@
+        ghcr.io/adobe/buildrunner:latest $@

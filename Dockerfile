@@ -1,27 +1,32 @@
-ARG DOCKER_REGISTRY
-FROM $DOCKER_REGISTRY/python:3.6
+FROM python:3.7
 
 COPY . /buildrunner-source
 
 ENV PIP_DEFAULT_TIMEOUT 60
 
-RUN                                         \
-    set -ex;                                \
-    useradd -m buildrunner;                 \
-    apt update;                             \
-    apt -y install                          \
-        libffi-dev                          \
-        libssl-dev                          \
-        libyaml-dev                         \
-        python-cryptography                 \
-        python-pip                          \
-        python-dev                          \
-    ;                                       \
-    cd /buildrunner-source;                 \
-    pip install -r requirements.txt         \
-                -r test_requirements.txt;   \
-    python setup.py install;                \
-    rm -rf /buildrunner-source;             \
+# Use an extra index to provide ARM packages, see
+# https://www.piwheels.org/
+RUN                                                         \
+    set -ex;                                                \
+    useradd -m buildrunner;                                 \
+    apt update;                                             \
+    apt -y install                                          \
+        libffi-dev                                          \
+        libssl-dev                                          \
+        libyaml-dev                                         \
+        python3-cryptography                                \
+        python3-wheel                                       \
+        python3-pip                                         \
+        python3-dev                                         \
+    ;                                                       \
+    cd /buildrunner-source;                                 \
+    pip3 install -U pip;                                    \
+    pip3 install                                            \
+        --extra-index-url=https://www.piwheels.org/simple   \
+        -r requirements.txt                                 \
+        -r test_requirements.txt;                           \
+    python3 setup.py install;                               \
+    rm -rf /buildrunner-source;                             \
     apt clean all;
 
 #RUN \
@@ -41,14 +46,8 @@ RUN                                         \
 
 ENV BUILDRUNNER_CONTAINER 1
 
-# NOTE: this should likely have an ENTRYPOINT of the buildrunner executable with a default argument
-# of "--help" in the CMD ... but the horse has already left the barn and it is likely difficult to
-# fix all of the places that use the buildrunner Docker image to expect different invocation
-# semantics.
-
-#ENTRYPOINT ["/usr/local/bin/buildrunner"]
-#CMD ["--help"]
-CMD ["/usr/local/bin/buildrunner",  "--help"]
+ENTRYPOINT ["/usr/local/bin/buildrunner"]
+CMD ["--help"]
 
 # Local Variables:
 # fill-column: 100
