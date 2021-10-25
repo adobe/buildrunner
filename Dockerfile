@@ -13,8 +13,8 @@ RUN                                         \
         libffi-dev                          \
         libssl-dev                          \
         libyaml-dev                         \
-        python-cryptography                 \
-        python-pip                          \
+        python3-cryptography                 \
+        python3-pip                          \
         python-dev                          \
     ;                                       \
     cd /buildrunner-source;                 \

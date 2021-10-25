@@ -76,7 +76,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         return {k: str(v) for k, v in list(buildargs.items())}
 
     # pylint: disable=too-many-branches,too-many-locals,too-many-arguments,invalid-name
-    def build(self, console=None, nocache=False, cache_from=None, rm=True, pull=True, buildargs=None):
+    def build(self, console=None, nocache=False, cache_from=None, rm=True, pull=True, buildargs=None, platform=None):
         """
         Run a docker build using the configured context, constructing the
         context tar file if necessary.
@@ -109,7 +109,8 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             fileobj=_fileobj,
             rm=rm,
             pull=pull,
-            buildargs=self._sanitize_buildargs(buildargs)
+            buildargs=self._sanitize_buildargs(buildargs),
+            platform=platform
         )
 
         # monitor output for logs and status

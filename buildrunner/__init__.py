@@ -327,6 +327,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             log_generated_files=False,
             docker_timeout=None,
             local_images=False,
+            platform=None,
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         """
         """
@@ -347,6 +348,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.log_generated_files = log_generated_files
         self.docker_timeout = docker_timeout
         self.local_images = local_images
+        self.platform = platform
 
         self.tmp_files = []
         self.artifacts = OrderedDict()
@@ -756,6 +758,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                         step_name,
                         step_config,
                         self.local_images,
+                        self.platform
                     )
                     build_step_runner.run()
 

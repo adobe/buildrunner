@@ -573,6 +573,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             _image,
             pull_image=config.get('pull', True),
             log=service_logger,
+            platform=config.get('platform', None),
         )
         self._service_runners[name] = service_runner
         cont_name = self.step_runner.id + '-' + name
@@ -960,6 +961,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 _run_image,
                 pull_image=pull_image,
                 log=self.step_runner.log,
+                platform=self.config.get('platform', None)
             )
             # Figure out if we should be running systemd.  Has to happen after docker pull
             container_args["systemd"] = self.is_systemd(self.config, _run_image, self.step_runner.log)

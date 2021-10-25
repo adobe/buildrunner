@@ -1,0 +1,18 @@
+# A simple Buildrunner test that checks which architecture an image has
+
+steps:
+  arm-arch-build:
+    build:
+      no-cache: true
+      platform: linux/arm64/v8
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+        RUN [ "$(uname -m)" = "aarch64" ]
+
+  amd-arch-build:
+    build:
+      no-cache: true
+      platform: linux/amd64
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+        RUN [ "$(uname -m)" = "x86_64" ]

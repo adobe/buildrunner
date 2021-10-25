@@ -138,6 +138,15 @@ def parse_args(argv):
     )
 
     parser.add_argument(
+        '--platform',
+        default=None,
+        dest='platform',
+        type=str,
+        help='The platform architecture to pass to the docker daemon when pulling, building, and running images.'
+             'For example, "linux/amd64" or "linux/arm64/v8".'
+    )
+
+    parser.add_argument(
         '--keep-step-artifacts',
         default=False,
         action='store_true',
@@ -241,6 +250,7 @@ def main(argv):
             log_generated_files=(bool(args.log_generated_files or args.print_generated_files)),
             docker_timeout=args.docker_timeout,
             local_images=args.local_images,
+            platform=args.platform,
         )
 
         if not args.print_generated_files:
