@@ -30,7 +30,20 @@ class DockerRunner:
     Docker container.
     """
 
-    def __init__(self, image_name, dockerd_url=None, pull_image=True, log=None, platform=None):
+    class ImageConfig:
+        """
+        An object that captures image-specific configuration
+        """
+        def __init__(self, image_name, pull_image=True, platform=None):
+            self.image_name = image_name
+            self.pull_image = pull_image
+            self.platform = platform
+
+    def __init__(self, image_config, dockerd_url=None, log=None):
+        image_name = image_config.image_name
+        pull_image = image_config.pull_image
+        platform = image_config.platform
+
         self.image_name = image_name.lower()
         self.platform = platform
         if log and self.image_name != image_name:

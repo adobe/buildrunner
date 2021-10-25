@@ -753,12 +753,15 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             # run each step
             for step_name, step_config in self.run_config['steps'].items():
                 if not self.steps_to_run or step_name in self.steps_to_run:
+                    image_config = BuildStepRunner.ImageConfig(
+                        self.local_images,
+                        self.platform
+                    )
                     build_step_runner = BuildStepRunner(
                         self,
                         step_name,
                         step_config,
-                        self.local_images,
-                        self.platform
+                        image_config
                     )
                     build_step_runner.run()
 

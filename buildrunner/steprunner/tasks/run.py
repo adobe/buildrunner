@@ -132,10 +132,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # use a small busybox image to list the files matching the glob
         artifact_lister = None
         try:
-            artifact_lister = DockerRunner(
+            image_config = DockerRunner.ImageConfig(
                 f'{self.step_runner.build_runner.get_docker_registry()}/{self.ARTIFACT_LISTER_DOCKER_IMAGE}',
-                log=self.step_runner.log,
                 pull_image=False,
+            )
+            artifact_lister = DockerRunner(
+                image_config,
+                log=self.step_runner.log,
             )
             # NOTE: see if we can use archive commands to eliminate the need for
             #       the /stepresults volume when we can move to api v1.20
@@ -569,11 +572,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 )
 
         # instantiate and start the runner
-        service_runner = DockerRunner(
+        image_config = DockerRunner.ImageConfig(
             _image,
-            pull_image=config.get('pull', True),
+            config.get('pull', True),
+            config.get('platform', None),
+        )
+        service_runner = DockerRunner(
+            image_config,
             log=service_logger,
-            platform=config.get('platform', None),
         )
         self._service_runners[name] = service_runner
         cont_name = self.step_runner.id + '-' + name
@@ -671,9 +677,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             # See https://github.com/docker/for-mac/issues/155 for more info for mac
             nc_tester = None
             try:
-                nc_tester = DockerRunner(
+                image_config = DockerRunner.ImageConfig(
                     f'{self.step_runner.build_runner.get_docker_registry()}/{self.NC_DOCKER_IMAGE}',
                     pull_image=False,
+                )
+                nc_tester = DockerRunner(
+                    image_config,
                     # Do not log anything from this container
                     log=None,
                 )
@@ -957,11 +966,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         exit_code = None
         try:
             # create and start runner, linking any service containers
-            self.runner = DockerRunner(
+            image_config = DockerRunner.ImageConfig(
                 _run_image,
                 pull_image=pull_image,
-                log=self.step_runner.log,
                 platform=self.config.get('platform', None)
+            )
+            self.runner = DockerRunner(
+                image_config,
+                log=self.step_runner.log,
             )
             # Figure out if we should be running systemd.  Has to happen after docker pull
             container_args["systemd"] = self.is_systemd(self.config, _run_image, self.step_runner.log)

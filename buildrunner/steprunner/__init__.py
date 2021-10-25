@@ -36,10 +36,21 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
     Class used to manage running a build step.
     """
 
-    def __init__(self, build_runner, step_name, step_config, local_images=False, platform=None):
+    class ImageConfig:
+        """
+        An object that captures image-specific configuration
+        """
+
+        def __init__(self, local_images=False, platform=None):
+            self.local_images = local_images
+            self.platform = platform
+
+    def __init__(self, build_runner, step_name, step_config, image_config):
         """
         Constructor.
         """
+        local_images = image_config.local_images
+        platform = image_config.platform
         self.name = step_name
         self.config = step_config
         self.local_images = local_images
