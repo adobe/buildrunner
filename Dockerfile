@@ -4,8 +4,7 @@ COPY . /buildrunner-source
 
 ENV PIP_DEFAULT_TIMEOUT 60
 
-# Use an extra index to provide ARM packages, see
-# https://www.piwheels.org/
+# Some of these packages are to have native installs so that arm packages will not be built
 RUN                                                         \
     set -ex;                                                \
     useradd -m buildrunner;                                 \
@@ -14,20 +13,23 @@ RUN                                                         \
         libffi-dev                                          \
         libssl-dev                                          \
         libyaml-dev                                         \
-        python3-cryptography                                \
-        python3-wheel                                       \
         python3-pip                                         \
-        python3-dev                                         \
-    ;                                                       \
+        python3-wheel                                       \
+        python3-cryptography                                \
+        python3-paramiko                                    \
+        python3-wrapt                                       \
+        python3-dev;                                        \
+    apt clean all;
+
+# Running pip this way is strange, but it allows it to detect the system packages installed
+RUN                                                         \
     cd /buildrunner-source;                                 \
-    pip3 install -U pip;                                    \
-    pip3 install                                            \
-        --extra-index-url=https://www.piwheels.org/simple   \
+    python3.9 -m pip install -U pip;                        \
+    python3.9 -m pip install                                \
         -r requirements.txt                                 \
         -r test_requirements.txt;                           \
-    python3 setup.py install;                               \
-    rm -rf /buildrunner-source;                             \
-    apt clean all;
+    python3.9 setup.py install;                             \
+    rm -rf /buildrunner-source;
 
 #RUN \
 #    set -ex; \

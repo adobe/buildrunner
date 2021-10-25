@@ -6,15 +6,12 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-import fcntl
 import os
-from select import select
 import io
 import struct
 import threading
 import time
 import urllib.parse
-import json
 
 from paramiko import (
     DSSKey,
@@ -24,7 +21,7 @@ from paramiko import (
     SSHClient,
     SSHException,
 )
-from paramiko.agent import AgentSSH, AgentRequestHandler
+from paramiko.agent import AgentSSH
 from paramiko.common import asbytes, io_sleep
 from paramiko.message import Message
 
