@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "The buildrunner image does not yet exist, this method may not be used at the moment"
-exit 1
-
 env_vars="-e HOME=/$HOME"
 for var in $(env | egrep -i "^(DOCKER_HOST|DOCKER_TLS_VERIFY|DOCKER_CERT_PATH|BUILDRUNNER_)")
 do
@@ -20,7 +17,6 @@ else
     docker_sock="//var/run/docker.sock"
 fi
 
-# stdbuf disables buffering
 docker run \
         $env_vars \
         -v /$HOME:$HOME \

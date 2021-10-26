@@ -28,14 +28,13 @@ else
     docker_sock="//var/run/docker.sock"
 fi
 
-# stdbuf disables buffering
 docker run \
-        $env_vars \
-        -v /$HOME:$HOME \
+  $env_vars \
+  -v /$HOME:$HOME \
 	-v //var/run/docker.sock:/var/run/docker.sock \
 	$CONFIG_OVERRIDE_OPTION \
 	-w /`pwd` \
-        ghcr.io/adobe/buildrunner:latest $@
+  ghcr.io/adobe/buildrunner:latest $@
 
 # Remove the shadow config file, if it exists
 rm -f $SHADOW_CONFIG_FILE
