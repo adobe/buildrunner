@@ -38,7 +38,6 @@ steps:
                RUN						\
                  set -eux;					\
                  yum clean all;				\
-                 yum -y group install "Development Tools";	\
                  yum -y install python3-setuptools python3-pip;		\
                  rm -rf /var/cache/yum
                LABEL BUILDRUNNER_SYSTEMD=1
@@ -91,7 +90,6 @@ steps:
               RUN						\
                 set -eux;					\
                 yum clean all;				\
-                yum -y group install "Development Tools";	\
                 yum -y install python3-setuptools python3-pip;		\
                 rm -rf /var/cache/yum
               LABEL BUILDRUNNER_SYSTEMD=1
