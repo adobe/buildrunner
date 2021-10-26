@@ -374,6 +374,14 @@ shows the different configuration options available:
         pull: true/false # (default changes depending on if the
                          # image was created via buildrunner or not)
 
+        # Specify a different platform architecture when pulling and building images
+        # This is useful if you are building an image for a different architecture than what
+        # buildrunner is running on, such as using a linux/amd64 build node to produce an image
+        # with a docker manifest compatible with an Apple M1 linux/arm64/v8 architecture
+        platform: linux/amd64
+        <or>
+        platform: linux/arm64/v8 # an apple m1 architecture
+
         # Specify the build args that should be used when building your image,
         # similar to the --build-args option used by Docker
         buildargs:
@@ -595,6 +603,14 @@ the run step:
         #       this ``buildrunner.yaml`` then this will default to false
         pull: true/false # (default changes depending on if the
                          # image was created via buildrunner or not)
+
+        # Specify a different platform architecture when pulling and running images.
+        # This is useful if you are running an image that was built for a different architecture
+        # than what buildrunner is running on, such as using a linux/arm64/v8 Apple M1 architecture
+        # development machine to run or test an image built for linux/amd64 architecture.
+        platform: linux/amd64
+        <or>
+        platform: linux/arm64/v8 # an apple m1 architecture
 
         # systemd doesn't play well with docker, but our base development
         # environment is transitioning to Cent 7, which uses systemd.

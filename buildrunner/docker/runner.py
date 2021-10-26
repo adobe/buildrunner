@@ -30,8 +30,22 @@ class DockerRunner:
     Docker container.
     """
 
-    def __init__(self, image_name, dockerd_url=None, pull_image=True, log=None):
+    class ImageConfig:
+        """
+        An object that captures image-specific configuration
+        """
+        def __init__(self, image_name, pull_image=True, platform=None):
+            self.image_name = image_name
+            self.pull_image = pull_image
+            self.platform = platform
+
+    def __init__(self, image_config, dockerd_url=None, log=None):
+        image_name = image_config.image_name
+        pull_image = image_config.pull_image
+        platform = image_config.platform
+
         self.image_name = image_name.lower()
+        self.platform = platform
         if log and self.image_name != image_name:
             log.write(f'Forcing image_name to lowercase: {image_name} => {self.image_name}\n')
         self.docker_client = new_client(
@@ -68,7 +82,7 @@ class DockerRunner:
         if pull_image or not found_image:
             if log:
                 log.write(f'Pulling image {self.image_name}\n')
-            for data in self.docker_client.pull(self.image_name, stream=True, decode=True):
+            for data in self.docker_client.pull(self.image_name, stream=True, decode=True, platform=self.platform):
                 # Unused variable (see comment below about interactive mode)
                 _ = data
                 if log:

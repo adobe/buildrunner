@@ -1,0 +1,10 @@
+# A simple Buildrunner test that checks which architecture an image has
+
+steps:
+  override-arm-on-cli:
+    run:
+      image: {{ DOCKER_REGISTRY }}/busybox:latest
+      # this platform should be overridden via cli to amd64
+      platform: linux/arm64/v8
+      no-cache: true
+      cmd: "[ \"$(uname -m)\" = \"x86_64\" ]"

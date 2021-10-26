@@ -1,13 +1,12 @@
 import os
 import pytest
-import sys
+import platform
 from typing import List, Optional, Tuple
 
 from tests import test_runner
 
-
 test_dir_path = os.path.realpath(os.path.dirname(__file__))
-test_dir = os.path.basename(os.path.dirname(__file__))
+TEST_DIR = os.path.basename(os.path.dirname(__file__))
 top_dir_path = os.path.realpath(os.path.dirname(test_dir_path))
 
 
@@ -15,6 +14,14 @@ def _get_test_args(file_name: str) -> Optional[List[str]]:
     if file_name == 'test-timeout.yaml':
         # Set a short timeout here for the timeout test
         return ['-t', '15']
+
+    if file_name == 'test-platform-override-amd.yaml':
+        # Override platform to arm
+        return ['--platform', 'linux/arm64/v8']
+
+    if file_name == 'test-platform-override-arm.yaml':
+        # Override platform to amd
+        return ['--platform', 'linux/amd64']
 
     # No additional args for this test file
     return None
@@ -26,16 +33,15 @@ def _get_exit_code(file_name: str) -> int:
     return os.EX_OK
 
 
-def _get_test_runs() -> List[Tuple[str, Optional[List[str]], int]]:
+def _get_test_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]], int]]:
     file_names = sorted([
         file_name for file_name in os.listdir(test_dir)
         if file_name.startswith('test-') and file_name.endswith('.yaml')
     ])
-    return [(file_name, _get_test_args(file_name), _get_exit_code(file_name)) for file_name in file_names]
+    return [(test_dir, file_name, _get_test_args(file_name), _get_exit_code(file_name)) for file_name in file_names]
 
 
-@pytest.mark.parametrize('file_name, args, exit_code', _get_test_runs())
-def test_buildrunner_file(file_name, args, exit_code):
+def _test_buildrunner_file(test_dir, file_name, args, exit_code):
     print(f'\n>>>> Testing Buildrunner file: {file_name}')
     command_line = [
         'buildrunner-test',
@@ -47,12 +53,23 @@ def test_buildrunner_file(file_name, args, exit_code):
         command_line.extend(args)
 
     assert exit_code == \
-        test_runner.run_tests(
-            command_line,
-            master_config_file = f'{test_dir_path}/test-data/etc-buildrunner.yaml',
-            global_config_files = [
-                f'{test_dir_path}/test-data/etc-buildrunner.yaml',
-                f'{test_dir_path}/test-data/dot-buildrunner.yaml',
-            ]
-        )
+           test_runner.run_tests(
+               command_line,
+               master_config_file=f'{test_dir_path}/test-data/etc-buildrunner.yaml',
+               global_config_files=[
+                   f'{test_dir_path}/test-data/etc-buildrunner.yaml',
+                   f'{test_dir_path}/test-data/dot-buildrunner.yaml',
+               ]
+           )
 
+
+@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(TEST_DIR))
+def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
+    _test_buildrunner_file(test_dir, file_name, args, exit_code)
+
+
+@pytest.mark.skipif("arm64" not in platform.uname().machine,
+                    reason="This test should only be run on arm64 architecture")
+@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/arm-arch'))
+def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
+    _test_buildrunner_file(test_dir, file_name, args, exit_code)

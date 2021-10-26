@@ -9,3 +9,4 @@ Jinja2==2.11.2
 twine==3.2.0
 MarkupSafe==1.1.1
 pyparsing==2.4.7
+decorator==5.1.0

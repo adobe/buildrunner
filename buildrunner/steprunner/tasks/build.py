@@ -46,6 +46,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
         self.cache_from = []
         self.buildargs = {}
         self._import = None
+        self.platform = None
 
         pull_from_config = None
         if not is_dict(self.config):
@@ -57,6 +58,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             self.dockerfile = self.config.get('dockerfile', self.dockerfile)
             self.nocache = self.config.get('no-cache', self.nocache)
             pull_from_config = self.config.get('pull')
+            self.platform = self.config.get('platform', self.platform)
 
             if not is_dict(self.config.get('buildargs', self.buildargs)):
                 raise BuildRunnerConfigurationError(
@@ -74,7 +76,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
             for cache_from_image in self.cache_from:
                 try:
-                    self._docker_client.pull(cache_from_image)
+                    self._docker_client.pull(cache_from_image, platform=self.platform)
                     # If the pull is successful, add the image to be cleaned up at the end of the script
                     self.step_runner.build_runner.generated_images.append(cache_from_image)
                     self.step_runner.log.write(f'Using cache_from image: {cache_from_image}\n')
@@ -213,7 +215,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 nocache=self.nocache,
                 cache_from=self.cache_from,
                 pull=self.pull,
-                buildargs=self.buildargs
+                buildargs=self.buildargs,
+                platform=self.platform
             )
             if exit_code != 0 or not builder.image:
                 raise BuildRunnerProcessingError('Error building image')
