@@ -12,7 +12,7 @@ import types
 
 from setuptools import setup, find_packages
 
-_VERSION = '1.1'
+_VERSION = '1.2'
 
 _SOURCE_DIR = os.path.dirname(
     os.path.abspath(__file__)

@@ -4,6 +4,9 @@ on:
   - pull_request
 jobs:
   test:
+    # When running with act (https://github.com/nektos/act), these lines need to be appended with the ACT variable
+    # to force each job to run
+    if: github.repository == 'adobe/buildrunner'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -25,7 +28,7 @@ jobs:
         pip install -r requirements.txt
         pip install -r test_requirements.txt
     - name: Lint with pylint
-      run: pylint buildrunner 
+      run: pylint buildrunner
     - name: Test with pytest
       run: pytest --junitxml=test-reports/test-results.xml
     - name: Publish test results
@@ -34,10 +37,10 @@ jobs:
       with:
         files: test-reports/test-results.xml
         check_name: "Test Results ${{ matrix.python-version }}"
-  publish:
+  publish-pypi:
+    if: github.repository == 'adobe/buildrunner'
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/main'
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -48,8 +51,47 @@ jobs:
       run: pip install wheel
     - name: Build
       run: python setup.py sdist bdist_wheel
+    - name: Check upload
+      run: pip install twine && twine check dist/*
     - name: Publish to PyPi
       uses: pypa/gh-action-pypi-publish@release/v1
+      # Only publish on tagged versions
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+      # If we want to move to publishing on every build later
+      #if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       with:
         user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+        password: ${{ secrets.ADOBE_BOT_PYPI_TOKEN }}
+  publish-docker:
+    if: github.repository == 'adobe/buildrunner'
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+    - uses: actions/checkout@v2
+    - name: Docker Tags
+      id: docker_tags
+      uses: docker/metadata-action@v3
+      with:
+        images: ghcr.io/adobe/buildrunner
+        # Always include latest tag
+        flavor: |
+          latest=true
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v1
+      with:
+        platforms: linux/amd64,linux/arm64
+    # Buildx is used to build multi-platform images
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    # The build-push-action automatically authenticates using the GITHUB_TOKEN
+    - name: Build and Push Image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        # Only push if this a tagged version
+        push: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags') }}
+        # If we want to move to every build is a push in the future
+        #push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        platforms: linux/amd64,linux/arm64
+        tags: ${{ steps.docker_tags.outputs.tags }}
+        labels: ${{ steps.docker_tags.outputs.labels }}

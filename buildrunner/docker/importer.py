@@ -9,6 +9,7 @@ with the terms of the Adobe license agreement accompanying it.
 import yaml
 
 import docker
+import docker.errors
 
 from buildrunner.docker import new_client
 from buildrunner.errors import BuildRunnerProcessingError
@@ -46,7 +47,7 @@ class DockerImporter:
                 f'Error importing image from archive file {self.src}: {apie}'
             ) from apie
         if not is_dict(import_return):
-            import_return = yaml.load(import_return)
+            import_return = yaml.safe_load(import_return)
         if 'status' not in import_return:
             raise BuildRunnerProcessingError(
                 f'Error importing image from archive file {self.src}'

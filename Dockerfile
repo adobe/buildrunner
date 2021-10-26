@@ -1,28 +1,35 @@
-ARG DOCKER_REGISTRY
-FROM $DOCKER_REGISTRY/python:3.6
+FROM python:3.7
 
 COPY . /buildrunner-source
 
 ENV PIP_DEFAULT_TIMEOUT 60
 
-RUN                                         \
-    set -ex;                                \
-    useradd -m buildrunner;                 \
-    apt update;                             \
-    apt -y install                          \
-        libffi-dev                          \
-        libssl-dev                          \
-        libyaml-dev                         \
-        python3-cryptography                 \
-        python3-pip                          \
-        python-dev                          \
-    ;                                       \
-    cd /buildrunner-source;                 \
-    pip install -r requirements.txt         \
-                -r test_requirements.txt;   \
-    python setup.py install;                \
-    rm -rf /buildrunner-source;             \
+# Some of these packages are to have native installs so that arm packages will not be built
+RUN                                                         \
+    set -ex;                                                \
+    useradd -m buildrunner;                                 \
+    apt update;                                             \
+    apt -y install                                          \
+        libffi-dev                                          \
+        libssl-dev                                          \
+        libyaml-dev                                         \
+        python3-pip                                         \
+        python3-wheel                                       \
+        python3-cryptography                                \
+        python3-paramiko                                    \
+        python3-wrapt                                       \
+        python3-dev;                                        \
     apt clean all;
+
+# Running pip this way is strange, but it allows it to detect the system packages installed
+RUN                                                         \
+    cd /buildrunner-source;                                 \
+    python3.9 -m pip install -U pip;                        \
+    python3.9 -m pip install                                \
+        -r requirements.txt                                 \
+        -r test_requirements.txt;                           \
+    python3.9 setup.py install;                             \
+    rm -rf /buildrunner-source;
 
 #RUN \
 #    set -ex; \
@@ -41,14 +48,8 @@ RUN                                         \
 
 ENV BUILDRUNNER_CONTAINER 1
 
-# NOTE: this should likely have an ENTRYPOINT of the buildrunner executable with a default argument
-# of "--help" in the CMD ... but the horse has already left the barn and it is likely difficult to
-# fix all of the places that use the buildrunner Docker image to expect different invocation
-# semantics.
-
-#ENTRYPOINT ["/usr/local/bin/buildrunner"]
-#CMD ["--help"]
-CMD ["/usr/local/bin/buildrunner",  "--help"]
+ENTRYPOINT ["/usr/local/bin/buildrunner"]
+CMD ["--help"]
 
 # Local Variables:
 # fill-column: 100

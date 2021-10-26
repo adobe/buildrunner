@@ -134,7 +134,8 @@ def parse_args(argv):
         action='store_true',
         dest='local_images',
         help='Prefer local images rather than fetching remote images. '
-             'This can be used for testing images prior to pushing them.',
+             'This can be used for testing images prior to pushing them and is the equivalent '
+             'of setting pull to false for every image/build.',
     )
 
     parser.add_argument(
