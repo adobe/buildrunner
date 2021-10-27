@@ -49,7 +49,7 @@ RUN                                                         \
 ENV BUILDRUNNER_CONTAINER 1
 
 ENTRYPOINT ["/usr/local/bin/buildrunner"]
-CMD ["--help"]
+CMD []
 
 # Local Variables:
 # fill-column: 100
