@@ -8,21 +8,21 @@
 1.3
 ###
 
-1.3.1
-=====
+* 1.3.1
 
-* Fix docker image command
+  * Fix docker image command
 
-1.3.0
-=====
+* 1.3.0
 
-* Add platform flag (PR #7)
+  * Add platform flag (PR #7)
 
 1.2
 ###
 
-* Build and publish docker images, including arm versions
-* Upgrade dependency versions
+* 1.2.0
+
+  * Build and publish docker images, including arm versions
+  * Upgrade dependency versions
 
 ..
    Local Variables:
