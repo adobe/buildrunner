@@ -8,6 +8,10 @@
 1.3
 ###
 
+* 1.3.2
+
+  * Fix compatibility with Python 3.6
+
 * 1.3.1
 
   * Fix docker image command
