@@ -10,3 +10,5 @@ twine==3.2.0
 MarkupSafe==1.1.1
 pyparsing==2.4.7
 decorator==5.1.0
+# Last version to support python 3.6
+GitPython<=3.1.18
