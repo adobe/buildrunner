@@ -1,7 +1,7 @@
 ARG DOCKER_REGISTRY
 FROM $DOCKER_REGISTRY/centos:8
 
-RUN yum clean all; yum -y install initscripts openssh-server socat
+RUN yum clean all; yum -y install openssh-server socat
 RUN mkdir /var/run/sshd; mkdir /ssh-agent
 RUN mkdir /root/.ssh; chmod 700 /root/.ssh
 RUN sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
