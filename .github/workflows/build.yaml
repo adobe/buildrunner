@@ -48,8 +48,7 @@ jobs:
         chmod 700 ~/.ssh
         chmod 600 ~/.ssh/buildrunner-deploy-*
     - name: Test with pytest
-      # Uses the pytest-xdist plugin to run several in parallel
-      run: pytest -v --junitxml=test-reports/test-results.xml -n 5
+      run: pytest -v --junitxml=test-reports/test-results.xml
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action/composite@v1
       if: github.event_name == 'push' && always()
