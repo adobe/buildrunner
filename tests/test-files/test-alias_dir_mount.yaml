@@ -6,7 +6,7 @@ steps:
     run:
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
-        # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
+        # Test directory alias specified in global config files (config-files/dot-buildrunner.yaml)
         tests: /tmp_dir
       cmds:
         - |
@@ -18,7 +18,7 @@ steps:
     run:
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
-        # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
+        # Test directory alias specified in global config files (config-files/dot-buildrunner.yaml)
         homedir: /tmp_dir
       cmds:
         - |
@@ -34,7 +34,7 @@ steps:
       # (``/etc/buildrunner/buildrunner.yaml``).
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
-        # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
+        # Test directory alias specified in global config files (config-files/dot-buildrunner.yaml)
         forbidden_slash: /tmp_dir
       cmds:
         - |
@@ -46,7 +46,7 @@ steps:
     run:
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
-        # Test directory alias specified in global config files (test-data/dot-buildrunner.yaml)
+        # Test directory alias specified in global config files (config-files/dot-buildrunner.yaml)
         dev_null: /test_file
       cmds:
         - |

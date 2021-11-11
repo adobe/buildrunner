@@ -30,7 +30,7 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
                 not global_config_files
                 or master_config_file != global_config_files[0]
         ):
-            global_config_files.insert(master_config_file)
+            global_config_files.insert(0, master_config_file)
     if global_config_files:
         buildrunner.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
 

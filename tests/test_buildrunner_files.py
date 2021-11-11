@@ -55,21 +55,21 @@ def _test_buildrunner_file(test_dir, file_name, args, exit_code):
     assert exit_code == \
            test_runner.run_tests(
                command_line,
-               master_config_file=f'{test_dir_path}/test-data/etc-buildrunner.yaml',
+               master_config_file=f'{test_dir_path}/config-files/etc-buildrunner.yaml',
                global_config_files=[
-                   f'{test_dir_path}/test-data/etc-buildrunner.yaml',
-                   f'{test_dir_path}/test-data/dot-buildrunner.yaml',
+                   f'{test_dir_path}/config-files/etc-buildrunner.yaml',
+                   f'{test_dir_path}/config-files/dot-buildrunner.yaml',
                ]
            )
 
 
-@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(TEST_DIR))
+@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/test-files'))
 def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
 @pytest.mark.skipif("arm64" not in platform.uname().machine,
                     reason="This test should only be run on arm64 architecture")
-@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/arm-arch'))
+@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/test-files/arm-arch'))
 def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
