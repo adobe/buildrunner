@@ -1,6 +1,7 @@
 import os
 import pytest
 import platform
+import tempfile
 from typing import List, Optional, Tuple
 
 from tests import test_runner
@@ -43,33 +44,37 @@ def _get_test_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]], i
 
 def _test_buildrunner_file(test_dir, file_name, args, exit_code):
     print(f'\n>>>> Testing Buildrunner file: {file_name}')
-    command_line = [
-        'buildrunner-test',
-        '-d', top_dir_path,
-        '-f', os.path.join(test_dir, file_name),
-        # Do not push in tests
-    ]
-    if args:
-        command_line.extend(args)
+    with tempfile.TemporaryDirectory(prefix='buildrunner.results-') as temp_dir:
+        command_line = [
+            'buildrunner-test',
+            '-d', top_dir_path,
+            '-b', temp_dir,
+            # Since we are using a fresh temp directory, don't delete it first
+            '--keep-step-artifacts',
+            '-f', os.path.join(test_dir, file_name),
+            # Do not push in tests
+        ]
+        if args:
+            command_line.extend(args)
 
-    assert exit_code == \
-           test_runner.run_tests(
-               command_line,
-               master_config_file=f'{test_dir_path}/test-data/etc-buildrunner.yaml',
-               global_config_files=[
-                   f'{test_dir_path}/test-data/etc-buildrunner.yaml',
-                   f'{test_dir_path}/test-data/dot-buildrunner.yaml',
-               ]
-           )
+        assert exit_code == \
+               test_runner.run_tests(
+                   command_line,
+                   master_config_file=f'{test_dir_path}/config-files/etc-buildrunner.yaml',
+                   global_config_files=[
+                       f'{test_dir_path}/config-files/etc-buildrunner.yaml',
+                       f'{test_dir_path}/config-files/dot-buildrunner.yaml',
+                   ]
+               )
 
 
-@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(TEST_DIR))
+@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/test-files'))
 def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
 @pytest.mark.skipif("arm64" not in platform.uname().machine,
                     reason="This test should only be run on arm64 architecture")
-@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/arm-arch'))
+@pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/test-files/arm-arch'))
 def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)

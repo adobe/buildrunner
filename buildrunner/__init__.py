@@ -313,6 +313,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
     def __init__(
             self,
             build_dir,
+            build_results_dir=None,
             global_config_file=None,
             run_config_file=None,
             run_config=None,
@@ -332,7 +333,10 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         """
         self.build_dir = build_dir
-        self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
+        if build_results_dir:
+            self.build_results_dir = build_results_dir
+        else:
+            self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
         self.push = push
         self.cleanup_images = cleanup_images
         self.cleanup_step_artifacts = cleanup_step_artifacts

@@ -2,4 +2,4 @@
 #
 # This is expected to fail.
 
-redirect: 'tests/test-xfail-redirect_loop_simple.yaml'
+redirect: 'tests/test-files/test-xfail-redirect_loop_simple.yaml'

@@ -79,6 +79,11 @@ def parse_args(argv):
         dest='directory',
         help='build directory (defaults to current working directory)',
     )
+    parser.add_argument(
+        '-b', '--build-results-directory',
+        dest='build_results_dir',
+        help='build results directory (defaults to <build-directory>/buildrunner.results)',
+    )
 
     parser.add_argument(
         '-f', '--file',
@@ -239,6 +244,7 @@ def main(argv):
     try:
         build_runner = BuildRunner(
             args.directory,
+            build_results_dir=args.build_results_dir,
             global_config_file=args.global_config_file,
             run_config_file=args.config_file,
             build_number=args.build_number,

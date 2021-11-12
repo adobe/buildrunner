@@ -11,6 +11,9 @@ ssh-keys:
   aliases:
     - 'adobe-github'
     - 'adobe-dma'
+- file: ~/.ssh/buildrunner-deploy-id_rsa
+  aliases:
+    - 'buildrunner-deploy'
 
 local-files:
   tests: ./tests
