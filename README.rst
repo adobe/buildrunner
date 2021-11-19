@@ -1193,7 +1193,20 @@ Docker Hub rate limit
 ---------------------
 
 In November 2020, Docker Hub added rate limiting for all docker images to 100 pulls every 6 hours.
-This has been addressed by adding a variable to point to a new Docker registry for upstream images.
+Sometimes it is necessary to use a different upstream registry instead of the default Docker Hub
+registry (docker.io). This requires that any references to images that would be pulled from Docker
+Hub instead reference a variable for the configured upstream docker registry.
+
+To configure which registry is used, add the following line to the global configuration file:
+(typically ``~/.buildrunner.yaml``):
+
+.. code:: yaml
+
+    docker-registry: docker-mirror.example.com
+
+This will point to the Docker Hub proxy located at docker-mirror.example.com. Note that this registry
+does not actually exist and is just an example.
+
 To use this registry, see the following examples. Each example assumes the image to be pulled is
 ``busybox:latest``.
 
@@ -1212,30 +1225,6 @@ To use the registry in a ``Dockerfile``:
 
     ARG DOCKER_REGISTRY
     FROM $DOCKER_REGISTRY/busybox:latest
-
-If developing locally and you have hit the rate limit, configure the following in your buildrunner
-global configuration file (typically ``~/.buildrunner.yaml``):
-
-.. code:: yaml
-
-    docker-registry: docker-mirror.example.com
-
-This will point to the Docker Hub proxy located in Artifactory.
-
-Unable to load key
-------------------
-
-If you encounter an error like ``Unable to load key at /path/to/id_rsa``,
-you will need to generate a new key with the ``-m PEM`` parameter:
-
-.. code:: bash
-
-  ssh-keygen -m PEM -t rsa -b 4096 -C "username@example.com"
-
-This will no longer be necessary if the Paramiko library addresses this issue. There
-are several issues logged in the git repo, most of which are closed, such as:
-https://github.com/paramiko/paramiko/issues/1348
-
 
 
 Contributing
