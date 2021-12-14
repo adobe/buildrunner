@@ -55,15 +55,16 @@ The buildrunner executable is now available at buildrunner/bin/buildrunner and
 can be added to your path.
 
 .. tip::
+
     If you are getting 404 errors for authenticated registries but you can pull them with
-   ``docker pull`` - messages similar to the following::
+    ``docker pull`` - messages similar to the following:
 
-     docker.errors.NotFound: 404 Client Error: Not Found ("manifest for <image> not found: manifest
-     unknown: The named manifest is not known to the registry.")
+    docker.errors.NotFound: 404 Client Error: Not Found ("manifest for <image> not found: manifest
+    unknown: The named manifest is not known to the registry.")
 
-   then you likely need to downgrade the installed python docker library version with ``pip
-   install docker==3.6.0``. Version 3.7.0 broke compatibility with buildrunner and docker credential
-   helpers.
+    then you likely need to downgrade the installed python docker library version with ``pip
+    install docker==3.6.0``. Version 3.7.0 broke compatibility with buildrunner and docker credential
+    helpers.
 
 Docker Container
 ----------------
