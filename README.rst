@@ -32,11 +32,41 @@ very easily import and setup builds for new modules and branches.
 Installation
 ============
 
-There are three different options for installing Buildrunner.  Each option
+There are two different options for installing Buildrunner.  Each option
 depends on `Docker <http://www.docker.com/getdocker>`_.  Windows also depends
 on ``BASH``, which can be found at `Git Bash <https://git-for-windows.github.io/>`_.
 
-**1. Docker Container**  
+Pip
+---
+
+If you wish to install buildrunner directly on your local machine, install via
+pip, pointing at the Release Engineering internal pypi server (hosted on the
+corporate artifactory instance). This is best done when installing into a
+virtual environment using virtualenv. The following commands will create a new
+virtual environment, activate it, and install Buildrunner within it:
+
+.. code:: bash
+
+  virtualenv buildrunner
+  source buildrunner/bin/activate
+  pip install buildrunner
+
+The buildrunner executable is now available at buildrunner/bin/buildrunner and
+can be added to your path.
+
+.. tip::
+    If you are getting 404 errors for authenticated registries but you can pull them with
+   ``docker pull`` - messages similar to the following::
+
+     docker.errors.NotFound: 404 Client Error: Not Found ("manifest for <image> not found: manifest
+     unknown: The named manifest is not known to the registry.")
+
+   then you likely need to downgrade the installed python docker library version with ``pip
+   install docker==3.6.0``. Version 3.7.0 broke compatibility with buildrunner and docker credential
+   helpers.
+
+Docker Container
+----------------
 
 Buildrunner can be run as a Docker container.  This works cross-platform and
 is the easiest way to keep up to date.
@@ -70,38 +100,6 @@ which simply calls the ``BASH`` script.
       <https://github.com/adobe/buildrunner/blob/master/scripts/resolve-config.py>`_
       script - this will pull the docker credentials from the OSX
       keychain and inject them into the docker container
-
-**2. Pip**
-
-If you wish to install buildrunner directly on your local machine, install via
-pip, pointing at the Release Engineering internal pypi server (hosted on the
-corporate artifactory instance). This is best done when installing into a
-virtual environment using virtualenv. The following commands will create a new
-virtual environment, activate it, and install Buildrunner within it:
-
-.. code:: bash
-
-  virtualenv buildrunner
-  source buildrunner/bin/activate
-  pip install buildrunner
-
-The buildrunner executable is now available at buildrunner/bin/buildrunner and
-can be added to your path.
-
-.. tip:: If you are getting 404 errors for authenticated registries but you can pull them with
-   ``docker pull`` - messages similar to the following::
-
-     docker.errors.NotFound: 404 Client Error: Not Found ("manifest for <image> not found: manifest
-     unknown: The named manifest is not known to the registry.")
-
-   then you likely need to downgrade the installed python docker library version with ``pip
-   install docker==3.6.0``. Version 3.7.0 broke compatibility with buildrunner and docker credential
-   helpers.
-
-**3. RPM**
-
-If you run CentOS 6 or CentOS 7, buildrunner can be installed using packages
-published by RelEng.
 
 Global Configuration
 ====================
