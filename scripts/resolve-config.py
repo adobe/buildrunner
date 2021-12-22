@@ -12,7 +12,7 @@ def run_command(cmd, input_data=''):
     :param cmd:
     :param input_data:
     """
-    return Popen(cmd, stdout=PIPE, stdin=PIPE, stderr=PIPE).communicate(input=input_data)
+    return Popen(cmd, stdout=PIPE, stdin=PIPE, stderr=PIPE).communicate(input=bytes(input_data, "utf-8"))
 
 
 try:
@@ -28,7 +28,7 @@ try:
             for key in config.get('auths', {}).keys():
                 creds = json.loads(run_command([creds_cmd, 'get'], key)[0].strip())
                 config['auths'][key] = {
-                    "auth": base64.b64encode(f"{creds.get('Username', '')}:{creds.get('Secret', '')}")
+                    "auth": str(base64.b64encode(bytes(f"{creds.get('Username', '')}:{creds.get('Secret', '')}", "utf-8")), "utf-8")
                 }
 
         del config['credsStore']
