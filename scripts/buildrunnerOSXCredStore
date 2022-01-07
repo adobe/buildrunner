@@ -18,7 +18,7 @@ CONFIG_OVERRIDE_OPTION=""
 if [ "$(which python)" ]
 then
 	mkdir -p $(dirname $SHADOW_CONFIG_FILE)
-	python $(dirname ${BASH_SOURCE[0]})/resolve-config.py $CONFIG_FILE > $SHADOW_CONFIG_FILE
+	python3 $(dirname ${BASH_SOURCE[0]})/resolve-config.py $CONFIG_FILE > $SHADOW_CONFIG_FILE
 	CONFIG_OVERRIDE_OPTION="-v /${SHADOW_CONFIG_FILE}:$CONFIG_FILE"
 fi
 
