@@ -40,10 +40,9 @@ Pip
 ---
 
 If you wish to install buildrunner directly on your local machine, install via
-pip, pointing at the Release Engineering internal pypi server (hosted on the
-corporate artifactory instance). This is best done when installing into a
-virtual environment using virtualenv. The following commands will create a new
-virtual environment, activate it, and install Buildrunner within it:
+pip. This is best done when installing into a virtual environment using virtualenv.
+The following commands will create a new virtual environment, activate it, and
+install Buildrunner within it:
 
 .. code:: bash
 
