@@ -12,13 +12,14 @@ import types
 
 from setuptools import setup, find_packages
 
-_VERSION = '1.3.3'
 
-_SOURCE_DIR = os.path.dirname(
+BASE_VERSION = '1.3'
+
+SOURCE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
-_BUILDRUNNER_DIR = os.path.join(_SOURCE_DIR, 'buildrunner')
-_VERSION_FILE = os.path.join(_BUILDRUNNER_DIR, 'version.py')
+BUILDRUNNER_DIR = os.path.join(SOURCE_DIR, 'buildrunner')
+VERSION_FILE = os.path.join(BUILDRUNNER_DIR, 'version.py')
 
 THIS_DIR = os.path.dirname(__file__)
 
@@ -83,8 +84,16 @@ def get_version():
     """
     Call out to the git command line to get the current commit "number".
     """
-    _ver = _VERSION
+    if os.path.exists(VERSION_FILE):
+        # Read version from file
+        loader = importlib.machinery.SourceFileLoader('buildrunner_version', VERSION_FILE)
+        version_mod = types.ModuleType(loader.name)
+        loader.exec_module(version_mod)
+        existing_version = version_mod.__version__  # pylint: disable=no-member
+        print(f'Using existing buildrunner version: {existing_version}')
+        return existing_version
 
+    # Generate the version from the base version and the git commit number, then store it in the file
     try:
         cmd = subprocess.Popen(
             args=[
@@ -95,28 +104,23 @@ def get_version():
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            encoding='utf8',
         )
         stdout = cmd.communicate()[0]
-        outdata = stdout.strip().decode('utf-8')
+        output = stdout.strip()
         if cmd.returncode == 0:
-            _version = '{0}.{1}'.format(_ver, outdata)
+            new_version = '{0}.{1}'.format(BASE_VERSION, output)
+            print(f'Setting version to {new_version}')
 
             # write the version file
-            if os.path.exists(_BUILDRUNNER_DIR):
-                with open(_VERSION_FILE, 'w') as _ver:
-                    _ver.write("__version__ = '%s'\n" % _version)
-    except:
-        pass
-
-    if os.path.exists(_VERSION_FILE):
-        loader = importlib.machinery.SourceFileLoader('buildrunnerversion', _VERSION_FILE)
-        version_mod = types.ModuleType(loader.name)
-        loader.exec_module(version_mod)
-        _version = version_mod.__version__  # pylint: disable=no-member
-    else:
-        _version += '.DEVELOPMENT'
-
-    return _version
+            if os.path.exists(BUILDRUNNER_DIR):
+                with open(VERSION_FILE, 'w', encoding='utf8') as fobj:
+                    fobj.write("__version__ = '%s'\n" % new_version)
+            return new_version
+    except Exception as exc:
+        print(f'Could not generate version from git commits: {exc}')
+    # If all else fails, use development version
+    return f'{BASE_VERSION}.DEVELOPMENT'
 
 
 with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as fobj:
