@@ -240,7 +240,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Archive the given directory.
         """
-        if properties and properties.pop('format', None) == 'uncompressed':
+        if properties and properties.get('format', None) == 'uncompressed':
             # recursively find all files in dir and add
             # each one, passing any properties
             find_output_file = f"{str(uuid.uuid4())}.out"
