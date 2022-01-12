@@ -140,3 +140,18 @@ steps:
       artifacts:
         'bob': {format: 'uncompressed', prop1: 'hello'}
         'bob/bob2':
+
+  setup-uncompress-dirs:
+    run:
+      image: {{ DOCKER_REGISTRY }}/centos:8
+      cmds:
+        - 'mkdir -p parent/dir1; echo "test" > parent/dir1/file1.txt; echo "test" > parent/dir1/file1.txt'
+        - 'mkdir -p parent/dir2; echo "test" > parent/dir1/file2.txt; echo "test" > parent/dir2/file1.txt'
+        - 'mkdir -p parent/dir3; echo "test" > parent/dir1/file3.txt; echo "test" > parent/dir3/file1.txt'
+      artifacts:
+        'parent/*': {format: 'uncompressed'}
+
+  test-uncompressed-dirs:
+    run:
+      image: {{ DOCKER_REGISTRY }}/centos:8
+      cmd: 'if [ $(ls -laR /artifacts/setup-uncompress-dirs/ | grep tar.gz | wc -l) != 0 ]; then exit 1; fi'
