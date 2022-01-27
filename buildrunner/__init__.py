@@ -377,10 +377,10 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             self.build_id = f"{self.vcs.id_string}-{self.build_number}"
         except VCSUnsupported as err:
             self.log.write(f'{err}\nPlease verify you have a VCS set up for this project.\n')
-            exit()
+            sys.exit()
         except VCSMissingRevision as err:
             self.log.write(f'{err}\nMake sure you have at least one commit.\n')
-            exit()
+            sys.exit()
 
         # cleanup existing results dir (if needed)
         if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
