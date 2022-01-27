@@ -30,7 +30,7 @@ import types
 import jinja2
 import requests
 
-from vcsinfo import detect_vcs
+from vcsinfo import detect_vcs, VCSUnsupported, VCSMissingRevision
 
 from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
@@ -372,8 +372,15 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if not self.build_number:
             self.build_number = self.build_time
 
-        self.vcs = detect_vcs(self.build_dir)
-        self.build_id = f"{self.vcs.id_string}-{self.build_number}"
+        try:
+            self.vcs = detect_vcs(self.build_dir)
+            self.build_id = f"{self.vcs.id_string}-{self.build_number}"
+        except VCSUnsupported as err:
+            self.log.write(f'{err}\nPlease verify you have a VCS set up for this project.\n')
+            exit()
+        except VCSMissingRevision as err:
+            self.log.write(f'{err}\nMake sure you have at least one commit.\n')
+            exit()
 
         # cleanup existing results dir (if needed)
         if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
