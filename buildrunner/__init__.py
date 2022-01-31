@@ -442,9 +442,12 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
     def get_temp_dir(self):
         """
-        Get temp dir
+        Get temp dir in the following priorities:
+        * Environment variable
+        * Global configuration property
+        * Configured system temp directory
         """
-        return self.global_config.get('temp-dir', tempfile.gettempdir())
+        return os.getenv('BUILDRUNNER_TEMPDIR', self.global_config.get('temp-dir', tempfile.gettempdir()))
 
     def get_build_server_from_alias(self, host):
         """
@@ -544,7 +547,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 # need to put the contents in a tmp file and return the path
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=os.getenv('BUILDRUNNER_TEMPDIR', self.get_temp_dir()),
+                    dir=self.get_temp_dir(),
                 )
                 _fileobj.write(local_file)
                 tmp_path = os.path.realpath(_fileobj.name)
@@ -622,7 +625,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             try:
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=os.getenv('BUILDRUNNER_TEMPDIR', self.get_temp_dir()),
+                    dir=self.get_temp_dir(),
                 )
                 with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
                     tfile.add(
@@ -649,6 +652,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
             source_builder = DockerBuilder(
+                temp_dir=self.get_temp_dir(),
                 inject=inject,
                 timeout=self.docker_timeout,
                 docker_registry=self.get_docker_registry(),
