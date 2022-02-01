@@ -2,7 +2,7 @@ steps:
   clone:
     build:
       dockerfile: |
-        FROM {{ DOCKER_REGISTRY }}/centos:8
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
         RUN yum install -y git-core openssh-clients && yum clean all
     run:
       ssh-keys: ['buildrunner-deploy']
