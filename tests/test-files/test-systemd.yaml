@@ -3,19 +3,19 @@
 steps:
 
   # Ensure the image is here so the next step always passes
-  ensure-centos8:
+  ensure-image-exists:
     run:
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmd:   /bin/true
-  # Remove the centos image
+  # Remove the image
   clean-images-1:
     run:
       image: {{ DOCKER_REGISTRY }}/docker:20.10-dind
-      cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/centos:8
-  # Start up a container, it should NOT fail based on centos:8 not existing
+      cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/rockylinux:8.5
+  # Start up a container, it should NOT fail based on rockylinux:8.5 not existing
   test-without-systemd:
     run:
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmd:   /bin/true
 
   # Same as above, but for a service container
@@ -27,19 +27,15 @@ steps:
     run:
       image: {{ DOCKER_REGISTRY }}/docker:20.10-dind
       pull:  false
-      cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/centos:8 {{ DOCKER_REGISTRY }}/alpine:latest
+      cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/rockylinux:8.5 {{ DOCKER_REGISTRY }}/alpine:latest
   test-service-without-systemd:
      run:
        services:
          s1:
            build:
              dockerfile: |
-               FROM {{ DOCKER_REGISTRY }}/centos:8
-               RUN						\
-                 set -eux;					\
-                 yum clean all;				\
-                 yum -y install python3-setuptools python3-pip;		\
-                 rm -rf /var/cache/yum
+               FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+               RUN yum -y install python3-setuptools python3-pip && yum clean all
                LABEL BUILDRUNNER_SYSTEMD=1
            run:
              cmd: python3 -m http.server 8001
@@ -48,22 +44,29 @@ steps:
 
   # Ensure systemd init process is not running
   test-systemd-off:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+        RUN yum install -y procps-ng && yum clean all
     run:
-       image: {{ DOCKER_REGISTRY }}/centos:8
        systemd: false
        cmd: ps -p 1 -o cmd | tail -1 | grep -v /usr/sbin/init
 
   # Ensure systemd init process is running
   test-systemd-on:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+        RUN yum install -y procps-ng && yum clean all
     run:
-       image: {{ DOCKER_REGISTRY }}/centos:8
        systemd: true
        cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
 
   test-systemd-on-built:
     build:
       dockerfile: |
-        FROM {{ DOCKER_REGISTRY }}/centos:8
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+        RUN yum install -y procps-ng && yum clean all
         LABEL BUILDRUNNER_SYSTEMD=1
     run:
       cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
@@ -72,7 +75,8 @@ steps:
   test-systemd-off-built-{{ v }}:
     build:
       dockerfile: |
-        FROM {{ DOCKER_REGISTRY }}/centos:8
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+        RUN yum install -y procps-ng && yum clean all
         LABEL BUILDRUNNER_SYSTEMD={{ v }}
     run:
       cmd: ps -p 1 -o cmd | tail -1 | grep -v /usr/sbin/init
@@ -86,15 +90,11 @@ steps:
         s1:
           build:
             dockerfile: |
-              FROM {{ DOCKER_REGISTRY }}/centos:8
-              RUN						\
-                set -eux;					\
-                yum clean all;				\
-                yum -y install python3-setuptools python3-pip;		\
-                rm -rf /var/cache/yum
+              FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+              RUN yum -y install python3 procps-ng && yum clean all
               LABEL BUILDRUNNER_SYSTEMD=1
           systemd: true
           cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init && python3 -m http.server 8001
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       pull: false
       cmd: curl http://s1:8001 1>/dev/null 2>&1

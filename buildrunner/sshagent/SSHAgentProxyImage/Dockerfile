@@ -1,5 +1,5 @@
 ARG DOCKER_REGISTRY
-FROM $DOCKER_REGISTRY/centos:8
+FROM $DOCKER_REGISTRY/rockylinux:8.5
 
 RUN yum clean all; yum -y install openssh-server socat
 RUN mkdir /var/run/sshd; mkdir /ssh-agent

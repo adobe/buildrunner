@@ -32,16 +32,18 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             dockerd_url=None,
             timeout=None,
             docker_registry=None,
+            temp_dir=None,
     ):  # pylint: disable=too-many-arguments
         self.path = path
         self.inject = inject
+        self.temp_dir = temp_dir
         self.dockerfile = None
         self.cleanup_dockerfile = False
         if dockerfile:
             if os.path.exists(dockerfile):
                 self.dockerfile = dockerfile
             else:
-                df_file = tempfile.NamedTemporaryFile(delete=False)
+                df_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir)
                 try:
                     df_file.write(dockerfile.encode('utf-8'))
                     self.cleanup_dockerfile = True
@@ -86,7 +88,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         if buildargs is None:
             buildargs = {}
         # create our own tar file, injecting the appropriate paths
-        _fileobj = tempfile.NamedTemporaryFile()
+        _fileobj = tempfile.NamedTemporaryFile(dir=self.temp_dir)
         tfile = tarfile.open(mode='w', fileobj=_fileobj)
         if self.path:
             tfile.add(self.path, arcname='.')

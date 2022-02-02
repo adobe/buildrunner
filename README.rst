@@ -610,9 +610,8 @@ the run step:
         <or>
         platform: linux/arm64/v8 # an apple m1 architecture
 
-        # systemd doesn't play well with docker, but our base development
-        # environment is transitioning to Cent 7, which uses systemd.
-        # Use this setting to tell buildrunner to set the necessary docker
+        # systemd does not play well with docker typically, but you can
+        # use this setting to tell buildrunner to set the necessary docker
         # flags to get systemd to work properly:
         # - /usr/sbin/init needs to run as pid 1
         # - /sys/fs/cgroup needs to be mounted as readonly
@@ -813,7 +812,7 @@ from the specified Docker image and archives the given artifacts:
       run:
         image: myimages/image-with-cmd:latest
         artifacts:
-          omtr_tmp/artifacts/*.x86_64.rpm: {platform: 'centos-6-x86_64'}
+          build/artifacts/*.x86_64.rpm: {platform: 'centos-8-x86_64'}
 
 This example builds a custom image using a build context and Dockerfile in a
 subdirectory of the project, then uses the resulting image for the run
@@ -826,7 +825,7 @@ container:
       build: package-container
       run:
         artifacts:
-          omtr_tmp/artifacts/*.x86_64.rpm:
+          build/artifacts/*.x86_64.rpm:
 
 This example uses one step to create a package and another to run an
 integration test:

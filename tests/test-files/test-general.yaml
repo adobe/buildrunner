@@ -22,7 +22,7 @@ steps:
 
   artifacts:
     run:
-      image: {{ DOCKER_REGISTRY}}/centos:8
+      image: {{ DOCKER_REGISTRY}}/rockylinux:8.5
       cmds: [
         'echo "test" > test.txt',
         'echo "success" > success.comment',
@@ -40,7 +40,7 @@ steps:
   build-and-service-containers:
     build:
       dockerfile: |
-        FROM {{ DOCKER_REGISTRY }}/centos:8
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
         RUN yum -y install curl
     run:
       services:
@@ -58,9 +58,10 @@ steps:
   run-docker:
     build:
       dockerfile: |
-        FROM {{ DOCKER_REGISTRY }}/centos:8
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
 
-        # update yum and install docker-ce from docker repo, since centos8 doesn't support docker anymore
+        # update yum and install docker-ce from docker repo, since centos/rockylinux 8
+        # does not provide docker in its repos anymore
         RUN yum -y update && yum clean all
         RUN yum -y install yum-utils
         RUN yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
@@ -75,14 +76,14 @@ steps:
         'env',
         'systemctl enable docker',
         'docker info',
-        'docker run centos:8 hostname',
-        'docker run --volumes-from $BUILDRUNNER_BUILD_CONTAINER centos:8 touch /bob/test2',
+        'docker run rockylinux:8.5 hostname',
+        'docker run --volumes-from $BUILDRUNNER_BUILD_CONTAINER rockylinux:8.5 touch /bob/test2',
         'ls -al /bob',
       ]
 
   run-post-build-path:
     run:
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmd: 'echo "hello" > /hello.txt'
       post-build: tests/postbuildpath
     push:
@@ -90,7 +91,7 @@ steps:
 
   run-post-build-inline:
     run:
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmd: 'echo "hello" > /hello.txt'
       post-build:
         dockerfile: |
@@ -100,7 +101,7 @@ steps:
 
   run-post-build-inject:
     run:
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmd: 'echo "hello" > /hello.txt'
       post-build:
         # use a different container here to make sure inject overrides
@@ -113,7 +114,7 @@ steps:
 
   archive-container-config:
     run:
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmd: 'echo "create marathon config here"'
       artifacts:
         'marathon.config': {'marathon.config': 'releng/testmodule'}
@@ -131,7 +132,7 @@ steps:
 
   test-dir-archive:
     run:
-      image: {{ DOCKER_REGISTRY }}/centos:8
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmds:
         - 'mkdir bob; echo "hello" > bob/file1.txt; echo "hello" > bob/file2.txt'
         - 'mkdir -p bob/bob2; echo "hello" > bob/bob2/file1.txt; echo "hello" > bob/bob2/file2.txt'
