@@ -554,6 +554,9 @@ the run step:
 
         # A list specifying service containers (see below) whose exposed
         # volumes should be mapped into the run container's file system.
+        # An exposed volume is one created by the volume Dockerfile command.
+        # See https://docs.docker.com/engine/reference/builder/#volume for more
+        # details regarding the volume Dockerfile command.
         volumes_from:
           - my-service-container
 
@@ -758,6 +761,9 @@ within service container configuration:
             # should be mapped into this service container's file system. Any
             # service containers in this list must be defined before this
             # container is.
+            # An exposed volume is one created by the volume Dockerfile command.
+            # See https://docs.docker.com/engine/reference/builder/#volume for more
+            # details regarding the volume Dockerfile command.
             volumes_from:
               - my-service-container
 
