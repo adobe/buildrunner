@@ -31,7 +31,7 @@ fi
 docker run \
   $env_vars \
   -v /$HOME:$HOME \
-	-v //var/run/docker.sock:/var/run/docker.sock \
+	-v $docker_sock:/var/run/docker.sock \
 	$CONFIG_OVERRIDE_OPTION \
 	-w /`pwd` \
   ghcr.io/adobe/buildrunner:latest $@
