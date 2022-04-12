@@ -6,7 +6,7 @@ jobs:
   test:
     # When running with act (https://github.com/nektos/act), these lines need to be appended with the ACT variable
     # to force each job to run
-    if: github.repository == 'adobe/buildrunner' || ${{ env.ACT }}
+    if: github.repository == 'adobe/buildrunner'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
