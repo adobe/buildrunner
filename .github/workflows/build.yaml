@@ -51,7 +51,7 @@ jobs:
       run: pytest -v --junitxml=test-reports/test-results.xml
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action/composite@v1
-      if: github.event_name == 'push' && always()
+      if: github.event_name == 'push' && always() && matrix.python-version != 3.6
       with:
         files: test-reports/test-results.xml
         check_name: "Test Results ${{ matrix.python-version }}"
