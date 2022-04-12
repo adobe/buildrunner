@@ -18,6 +18,7 @@ from paramiko import (
     MissingHostKeyPolicy,
     PasswordRequiredException,
     RSAKey,
+    ECDSAKey,
     SSHClient,
     SSHException,
 )
@@ -54,10 +55,17 @@ def load_ssh_key_from_file(key_file, passwd):
             raise BuildRunnerConfigurationError(
                 f"Key at {key_file} requires a password"
             ) from pwdreqe
-        except SSHException as sshe:
-            raise BuildRunnerConfigurationError(
-                f"Unable to load key at {key_file}"
-            ) from sshe
+        except SSHException:
+            try:
+                return ECDSAKey.from_private_key_file(key_file, passwd)
+            except PasswordRequiredException as pwdreqe:
+                raise BuildRunnerConfigurationError(
+                    f"Key at {key_file} requires a password"
+                ) from pwdreqe
+            except SSHException as sshe:
+                raise BuildRunnerConfigurationError(
+                    f"Unable to load key at {key_file}"
+                ) from sshe
 
 
 def load_ssh_key_from_str(key_str, passwd):
