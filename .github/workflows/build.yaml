@@ -6,7 +6,7 @@ jobs:
   test:
     # When running with act (https://github.com/nektos/act), these lines need to be appended with the ACT variable
     # to force each job to run
-    if: github.repository == 'adobe/buildrunner'
+    if: github.repository == 'adobe/buildrunner' #|| ${{ env.ACT }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -39,8 +39,8 @@ jobs:
         # this key is rather worthless and can be stored safely in code here. This *could* be used as a secret,
         # but since secrets are not available to forks, we cannot test SSH functionality in PRs which defeats
         # the purpose somewhat.
-        DEPLOY_SSH_KEY: "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIKcCBzsUBCVPzQu8WL/TudNpB3YHMWf/0mv9NFAP09LQoAoGCCqGSM49\nAwEHoUQDQgAEYpbjRRaG3KP1hD1joFB9PlopA8EGyWsMR9oyn0ezorJ01eQJkHsY\nLVl9YxHlPYVN4hJlnvyJxvDnpYZdnQ19rg==\n-----END EC PRIVATE KEY-----"
-        DEPLOY_SSH_KEY_PUB: "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGKW40UWhtyj9YQ9Y6BQfT5aKQPBBslrDEfaMp9Hs6KydNXkCZB7GC1ZfWMR5T2FTeISZZ78icbw56WGXZ0Nfa4= buildrunner@adobe"
+        DEPLOY_SSH_KEY: "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBasvUoRzAAdHZ5nFWtDR/5DQU+FWtDYNXD0xPGSdjKtwAAAJiLXobki16G\n5AAAAAtzc2gtZWQyNTUxOQAAACBasvUoRzAAdHZ5nFWtDR/5DQU+FWtDYNXD0xPGSdjKtw\nAAAEBcRwB1PEnUHF5aK6q3JYyuOlT+adQ0mcRrIxsmJiiq1Vqy9ShHMAB0dnmcVa0NH/kN\nBT4Va0Ng1cPTE8ZJ2Mq3AAAAEWJ1aWxkcnVubmVyQGFkb2JlAQIDBA==\n-----END OPENSSH PRIVATE KEY-----"
+        DEPLOY_SSH_KEY_PUB: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqy9ShHMAB0dnmcVa0NH/kNBT4Va0Ng1cPTE8ZJ2Mq3 buildrunner@adobe"
       run: |
         mkdir -p ~/.ssh
         printf -- "$DEPLOY_SSH_KEY" > ~/.ssh/buildrunner-deploy-id_rsa
