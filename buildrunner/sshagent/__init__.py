@@ -37,14 +37,14 @@ SSH_AGENT_PROXY_BUILD_CONTEXT = os.path.join(
     os.path.dirname(__file__),
     'SSHAgentProxyImage'
 )
+SSH_KEY_TYPES = [RSAKey, ECDSAKey, Ed25519Key, DSSKey]
 
 
 def load_ssh_key_from_file(key_file, passwd):
     """
     Load the given keys into paramiko PKey objects.
     """
-    key_types = [RSAKey, ECDSAKey, Ed25519Key, DSSKey]
-    for key_type in key_types:
+    for key_type in SSH_KEY_TYPES:
         try:
             return key_type.from_private_key_file(key_file, passwd)
         except PasswordRequiredException as pwdreqe:
