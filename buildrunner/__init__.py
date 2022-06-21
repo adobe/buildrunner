@@ -565,6 +565,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def get_cache_archive_ext():
+        """
+        Returns the archive file extension used for cache archive files
+        """
         return "tar"
 
     def get_cache_path(self, cache_name):
