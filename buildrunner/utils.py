@@ -116,6 +116,31 @@ def tempfile(prefix=None, suffix=None, temp_dir='/tmp'):
     return os.path.join(temp_dir, name)
 
 
+def checksum(files: list=None):
+    """
+    Generate a single SHA1 checksum of the list of files passed in
+    """
+    if not isinstance(files, list):
+        print(f"WARNING: TypeError - Input 'files' needs to be a list instead of {type(files)}")
+        sys.exit()
+
+    blocksize = 2 ** 16
+    hasher = hashlib.sha1()
+
+    for filename in sorted(files):
+        if not os.path.isfile(filename):
+            print(f"WARNING: {filename} does not exist, skipping file.")
+            continue
+
+        with open(filename, "rb") as open_file:
+            buf = open_file.read(blocksize)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = open_file.read(blocksize)
+
+    return hasher.hexdigest()
+
+
 def hash_sha1(file_name_globs=None):
     """
     Return the sha1 hash from the content of multiple files, represented by a list of globs
