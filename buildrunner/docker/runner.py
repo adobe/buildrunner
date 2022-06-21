@@ -315,7 +315,8 @@ class DockerRunner:
 
                     restored_cache_src.add(docker_path)
                     if not self.docker_client.put_archive(self.container['Id'], docker_path, data):
-                        print(f"WARNING: An error occurred when trying to use cache {local_cache_archive_file}:{docker_path}")
+                        print(f"WARNING: An error occurred when trying to use cache "
+                              f"{local_cache_archive_file}:{docker_path}")
 
             except docker.errors.APIError as exception:
                 print(f"WARNING: An docker.errors.APIError has occurred\n{exception}")
