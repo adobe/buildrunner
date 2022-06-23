@@ -10,7 +10,6 @@ import base64
 import os.path
 import socket
 import ssl
-import sys
 from collections import OrderedDict
 from os import listdir
 from os.path import isfile, join, getmtime
@@ -260,8 +259,7 @@ class DockerRunner:
         Restores caches from the host system to the destination location in the docker container.
         """
         if caches is None or not isinstance(caches, OrderedDict):
-            print("WARNING: caches is not an OrderedDict")
-            sys.exit()
+            raise TypeError(f"Caches should be type OrderDict instead of {type(caches)}")
 
         restored_cache_src = set()
         for local_cache_archive_file, docker_path in caches.items():
@@ -342,7 +340,7 @@ class DockerRunner:
                             file.write(chunk)
                 else:
                     print(f"The following {docker_path} in docker has already been saved. "
-                          f"It will not be save again to {local_cache_archive_file}")
+                          f"It will not be saved again to {local_cache_archive_file}")
 
     # pylint: disable=too-many-branches,too-many-arguments
     def run(self, cmd, console=None, stream=True, log=None, workdir=None):
