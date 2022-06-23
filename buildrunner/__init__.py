@@ -570,7 +570,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         return "tar"
 
-    def get_cache_path(self, cache_name):
+    def get_cache_path(self, cache_name, project_name=""):
         """
         Given a cache name determine the local file path.
         """
@@ -578,8 +578,13 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         build_path = os.path.splitdrive(self.build_dir)[1]
         if os.path.isabs(build_path):
             build_path = build_path[1:]
+
+        cache_name = f"{cache_name}.{self.get_cache_archive_ext()}"
+        if project_name != "":
+            cache_name = f"{project_name}-{cache_name}"
+
         local_cache_archive_file = os.path.expanduser(
-            os.path.join(caches_root, build_path, 'CACHES', f"{cache_name}.{self.get_cache_archive_ext()}")
+            os.path.join(caches_root, cache_name)
         )
         cache_dir = os.path.dirname(local_cache_archive_file)
         if not os.path.exists(cache_dir):
