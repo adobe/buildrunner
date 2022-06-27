@@ -945,7 +945,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     # get the cache location from the main BuildRunner class
                     cache_local_path = self.step_runner.build_runner.get_cache_path(
                         cache_name=key,
-                        project_name=os.getcwd().split("/")[-1]
+                        project_name=self.step_runner.build_runner.vcs.name
                     )
                     caches[cache_local_path] = value
                     container_meta_logger.write(
