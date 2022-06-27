@@ -570,7 +570,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         return "tar"
 
-    def get_cache_path(self, cache_name, project_name=""):
+    def get_cache_archive_file(self, cache_name, project_name=""):
         """
         Given a cache name determine the local file path.
         """

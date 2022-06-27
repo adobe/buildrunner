@@ -943,22 +943,22 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                 if isinstance(value, str):
                     # get the cache location from the main BuildRunner class
-                    cache_local_path = self.step_runner.build_runner.get_cache_path(
+                    cache_archive_file = self.step_runner.build_runner.get_cache_archive_file(
                         cache_name=key,
                         project_name=self.step_runner.build_runner.vcs.name
                     )
-                    caches[cache_local_path] = value
+                    caches[cache_archive_file] = value
                     container_meta_logger.write(
-                        f"Copying local cache [{cache_local_path}] -> docker path [{value}]\n"
+                        f"Copying local cache [{cache_archive_file}] -> docker path [{value}]\n"
                     )
                 elif isinstance(value, list):
                     for cache_local in value:
-                        cache_local_path = self.step_runner.build_runner.get_cache_path(
+                        cache_archive_file = self.step_runner.build_runner.get_cache_archive_file(
                             cache_local,
                         )
-                        caches[cache_local_path] = key
+                        caches[cache_archive_file] = key
                         container_meta_logger.write(
-                            f"Copying local cache [{cache_local_path}] -> docker path [{key}]\n"
+                            f"Copying local cache [{cache_archive_file}] -> docker path [{key}]\n"
                         )
                 else:
                     print(f"Warning: Type {type(value)} is not supported. "
