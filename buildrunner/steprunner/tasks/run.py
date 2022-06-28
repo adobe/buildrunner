@@ -949,7 +949,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     )
                     caches[cache_archive_file] = value
                     container_meta_logger.write(
-                        f"Copying local cache [{cache_archive_file}] -> docker path [{value}]\n"
+                        f"Copying local cache `{cache_archive_file}` -> docker path `{value}`\n"
                     )
                 elif isinstance(value, list):
                     for cache_local in value:
@@ -999,7 +999,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 **container_args
             )
 
-            self.runner.restore_caches(caches, self.step_runner.build_runner.get_cache_archive_ext())
+            self.runner.restore_caches(caches)
 
             self.step_runner.log.write(
                 f'Started build container {container_id:.10}\n'

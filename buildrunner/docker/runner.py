@@ -13,6 +13,7 @@ import ssl
 from collections import OrderedDict
 from os import listdir
 from os.path import isfile, join, getmtime
+from pathlib import Path
 from types import GeneratorType
 
 import docker.errors
@@ -254,7 +255,7 @@ class DockerRunner:
 
         self.container = None
 
-    def restore_caches(self, caches: OrderedDict, cache_archive_ext: str):  # pylint: disable=too-many-branches,too-many-locals
+    def restore_caches(self, caches: OrderedDict):  # pylint: disable=too-many-branches,too-many-locals
         """
         Restores caches from the host system to the destination location in the docker container.
         """
@@ -279,15 +280,12 @@ class DockerRunner:
 
                 files = [f for f in listdir(cache_dir) if isfile(join(cache_dir, f))]
 
-                cache_key = local_cache_archive_file\
-                    .replace(f"{cache_dir}/", "")\
-                    .replace(f".{cache_archive_ext}", "")
+                cache_key = Path(local_cache_archive_file).stem
 
                 most_recent_time = 0
                 local_cache_archive_match = None
                 for file in files:
                     if file.startswith(cache_key):
-                        print(f"    starts with {cache_key}")
                         curr_archive_file = join(cache_dir, file)
                         mod_time = getmtime(curr_archive_file)
                         if mod_time > most_recent_time:
@@ -295,8 +293,8 @@ class DockerRunner:
                             local_cache_archive_match = curr_archive_file
 
                 if local_cache_archive_match is None:
-                    print(f"WARNING: Not able to restore cache {docker_path} since "
-                          f"there was no prefix matching for [{local_cache_archive_file}]")
+                    print(f"Not able to restore cache {docker_path} since "
+                          f"there was no matching prefix for `{local_cache_archive_file}`")
                     continue
 
                 local_cache_archive_file = local_cache_archive_match
@@ -309,15 +307,13 @@ class DockerRunner:
                     print(f"WARNING: There was an issue creating {docker_path} on the docker container.")
 
                 with open(local_cache_archive_file, 'rb') as data:
-                    print(f"{local_cache_archive_file}:{docker_path}")
-
                     restored_cache_src.add(docker_path)
                     if not self.docker_client.put_archive(self.container['Id'], docker_path, data):
                         print(f"WARNING: An error occurred when trying to use cache "
-                              f"{local_cache_archive_file}:{docker_path}")
+                              f"{local_cache_archive_file} at the path {docker_path}")
 
             except docker.errors.APIError as exception:
-                print(f"WARNING: An docker.errors.APIError has occurred\n{exception}")
+                print(f"WARNING: Encountered exception\n{exception}")
             finally:
                 self.shell = orig_shell
 
@@ -330,17 +326,17 @@ class DockerRunner:
             for local_cache_archive_file, docker_path in caches.items():
                 if docker_path not in saved_cache_src:
                     saved_cache_src.add(docker_path)
-                    print(f"Saving cache [{docker_path}] "
+                    print(f"Saving cache `{docker_path}` "
                           f"running on container {self.container['Id']} "
-                          f"to local cache [{local_cache_archive_file}]")
+                          f"to local cache `{local_cache_archive_file}`")
 
                     with open(local_cache_archive_file, 'wb') as file:
                         bits, _ = self.docker_client.get_archive(self.container['Id'], f"{docker_path}/.")
                         for chunk in bits:
                             file.write(chunk)
                 else:
-                    print(f"The following {docker_path} in docker has already been saved. "
-                          f"It will not be saved again to {local_cache_archive_file}")
+                    print(f"The following `{docker_path}` in docker has already been saved. "
+                          f"It will not be saved again to `{local_cache_archive_file}`")
 
     # pylint: disable=too-many-branches,too-many-arguments
     def run(self, cmd, console=None, stream=True, log=None, workdir=None):

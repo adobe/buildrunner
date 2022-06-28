@@ -16,7 +16,7 @@ import yaml.resolver
 import yaml.scanner
 import glob
 import hashlib
-from typing import Union
+from typing import Union, Tuple
 
 from buildrunner import BuildRunnerConfigurationError
 
@@ -116,12 +116,12 @@ def tempfile(prefix=None, suffix=None, temp_dir='/tmp'):
     return os.path.join(temp_dir, name)
 
 
-def checksum(files: list=None):
+def checksum(*files: Tuple[str]) -> str:
     """
     Generate a single SHA1 checksum of the list of files passed in
     """
-    if not isinstance(files, list):
-        print(f"WARNING: TypeError - Input 'files' needs to be a list instead of {type(files)}")
+    if not isinstance(files, tuple):
+        print(f"WARNING: TypeError - Input 'files' needs to be a tuple instead of {type(files)}")
         sys.exit()
 
     blocksize = 2 ** 16
