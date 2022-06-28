@@ -43,12 +43,12 @@ from buildrunner.steprunner import BuildStepRunner
 from buildrunner.steprunner.tasks.push import sanitize_tag
 from buildrunner.utils import (
     ConsoleLogger,
+    checksum,
     epoch_time,
+    hash_sha1,
     load_config,
-    hash_sha1
 )
 from . import fetch
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -63,7 +63,6 @@ try:
 except:
     pass
 
-
 MASTER_GLOBAL_CONFIG_FILE = '/etc/buildrunner/buildrunner.yaml'
 DEFAULT_GLOBAL_CONFIG_FILES = [
     MASTER_GLOBAL_CONFIG_FILE,
@@ -73,7 +72,6 @@ DEFAULT_GLOBAL_CONFIG_FILES = [
 DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
 DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
 RESULTS_DIR = 'buildrunner.results'
-
 
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
 
@@ -274,6 +272,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             jenv.filters['re_sub'] = self._re_sub_filter
             jenv.filters['re_split'] = self._re_split_filter
 
+            jenv.globals.update(checksum=checksum)
             jtemplate = jenv.from_string(contents)
 
             config_context = copy.deepcopy(self.env)
@@ -564,7 +563,14 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         return None
 
-    def get_cache_path(self, cache_name):
+    @staticmethod
+    def get_cache_archive_ext():
+        """
+        Returns the archive file extension used for cache archive files
+        """
+        return "tar"
+
+    def get_cache_archive_file(self, cache_name, project_name=""):
         """
         Given a cache name determine the local file path.
         """
@@ -572,12 +578,18 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         build_path = os.path.splitdrive(self.build_dir)[1]
         if os.path.isabs(build_path):
             build_path = build_path[1:]
-        cache_dir = os.path.expanduser(
-            os.path.join(caches_root, build_path, 'CACHES', cache_name)
+
+        cache_name = f"{cache_name}.{self.get_cache_archive_ext()}"
+        if project_name != "":
+            cache_name = f"{project_name}-{cache_name}"
+
+        local_cache_archive_file = os.path.expanduser(
+            os.path.join(caches_root, cache_name)
         )
+        cache_dir = os.path.dirname(local_cache_archive_file)
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
-        return cache_dir
+        return local_cache_archive_file
 
     def to_abs_path(self, path, return_list=False):
         """

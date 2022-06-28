@@ -792,6 +792,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             'cap_add': None,
             'privileged': None
         }
+        caches = OrderedDict()
 
         # see if we need to inject ssh keys
         if 'ssh-keys' in self.config:
@@ -937,17 +938,32 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     f"Mounting {f_local} -> {f_path}\n"
                 )
 
-        # see if we need to mount any caches
         if 'caches' in self.config:
-            for cache_name, cache_path in self.config['caches'].items():
-                # get the cache location from the main BuildRunner class
-                cache_local_path = self.step_runner.build_runner.get_cache_path(
-                    cache_name,
-                )
-                container_args['volumes'][cache_local_path] = cache_path + ':rw'
-                container_meta_logger.write(
-                    f"Mounting cache dir {cache_name} -> {cache_path}\n"
-                )
+            for key, value in self.config['caches'].items():
+
+                if isinstance(value, str):
+                    # get the cache location from the main BuildRunner class
+                    cache_archive_file = self.step_runner.build_runner.get_cache_archive_file(
+                        cache_name=key,
+                        project_name=self.step_runner.build_runner.vcs.name
+                    )
+                    caches[cache_archive_file] = value
+                    container_meta_logger.write(
+                        f"Copying local cache `{cache_archive_file}` -> docker path `{value}`\n"
+                    )
+                elif isinstance(value, list):
+                    for cache_local in value:
+                        cache_archive_file = self.step_runner.build_runner.get_cache_archive_file(
+                            cache_local,
+                        )
+                        caches[cache_archive_file] = key
+                        container_meta_logger.write(
+                            f"Copying local cache [{cache_archive_file}] -> docker path [{key}]\n"
+                        )
+                else:
+                    print(f"Warning: Type {type(value)} is not supported. "
+                          f"Not able to use cache functionality for {key}: {value}")
+                    continue
 
         # add any capabilities when the container runs
         if 'cap_add' in self.config:
@@ -983,6 +999,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 **container_args
             )
 
+            self.runner.restore_caches(caches)
+
             self.step_runner.log.write(
                 f'Started build container {container_id:.10}\n'
             )
@@ -1010,6 +1028,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 container_meta_logger.write(
                     f'Container exited with code {exit_code}\n'
                 )
+
+            self.runner.save_caches(caches)
 
         finally:
             if self.runner:

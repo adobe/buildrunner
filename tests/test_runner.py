@@ -59,4 +59,3 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
         return os.EX_CONFIG
     return os.EX_OK
 
-
