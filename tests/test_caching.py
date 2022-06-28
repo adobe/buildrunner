@@ -97,7 +97,7 @@ def test_restore_cache_basic(runner, tmp_dir_name):
     caches = OrderedDict()
     caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-    runner.restore_caches(caches, BuildRunner.get_cache_archive_ext())
+    runner.restore_caches(caches)
 
     with io.StringIO() as my_stream:
         log = ConsoleLogger(
@@ -131,7 +131,7 @@ def test_restore_cache_no_cache(runner):
         caches = OrderedDict()
         caches[f"{tmp_dir_name}/{cache_name}-bogusname.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-        runner.restore_caches(caches, BuildRunner.get_cache_archive_ext())
+        runner.restore_caches(caches)
 
         with io.StringIO() as my_stream:
             log = ConsoleLogger(
@@ -171,7 +171,7 @@ def test_restore_cache_prefix_matching(runner, tmp_dir_name):
     caches[f"{tmp_dir_name}/{cache_name_checksum}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
     caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-    runner.restore_caches(caches, BuildRunner.get_cache_archive_ext())
+    runner.restore_caches(caches)
 
     with io.StringIO() as my_stream:
         log = ConsoleLogger(
@@ -217,7 +217,7 @@ def test_restore_cache_prefix_timestamps(runner, tmp_dir_name):
     caches = OrderedDict()
     caches[f"{tmp_dir_name}/{cache_name_prefix}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-    runner.restore_caches(caches, BuildRunner.get_cache_archive_ext())
+    runner.restore_caches(caches)
 
     with io.StringIO() as my_stream:
         log = ConsoleLogger(
