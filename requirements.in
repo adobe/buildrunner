@@ -1,0 +1,14 @@
+# Last version to support python 3.6
+GitPython<=3.1.18
+Jinja2==2.11.2
+MarkupSafe==1.1.1
+PyYAML==6.0
+bcrypt==3.2.0
+decorator==5.1.0
+docker==4.4.4
+fabric==2.5.0
+paramiko==2.10.3
+pyparsing==2.4.7
+requests==2.27.0
+twine==3.2.0
+vcsinfo>=2.1.105
