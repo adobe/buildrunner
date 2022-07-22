@@ -568,10 +568,7 @@ the run step:
         # 2) <local cache key>: <docker path> (backwards compatible with older caching method, but more limited)
         #
         caches:
-          <local cache key>: <docker path>
-
-          maven: "/root/.m2/repository"
-
+          # Recommended format.
           <docker path>:
             - <local cache key A>
             - <local cache key B>
@@ -587,6 +584,10 @@ the run step:
             # use a unique prefix for any number of builds that have a similar dependency tree, etc
             - m2repo-
             # If no cache is found, nothing will be extracted and the application will need to rebuild the cache
+
+          # Backwards compatible format. Not recommended for future or updated configurations.
+          <local cache key>: <docker path>
+          maven: "/root/.m2/repository"
 
         # A map specifying ports to expose, this is only used when the
         # --publish-ports parameter is passed to buildrunner
