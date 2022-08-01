@@ -4,6 +4,7 @@ import tarfile
 from collections import OrderedDict
 import tempfile
 from os.path import isfile, join
+from time import sleep
 
 from buildrunner import BuildRunner
 from buildrunner.docker.runner import DockerRunner
@@ -207,9 +208,11 @@ def test_restore_cache_prefix_timestamps(runner, tmp_dir_name):
     test_files_oldest = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
                                                cache_name=cache_name_oldest,
                                                num_files=3)
+    sleep(.2)
     test_files_middle = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
                                                cache_name=cache_name_middle,
                                                num_files=3)
+    sleep(.2)
     test_files_newest = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
                                                cache_name=cache_name_newest,
                                                num_files=3)
