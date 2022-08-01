@@ -49,6 +49,7 @@ from buildrunner.utils import (
     load_config,
 )
 from . import fetch
+from graphlib import TopologicalSorter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -250,6 +251,40 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         '''
         return re.split(pattern, text, maxsplit=maxsplit, flags=flags)
 
+    @staticmethod
+    def _reorder_dependency_steps(config):
+        """
+        Reorders the steps based on the dependencies that are outlined in the config
+        """
+        # Defines configuration keywords, should add to a config validation class
+        keyword_version = 'version'
+        keyword_steps = 'steps'
+        keyword_depends =   'depends'
+        supported_version = 2.0
+
+        if keyword_version not in config.keys() \
+                or config[keyword_version] < supported_version:
+            return config
+
+        ordered_steps = OrderedDict()
+        if keyword_steps in config.keys():
+            topo_sorter = TopologicalSorter()
+            for name, instructions in config[keyword_steps].items():
+                if keyword_depends in instructions.keys():
+                    for depend in instructions[keyword_depends]:
+                        topo_sorter.add(name, depend)
+                else:
+                    topo_sorter.add(name)
+            for step in topo_sorter.static_order():
+                if keyword_depends in config[keyword_steps][step].keys():
+                    del config[keyword_steps][step][keyword_depends]
+
+                ordered_steps[step] = config[keyword_steps][step]
+
+            config[keyword_steps] = ordered_steps
+
+        return config
+
     def _load_config(self, cfg_file, ctx=None, log_file=True):
         """
         Load a config file templating it with Jinja and parsing the YAML.
@@ -306,6 +341,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 raise BuildRunnerConfigurationError(
                     f"Redirect loop visiting previously visited file: {fetch_file}"
                 )
+
+        config = self._reorder_dependency_steps(config)
 
         return config
 

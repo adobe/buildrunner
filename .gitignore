@@ -10,7 +10,7 @@ dist
 *~
 
 .eggs
-venv
+venv*
 .act*
 
 buildrunner/version.py

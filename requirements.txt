@@ -39,6 +39,8 @@ gitpython==3.1.18
     # via
     #   -r requirements.in
     #   vcsinfo
+graphlib-backport==1.0.3
+    # via -r requirements.in
 idna==3.3
     # via requests
 importlib-metadata==4.8.3

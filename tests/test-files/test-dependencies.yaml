@@ -1,0 +1,21 @@
+version: 2.0
+steps:
+  step1:
+    run:
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+      cmd: echo "Hello from step 1"
+  step2:
+    depends:
+      - step3
+      - step4
+    run:
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+      cmd: echo "Hello from step 2"
+  step3:
+    run:
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+      cmd: echo "Hello from step 3"
+  step4:
+    run:
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+      cmd: echo "Hello from step 4"
