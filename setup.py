@@ -13,7 +13,7 @@ import types
 from setuptools import setup, find_packages
 
 
-BASE_VERSION = '1.3'
+BASE_VERSION = '2.0'
 
 SOURCE_DIR = os.path.dirname(
     os.path.abspath(__file__)

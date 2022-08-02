@@ -267,7 +267,7 @@ Steps Dependencies
 ==========================
 Buildrunner supports specifying steps dependencies. To use this 
 feature a user must specify the configuration version of ``2.0`` or higher and
-also use the configuration keyword ``depends`` after the step name. The ``depends``
+also use the configuration keyword ``depends`` in the step configuration. The ``depends``
 key takes a list of step names which must be completed before the execution of the 
 current step.
 
@@ -298,11 +298,11 @@ current step.
 The step execution order will be in the order it appears in the configuration
 unless an dependency is defined by using ``depends``, then the order will 
 change in order to satisfy the dependencies. The ``graphlib`` library is used 
-to generate the directed acyclic graph and there is no gaurentee how non-dependant
+to generate the directed acyclic graph and there is no guarantee how non-dependent
 steps will be ordered.
 An example of a step order which satisfies the dependencies in the config above:
 ``('step1', 'step3', 'step4', 'step2')``. Please note that there are other valid 
-permuations as well.
+permutations as well.
 
 Circular dependencies are not valid. If a circular dependency is in a configuration 
 it will produce an exeception and halt the execution of buildrunner.
@@ -492,16 +492,17 @@ The following example shows the different configuration options available in
 the run step:
 
 .. code:: yaml
-  
+
+  # Optional buildrunner configuration syntax version
   version: 2.0
-  # Optional map to specify the buildrunner configuration syntax version
   steps:
     my-build-step:
+      # Optional step dependency definition to specify which steps need to be processed before this step.
+      # The `version` must be present and set to `2.0` or higher for buildrunner to utilize the step dependencies list.
+      # An buildrunner error will occur if `depends` is present but `version` is missing or value is lower than `2.0`.
       depends:
         - test-step
         - validation-step
-        # Optional list of steps to specify which steps need to be completed before this step.
-        # The 'version' map must be present and have a value greater than or equal to 2.0.
 
       run:
         # xfail indicates whether the run operation is expected to fail.  The

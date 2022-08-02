@@ -5,6 +5,14 @@
 .. contents::
    :local:
 
+2.0
+###
+
+* 2.0
+
+  * Add step dependencies feature in configuration
+  * Add version to config file
+
 1.3
 ###
 

@@ -104,3 +104,11 @@ class TestDependencies(unittest.TestCase):
         config[self.KEYWORD_STEPS]['step4'][self.KEYWORD_DEPENDS] = ['step3', 'step2']
 
         self.assertRaises(graphlib.CycleError, BuildRunner._reorder_dependency_steps, config)
+
+
+    def test_not_defined_dependency(self):
+        config = copy.deepcopy(self.config)
+        config[self.KEYWORD_VERSION] = 2.0
+        config[self.KEYWORD_STEPS]['step4'][self.KEYWORD_DEPENDS] = ['step1-typo']
+
+        self.assertRaises(KeyError, BuildRunner._reorder_dependency_steps, config)
