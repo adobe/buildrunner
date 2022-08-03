@@ -3,19 +3,26 @@ steps:
   step1:
     run:
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
-      cmd: echo "Hello from step 1"
+      cmd: echo "Hello from step1"
   step2:
     depends:
       - step3
       - step4
     run:
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
-      cmd: echo "Hello from step 2"
+      cmds:
+        - echo "Hello from step 2"
+        - if [ ! -f "/artifacts/step3/step3.txt" ]; then exit 1; fi
+        - if [ ! -f "/artifacts/step4/step4.txt" ]; then exit 1; fi
   step3:
     run:
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
-      cmd: echo "Hello from step 3"
+      cmd: echo "Hello from step 3" > /source/step3.txt
+      artifacts:
+        /source/step3.txt:
   step4:
     run:
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
-      cmd: echo "Hello from step 4"
+      cmd: echo "Hello from step 4" > /source/step4.txt
+      artifacts:
+        /source/step4.txt:

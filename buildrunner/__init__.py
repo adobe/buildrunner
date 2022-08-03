@@ -38,7 +38,10 @@ from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
-    BuildRunnerProcessingError, BuildRunnerVersionError, ConfigVersionFormatError, ConfigVersionTypeError,
+    BuildRunnerProcessingError,
+    BuildRunnerVersionError,
+    ConfigVersionFormatError,
+    ConfigVersionTypeError,
 )
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
