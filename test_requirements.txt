@@ -12,6 +12,8 @@ coverage==6.2
     # via pytest-cov
 execnet==1.9.0
     # via pytest-xdist
+graphlib-backport==1.0.3
+    # via -r requirements.in
 importlib-metadata==4.8.3
     # via
     #   pluggy

@@ -5,6 +5,7 @@ All Rights Reserved.
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
+# pylint: disable=too-many-lines
 
 import base64
 import codecs
@@ -14,6 +15,7 @@ import datetime
 import errno
 import fnmatch
 import getpass
+from graphlib import TopologicalSorter
 import importlib.machinery
 import inspect
 from io import StringIO
@@ -37,6 +39,9 @@ from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
+    BuildRunnerVersionError,
+    ConfigVersionFormatError,
+    ConfigVersionTypeError,
 )
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
@@ -49,6 +54,7 @@ from buildrunner.utils import (
     load_config,
 )
 from . import fetch
+# from . import BuildRunnerVersionError, ConfigVersionFormatError, ConfigVersionTypeError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -250,6 +256,90 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         '''
         return re.split(pattern, text, maxsplit=maxsplit, flags=flags)
 
+    @staticmethod
+    def _reorder_dependency_steps(config):
+        """
+        Reorders the steps based on the dependencies that are outlined in the config
+        """
+        # Defines configuration keywords, should add to a config validation class
+        keyword_version = 'version'
+        keyword_steps = 'steps'
+        keyword_depends =   'depends'
+        supported_version = 2.0
+
+        if keyword_version not in config.keys() \
+                or config[keyword_version] < supported_version:
+            return config
+
+        ordered_steps = OrderedDict()
+        if keyword_steps in config.keys():
+            topo_sorter = TopologicalSorter()
+            for name, instructions in config[keyword_steps].items():
+                if keyword_depends in instructions.keys():
+                    for depend in instructions[keyword_depends]:
+                        topo_sorter.add(name, depend)
+                else:
+                    topo_sorter.add(name)
+            for step in topo_sorter.static_order():
+                if step not in config[keyword_steps]:
+                    raise KeyError(f"Step '{step}' is not defined and is listed as a step dependency in "
+                                   f"the configuration. "
+                                   f"Please correct the typo or define step '{step}' in the configuration.")
+
+                if keyword_depends in config[keyword_steps][step].keys():
+                    del config[keyword_steps][step][keyword_depends]
+
+                ordered_steps[step] = config[keyword_steps][step]
+
+            config[keyword_steps] = ordered_steps
+
+        return config
+
+
+    @staticmethod
+    def _validate_version(config: OrderedDict, version_file_path: str):
+        """
+        Compares that the version in the config is less than or equal to the current version of
+        buildrunner. If the config version is greater than the buildrunner version or any parsing error occurs
+        it will raise a buildrunner exception.
+        """
+        buildrunner_version = None
+
+        if not os.path.exists(version_file_path):
+            print(f"WARNING: File {version_file_path} does not exist. This could indicate an error with "
+                  f"the buildrunner installation. Unable to validate version.")
+            return
+
+        with open(version_file_path, 'r') as version_file:
+            for line in version_file.readlines():
+                if '__version__' in line:
+                    try:
+                        version_values = line.split('=')[1].strip().replace("'","").split('.')
+                        buildrunner_version = f"{version_values[0]}.{version_values[1]}"
+                    except IndexError as exception:
+                        raise ConfigVersionFormatError(f"couldn't parse version from \"{line}\"") from exception
+
+        if not buildrunner_version:
+            raise BuildRunnerVersionError("unable to determine buildrunner version")
+
+        config_version = None
+
+        # version is optional and is valid to not have it in the config
+        if 'version' not in config.keys():
+            return
+
+        config_version = config['version']
+
+        try:
+            if float(config_version) > float(buildrunner_version):
+                raise ConfigVersionFormatError(f"configuration version {config_version} is higher than "
+                                         f"buildrunner version {buildrunner_version}")
+        except ValueError as exception:
+            raise ConfigVersionTypeError(f"unable to convert config version \"{config_version}\" "
+                                         f"or buildrunner version \"{buildrunner_version}\" "
+                                         f"to a float") from exception
+
+
     def _load_config(self, cfg_file, ctx=None, log_file=True):
         """
         Load a config file templating it with Jinja and parsing the YAML.
@@ -306,6 +396,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 raise BuildRunnerConfigurationError(
                     f"Redirect loop visiting previously visited file: {fetch_file}"
                 )
+
+        self._validate_version(config=config,
+                               version_file_path=f"{os.path.dirname(os.path.realpath(__file__))}/version.py")
+
+        config = self._reorder_dependency_steps(config)
 
         return config
 

@@ -181,7 +181,7 @@ Buildrunner reads the global configuration from files in the following order:
 
 * ``/etc/buildrunner/buildrunner.yaml``
 * ``${HOME}/.buildrunner.yaml``
-* ``${PWD}/.buidrunner.yaml``
+* ``${PWD}/.buildrunner.yaml``
 
 The configuration is read from each file in order. If a main section
 exists in more than one file, the last one read in is used.  Some
@@ -263,6 +263,49 @@ Jinja filters
 :``re_sub``: performs a regular expression replacement on text
 :``re_split``: uses a pattern to split text
 
+Steps Dependencies
+==========================
+Buildrunner supports specifying steps dependencies. To use this 
+feature a user must specify the configuration version of ``2.0`` or higher and
+also use the configuration keyword ``depends`` in the step configuration. The ``depends``
+key takes a list of step names which must be completed before the execution of the 
+current step.
+
+.. code:: yaml
+  
+  version: 2.0
+  steps:
+    step1:
+      run:
+        image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+        cmd: echo "Hello from step1"
+    step2:
+      depends:
+        - step1
+        - step3
+      run:
+        image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+        cmd: echo "Hello from step 2"
+    step3: 
+      run:
+        image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+        cmd: echo "Hello from step 3."  
+    step4: 
+      run: 
+        image: {{ DOCKER_REGISTRY }}/ubuntu:latest 
+        cmd: echo "Hello from step 4." 
+
+The step execution order will be in the order it appears in the configuration
+unless an dependency is defined by using ``depends``, then the order will 
+change in order to satisfy the dependencies. The ``graphlib`` library is used 
+to generate the directed acyclic graph and there is no guarantee how non-dependent
+steps will be ordered.
+An example of a step order which satisfies the dependencies in the config above:
+``('step1', 'step3', 'step4', 'step2')``. Please note that there are other valid 
+permutations as well.
+
+Circular dependencies are not valid. If a circular dependency is in a configuration 
+it will produce an exeception and halt the execution of buildrunner.
 
 Standard Docker Builds (the ``build`` step attribute)
 =====================================================
@@ -450,8 +493,17 @@ the run step:
 
 .. code:: yaml
 
+  # Optional buildrunner configuration syntax version
+  version: 2.0
   steps:
     my-build-step:
+      # Optional step dependency definition to specify which steps need to be processed before this step.
+      # The `version` must be present and set to `2.0` or higher for buildrunner to utilize the step dependencies list.
+      # An buildrunner error will occur if `depends` is present but `version` is missing or value is lower than `2.0`.
+      depends:
+        - test-step
+        - validation-step
+
       run:
         # xfail indicates whether the run operation is expected to fail.  The
         # default is false - the operation is expected to succeed.  If xfail
@@ -722,7 +774,7 @@ within service container configuration:
 .. code:: yaml
 
   steps:
-    my-build-step
+    my-build-step:
       run:
         services:
           my-service-container:
