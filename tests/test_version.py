@@ -32,8 +32,8 @@ def test_valid_version_file(config, version_file):
 
 
 def test_missing_version_file(config, version_file):
-    with pytest.raises(FileNotFoundError) as file_error:
-        BuildRunner._validate_version(config=config, version_file_path=f"{version_file}-bogus")
+    # No exception for a missing version file it just prints a warning
+    BuildRunner._validate_version(config=config, version_file_path=f"{version_file}-bogus")
 
 
 def test_missing_version_in_version_file(config, version_file):

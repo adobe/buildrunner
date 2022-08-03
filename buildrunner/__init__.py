@@ -38,7 +38,7 @@ from buildrunner import docker
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
-    BuildRunnerProcessingError,
+    BuildRunnerProcessingError, BuildRunnerVersionError, ConfigVersionFormatError, ConfigVersionTypeError,
 )
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
@@ -51,7 +51,7 @@ from buildrunner.utils import (
     load_config,
 )
 from . import fetch
-from .execeptions import BuildRunnerVersionError, ConfigVersionFormatError, ConfigVersionTypeError
+# from . import BuildRunnerVersionError, ConfigVersionFormatError, ConfigVersionTypeError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -301,6 +301,12 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         it will raise a buildrunner exception.
         """
         buildrunner_version = None
+
+        if not os.path.exists(version_file_path):
+            print(f"WARNING: File {version_file_path} does not exist. This could indicate an error with "
+                  f"the buildrunner installation. Unable to validate version.")
+            return
+
         with open(version_file_path, 'r') as version_file:
             for line in version_file.readlines():
                 if '__version__' in line:

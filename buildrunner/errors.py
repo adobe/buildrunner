@@ -30,3 +30,22 @@ class BuildRunnerProcessingError(BuildRunnerError):
 class BuildRunnerProvisionerError(BuildRunnerError):
     """Error indicating an issue with a provisioner"""
     pass
+
+class BuildRunnerVersionError(Exception):
+    """
+    Exception class for invalid buildrunner version
+    """
+    pass
+
+class ConfigVersionFormatError(Exception):
+    """
+    Exception class for invalid config version format
+    """
+    pass
+
+
+class ConfigVersionTypeError(Exception):
+    """
+    Exception class for invalid config version type
+    """
+    pass
