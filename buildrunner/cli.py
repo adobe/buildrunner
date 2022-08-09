@@ -238,7 +238,8 @@ def parse_args(argv):
     return args
 
 
-def clean_cache(argv):
+def clean_cache(argv):  # pylint: disable=unused-argument
+    """Cache cleanup"""
     BuildRunner.clean_cache()
 
 
