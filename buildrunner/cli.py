@@ -162,6 +162,14 @@ def parse_args(argv):
     )
 
     parser.add_argument(
+        '--clean-cache',
+        default=False,
+        action='store_true',
+        dest='clean_cache',
+        help='Clean local caches (~/.buildrunner/caches)',
+    )
+
+    parser.add_argument(
         '-s', '--steps',
         default=[],
         dest='steps',
@@ -230,6 +238,10 @@ def parse_args(argv):
     return args
 
 
+def clean_cache(argv):
+    BuildRunner.clean_cache()
+
+
 def main(argv):
     """Main program execution."""
     args = parse_args(argv)
@@ -252,6 +264,7 @@ def main(argv):
             colorize_log=not args.no_log_color,
             cleanup_images=not args.keep_images,
             cleanup_step_artifacts=not args.keep_step_artifacts,
+            cleanup_cache=args.clean_cache,
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,
             log_generated_files=(bool(args.log_generated_files or args.print_generated_files)),
@@ -272,8 +285,3 @@ def main(argv):
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
-
-
-# Local Variables:
-# fill-column: 100
-# End:

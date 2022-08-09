@@ -139,6 +139,7 @@ setup(
     packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
     scripts=[
         'bin/buildrunner',
+        'bin/buildrunner_cleanup',
     ],
     package_data={
         'buildrunner': ['SourceDockerfile'],

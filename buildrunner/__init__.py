@@ -235,14 +235,14 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _re_sub_filter(text, pattern, replace, count=0, flags=0):
-        '''
+        """
         Filter for regular expression replacement.
         :param text: The string being examined for ``pattern``
         :param pattern: The pattern to find in ``text``
         :param replace: The replacement for ``pattern``
         :param count: How many matches of ``pattern`` to replace with ``replace`` (0=all)
         :param flags: Regular expression flags
-        '''
+        """
         return re.sub(pattern, replace, text, count=count, flags=flags)
 
     @staticmethod
@@ -295,7 +295,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         return config
 
-
     @staticmethod
     def _validate_version(config: OrderedDict, version_file_path: str):
         """
@@ -338,7 +337,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             raise ConfigVersionTypeError(f"unable to convert config version \"{config_version}\" "
                                          f"or buildrunner version \"{buildrunner_version}\" "
                                          f"to a float") from exception
-
 
     def _load_config(self, cfg_file, ctx=None, log_file=True):
         """
@@ -416,6 +414,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             colorize_log=True,
             cleanup_images=False,
             cleanup_step_artifacts=False,
+            cleanup_cache=False,
             steps_to_run=None,
             publish_ports=False,
             disable_timestamps=False,
@@ -434,6 +433,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.push = push
         self.cleanup_images = cleanup_images
         self.cleanup_step_artifacts = cleanup_step_artifacts
+        self.cleanup_cache = cleanup_cache
         self.generated_images = []
         # The set of images (including tag) that were committed as part of this build
         # This is used to check if images should be pulled by default or not
@@ -479,7 +479,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # cleanup existing results dir (if needed)
         if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
             shutil.rmtree(self.build_results_dir)
-            self.log.write(f'Cleaned existing results directory "{RESULTS_DIR}"')
+            self.log.write(f'Cleaned existing results directory "{RESULTS_DIR}"\n')
+
+        # cleanup local cache
+        if self.cleanup_cache:
+            self.clean_cache(self.log.write)
 
         # default environment - must come *after* VCS detection
         base_context = {}
@@ -685,6 +689,21 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         return local_cache_archive_file
+
+    @staticmethod
+    def clean_cache(log_func=print):
+        """
+        Clean cache dir
+        """
+        cache_dir = os.path.expanduser(
+            DEFAULT_CACHES_ROOT
+        )
+        if os.path.exists(cache_dir):
+            log_func(f'Cleaning cache dir "{cache_dir}"\n')
+            shutil.rmtree(f"{cache_dir}/")
+            log_func(f'Cleaned cache dir "{cache_dir}"\n')
+        else:
+            log_func(f'Cache dir "{cache_dir}" is already clean\n')
 
     def to_abs_path(self, path, return_list=False):
         """

@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""
+Copyright (C) 2020 Adobe
+"""
+
+import sys
+
+from buildrunner import cli
+
+
+if __name__ == '__main__':
+    sys.exit(cli.clean_cache(sys.argv))

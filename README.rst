@@ -1279,6 +1279,30 @@ finds one that no longer finds a ``redirect`` directive.  At that point it will 
 ``buildrunner.yaml``.  It will **not** merge entries from earlier, redirecting ``buildrunner.yaml``
 files - all other content is ignored when the ``redirect`` directive is found.
 
+Cleaning Cache
+==============
+
+Buildrunner keeps a local cache in the ``~/.buildrunner/caches`` directory that will grow over time and
+should be cleaned out periodically. There are two methods for cleaning this cache.
+
+clean-cache parameter
+---------------------
+
+You can pass in the ``--clean-cache`` parameter with any execution of ``buildrunner``, and the cache
+will be cleaned out prior to the build.
+
+.. code:: bash
+
+  buildrunner --clean-cache
+
+buildrunner_cleanup command
+---------------------------
+
+There is a stand-alone command that just cleans up the cache. This command takes no parameters.
+
+.. code:: bash
+
+  buildrunner_cleanup
 
 Common Issues
 =============
@@ -1339,9 +1363,3 @@ The test suite can be invoked manually from the top of the source directory by u
 
 .. Links
 .. _Packer: https://www.packer.io/
-
-
-..
-   Local Variables:
-   fill-column: 100
-   End:
