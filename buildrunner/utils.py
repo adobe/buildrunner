@@ -8,6 +8,7 @@ with the terms of the Adobe license agreement accompanying it.
 
 from collections import OrderedDict
 from datetime import datetime
+import errno
 from time import strftime, gmtime
 import os
 import sys
@@ -163,6 +164,30 @@ def hash_sha1(file_name_globs=None):
     return hasher.hexdigest()
 
 
+def logger(results_dir, colorize):
+    """
+    create the log file and open for writing
+    """
+    log_file = None
+    try:
+        os.makedirs(results_dir)
+    except OSError as exc:
+        if exc.errno != errno.EEXIST:
+            sys.stderr.write(f'ERROR: {str(exc)}\n')
+            sys.exit(os.EX_UNAVAILABLE)
+
+    try:
+        log_file_path = os.path.join(results_dir, 'build.log')
+        log_file = open(log_file_path, 'w', encoding='utf-8')
+        log = ConsoleLogger(colorize, log_file)
+
+    except Exception as exc:  # pylint: disable=broad-except
+        sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
+        log = sys.stderr
+
+    return log, log_file
+
+
 class ConsoleLogger:
     """
     Class used to write decorated output to stdout while also redirecting
@@ -301,7 +326,3 @@ class ContainerLogger:
         colors[-1] = current
 
         return current
-
-# Local Variables:
-# fill-column: 100
-# End:

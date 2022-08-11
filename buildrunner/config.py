@@ -11,18 +11,15 @@ import codecs
 from collections import OrderedDict
 import copy
 import datetime
-import errno
 import getpass
 from graphlib import TopologicalSorter
 from io import StringIO
 import os
 import re
-import sys
 import tempfile
 
 import jinja2
 
-import buildrunner
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerVersionError,
@@ -30,53 +27,27 @@ from buildrunner.errors import (
     ConfigVersionTypeError,
 )
 from buildrunner.utils import (
-    ConsoleLogger,
     checksum,
     epoch_time,
     hash_sha1,
     load_config,
+    logger,
 )
 
 from . import fetch
 
-'''
 MASTER_GLOBAL_CONFIG_FILE = '/etc/buildrunner/buildrunner.yaml'
 DEFAULT_GLOBAL_CONFIG_FILES = [
     MASTER_GLOBAL_CONFIG_FILE,
     '~/.buildrunner.yaml',
 ]
 RESULTS_DIR = 'buildrunner.results'
-'''
 
 
 class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
     """
     Class used to manage buildrunner config.
     """
-
-    @property
-    def log(self):
-        """
-        create the log file and open for writing
-        """
-        if self._log is None:
-            try:
-                os.makedirs(self.build_results_dir)
-            except OSError as exc:
-                if exc.errno != errno.EEXIST:
-                    sys.stderr.write(f'ERROR: {str(exc)}\n')
-                    sys.exit(os.EX_UNAVAILABLE)
-
-            try:
-                log_file_path = os.path.join(self.build_results_dir, 'build.log')
-                self._log_file = open(log_file_path, 'w', encoding='utf-8')
-                self._log = ConsoleLogger(self.colorize_log, self._log_file)
-
-            except Exception as exc:  # pylint: disable=broad-except
-                sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
-                self._log = sys.stderr
-
-        return self._log
 
     @staticmethod
     def _raise_exception_jinja(message):
@@ -202,7 +173,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         if build_results_dir:
             self.build_results_dir = build_results_dir
         else:
-            self.build_results_dir = os.path.join(self.build_dir, buildrunner.RESULTS_DIR)
+            self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
         self.colorize_log = colorize_log
         self.log_generated_files = log_generated_files
         self.build_time = build_time
@@ -214,11 +185,11 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         self.tmp_files = []
 
-        self._log = None
-        self._log_file = None
+        # initialize log
+        self.log, self._log_file = logger(self.build_results_dir, colorize_log)
 
         # load global configuration
-        _gc_files = buildrunner.DEFAULT_GLOBAL_CONFIG_FILES[:]
+        _gc_files = DEFAULT_GLOBAL_CONFIG_FILES[:]
         _gc_files.append(global_config_file or f'{self.build_dir}/.buildrunner.yaml')
 
         _global_config_files = self.to_abs_path(
@@ -300,7 +271,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
                 # Only allow MASTER_GLOBAL_CONFIG_FILE to specify arbitrary local-files for mounting
                 # - all other local-files get scrubbed for specific requirements and non-matches
                 # are dropped.
-                if cfg_path != buildrunner.MASTER_GLOBAL_CONFIG_FILE:
+                if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
                     scrubbed_local_files = {}
                     for fname, fpath in list(ctx.get('local-files', {}).items()):
                         if not isinstance(fpath, str):
@@ -326,7 +297,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
                             self.log.write(
                                 f'Bad "local-files" entry in {cfg_path!r}:\n'
                                 f'    User {username!r} is not allowed to mount {resolved_path!r}.\n'
-                                f'    You may need an entry in {buildrunner.MASTER_GLOBAL_CONFIG_FILE!r}.\n'
+                                f'    You may need an entry in {MASTER_GLOBAL_CONFIG_FILE!r}.\n'
                             )
                     ctx['local-files'] = scrubbed_local_files
 

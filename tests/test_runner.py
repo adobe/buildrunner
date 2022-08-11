@@ -6,13 +6,12 @@ sys.path.insert(
     os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 )
 
-import buildrunner
+import buildrunner.config
 from buildrunner import (
     cli,
     __version__,
     BuildRunner,
     BuildRunnerConfigurationError,
-    BuildRunnerConfig,
 )
 
 
@@ -26,14 +25,14 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
 
     global_config_files = global_config_files or []
     if master_config_file:
-        buildrunner.MASTER_GLOBAL_CONFIG_FILE = master_config_file
+        buildrunner.config.MASTER_GLOBAL_CONFIG_FILE = master_config_file
         if (
                 not global_config_files
                 or master_config_file != global_config_files[0]
         ):
             global_config_files.insert(0, master_config_file)
     if global_config_files:
-        buildrunner.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
+        buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
 
     try:
         build_runner = BuildRunner(

@@ -8,7 +8,6 @@ with the terms of the Adobe license agreement accompanying it.
 # pylint: disable=too-many-lines
 
 from collections import OrderedDict
-import errno
 import fnmatch
 import getpass
 import importlib.machinery
@@ -27,9 +26,9 @@ import requests
 from vcsinfo import detect_vcs, VCSUnsupported, VCSMissingRevision
 
 from buildrunner import docker
+from buildrunner import config
 from buildrunner.config import (
     BuildRunnerConfig,
-    #RESULTS_DIR,
 )
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
@@ -45,6 +44,7 @@ from buildrunner.utils import (
     epoch_time,
     hash_sha1,
     load_config,
+    logger,
 )
 
 from . import fetch
@@ -66,13 +66,6 @@ DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
 DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
 
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
-
-MASTER_GLOBAL_CONFIG_FILE = '/etc/buildrunner/buildrunner.yaml'
-DEFAULT_GLOBAL_CONFIG_FILES = [
-    MASTER_GLOBAL_CONFIG_FILE,
-    '~/.buildrunner.yaml',
-]
-RESULTS_DIR = 'buildrunner.results'
 
 
 class BuildRunner:  # pylint: disable=too-many-instance-attributes
@@ -141,12 +134,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         """
         """
-        print(DEFAULT_GLOBAL_CONFIG_FILES)
         self.build_dir = build_dir
         if build_results_dir:
             self.build_results_dir = build_results_dir
         else:
-            self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
+            self.build_results_dir = os.path.join(self.build_dir, config.RESULTS_DIR)
         self.push = push
         self.cleanup_images = cleanup_images
         self.cleanup_step_artifacts = cleanup_step_artifacts
@@ -156,7 +148,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # This is used to check if images should be pulled by default or not
         self.committed_images = set()
         self.repo_tags_to_push = []
-        self.colorize_log = colorize_log
         self.steps_to_run = steps_to_run
         self.publish_ports = publish_ports
         self.disable_timestamps = disable_timestamps
@@ -172,8 +163,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.exit_code = None
         self._source_image = None
         self._source_archive = None
-        self._log_file = None
-        self._log = None
+        # initialize log
+        self.log, self._log_file = logger(self.build_results_dir, colorize_log)
 
         # set build time
         self.build_time = epoch_time()
@@ -196,7 +187,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # cleanup existing results dir (if needed)
         if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
             shutil.rmtree(self.build_results_dir)
-            self.log.write(f'Cleaned existing results directory "{RESULTS_DIR}"\n')
+            self.log.write(f'Cleaned existing results directory "{config.RESULTS_DIR}"\n')
 
         # default environment - must come *after* VCS detection
         base_context = {}
@@ -280,7 +271,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if not key_aliases:
             return ssh_keys
         ssh_keys = self.global_config.get('ssh-keys')
-        print(ssh_keys)
         if not ssh_keys:
             raise BuildRunnerConfigurationError(
                 "SSH key aliases specified but no 'ssh-keys' "
@@ -484,34 +474,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 )
             self._source_image = source_builder.image
         return self._source_image
-
-    @property
-    def log(self):
-        """
-        create the log file and open for writing
-        """
-        if self._log is None:
-            try:
-                os.makedirs(self.build_results_dir)
-            except OSError as exc:
-                if exc.errno != errno.EEXIST:
-                    sys.stderr.write(f'ERROR: {str(exc)}\n')
-                    sys.exit(os.EX_UNAVAILABLE)
-
-            try:
-                log_file_path = os.path.join(self.build_results_dir, 'build.log')
-                self._log_file = open(log_file_path, 'w', encoding='utf-8')
-                self._log = ConsoleLogger(self.colorize_log, self._log_file)
-
-                self.add_artifact(
-                    os.path.basename(log_file_path),
-                    {'type': 'log'},
-                )
-            except Exception as exc:  # pylint: disable=broad-except
-                sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
-                self._log = sys.stderr
-
-        return self._log
 
     def _write_artifact_manifest(self):
         """
