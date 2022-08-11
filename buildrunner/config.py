@@ -31,7 +31,7 @@ from buildrunner.utils import (
     epoch_time,
     hash_sha1,
     load_config,
-    logger,
+    BuildRunnerLogger,
 )
 
 from . import fetch
@@ -167,7 +167,8 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
             colorize_log=True,
             log_generated_files=False,
             build_time=None,
-            env=None
+            env=None,
+            log=None,
     ):  # pylint: disable=too-many-arguments
         self.build_dir = build_dir
         if build_results_dir:
@@ -185,8 +186,10 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         self.tmp_files = []
 
-        # initialize log
-        self.log, self._log_file = logger(self.build_results_dir, colorize_log)
+        self.log = log
+        if self.log is None:
+            # initialize log
+            self.log = BuildRunnerLogger(self.build_results_dir, colorize_log)
 
         # load global configuration
         _gc_files = DEFAULT_GLOBAL_CONFIG_FILES[:]

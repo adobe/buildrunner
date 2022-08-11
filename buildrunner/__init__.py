@@ -44,7 +44,7 @@ from buildrunner.utils import (
     epoch_time,
     hash_sha1,
     load_config,
-    logger,
+    BuildRunnerLogger,
 )
 
 from . import fetch
@@ -164,7 +164,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self._source_image = None
         self._source_archive = None
         # initialize log
-        self.log, self._log_file = logger(self.build_results_dir, colorize_log)
+        self.log = BuildRunnerLogger(self.build_results_dir, colorize_log)
 
         # set build time
         self.build_time = epoch_time()
@@ -208,7 +208,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             colorize_log=colorize_log,
             log_generated_files=self.log_generated_files,
             build_time=self.build_time,
-            env=self.env
+            env=self.env,
+            log=self.log,
         )
 
         # cleanup local cache
@@ -505,14 +506,14 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         else:
             exit_message = '\nBuild SUCCESS.'
 
-        if self._log_file:
+        if self.log:
             try:
                 if exit_explanation:
                     self.log.write('\n' + exit_explanation + '\n')
                 self.log.write(exit_message + '\n')
             finally:
-                # close the log_file
-                self._log_file.close()
+                # close the log
+                self.log.close()
         else:
             if exit_explanation:
                 print(f'\n{exit_explanation}')
