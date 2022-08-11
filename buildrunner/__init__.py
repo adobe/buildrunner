@@ -7,41 +7,34 @@ with the terms of the Adobe license agreement accompanying it.
 """
 # pylint: disable=too-many-lines
 
-import base64
-import codecs
 from collections import OrderedDict
-import copy
-import datetime
 import errno
 import fnmatch
 import getpass
-from graphlib import TopologicalSorter
 import importlib.machinery
 import inspect
-from io import StringIO
 import json
 import logging
 import os
-import re
 import shutil
 import sys
 import tarfile
 import tempfile
 import types
 
-import jinja2
 import requests
 
 from vcsinfo import detect_vcs, VCSUnsupported, VCSMissingRevision
 
 from buildrunner import docker
+from buildrunner.config import (
+    BuildRunnerConfig,
+    #RESULTS_DIR,
+)
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
-    BuildRunnerVersionError,
-    ConfigVersionFormatError,
-    ConfigVersionTypeError,
 )
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
@@ -53,8 +46,8 @@ from buildrunner.utils import (
     hash_sha1,
     load_config,
 )
+
 from . import fetch
-# from . import BuildRunnerVersionError, ConfigVersionFormatError, ConfigVersionTypeError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,17 +62,17 @@ try:
 except:
     pass
 
+DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
+DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
+
+SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
+
 MASTER_GLOBAL_CONFIG_FILE = '/etc/buildrunner/buildrunner.yaml'
 DEFAULT_GLOBAL_CONFIG_FILES = [
     MASTER_GLOBAL_CONFIG_FILE,
     '~/.buildrunner.yaml',
 ]
-
-DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
-DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
 RESULTS_DIR = 'buildrunner.results'
-
-SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
 
 
 class BuildRunner:  # pylint: disable=too-many-instance-attributes
@@ -125,283 +118,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         return context
 
-    @staticmethod
-    def _raise_exception_jinja(message):
-        """
-        Raises an exception from a jinja template.
-        """
-        raise Exception(message)
-
-    def _log_generated_file(self, file_name, file_contents):
-        '''
-        Conditionally log the contents of a generated file.
-        '''
-        if self.log_generated_files:
-            self.log.write(f'Generated contents of {file_name}:\n')
-            for line in file_contents.splitlines():
-                self.log.write(f'{line}\n')
-
-    def _read_yaml_file(self, filename):
-        """
-        Reads a file in the local workspace as Jinja-templated
-        YAML and returns the contents.
-        Throws an error on failure.
-        """
-        with codecs.open(filename, 'r', encoding='utf-8') as _file:
-            jtemplate = jinja2.Template(_file.read())
-        context = copy.deepcopy(self.env)
-        file_contents = jtemplate.render(context)
-        self._log_generated_file(filename, file_contents)
-        return load_config(StringIO(file_contents), filename)
-
-    def _load_config_files(self, cfg_files=None, ctx=None, log_file=True):
-        """
-        Load config files templating them with Jinja and parsing the YAML.
-
-        Args:
-            cfg_files (list):  List of configuration files
-            ctx (dict): context object to load into config_context
-            log_file (boolean): will write out the generated config to log(s)
-                Default: True
-
-        Returns:
-          multi-structure: configuration keys and values
-        """
-
-        cfg_files = cfg_files or []
-
-        username = getpass.getuser()
-        homedir = os.path.expanduser('~')
-
-        context = ctx or {}
-        for cfg in cfg_files:
-            cfg_path = os.path.realpath(os.path.expanduser(cfg))
-            if os.path.exists(cfg_path):
-                ctx = self._load_config(cfg_path, context, log_file=log_file)
-                if ctx is None:
-                    # Empty config file
-                    continue
-
-                # Only allow MASTER_GLOBAL_CONFIG_FILE to specify arbitrary local-files for mounting
-                # - all other local-files get scrubbed for specific requirements and non-matches
-                # are dropped.
-                if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
-                    scrubbed_local_files = {}
-                    for fname, fpath in list(ctx.get('local-files', {}).items()):
-                        if not isinstance(fpath, str):
-                            self.log.write(
-                                f'Bad "local-files" entry in {cfg_path!r}:\n'
-                                f'    {fname!r}: {fpath!r}\n'
-                            )
-                            continue
-                        resolved_path = os.path.realpath(os.path.expanduser(fpath))
-                        # pylint: disable=too-many-boolean-expressions
-                        if (
-                                username == 'root'
-                                or resolved_path == homedir
-                                or resolved_path.startswith(homedir + os.path.sep)
-                                or os.stat(resolved_path).st_uid == os.getuid()
-                                or (
-                                    not os.path.isdir(resolved_path)
-                                    and os.access(resolved_path, os.R_OK | os.W_OK)
-                                )
-                        ):
-                            scrubbed_local_files[fname] = resolved_path
-                        else:
-                            self.log.write(
-                                f'Bad "local-files" entry in {cfg_path!r}:\n'
-                                f'    User {username!r} is not allowed to mount {resolved_path!r}.\n'
-                                f'    You may need an entry in {MASTER_GLOBAL_CONFIG_FILE!r}.\n'
-                            )
-                    ctx['local-files'] = scrubbed_local_files
-
-                context.update(ctx)
-
-        context.update({'CONFIG_FILES': cfg_files})
-
-        return context
-
-    def _strftime(self, _format="%Y-%m-%d", _ts=None):
-        """
-        Format the provided timestamp. If no timestamp is provided, build_time is used
-        :param _format: Format string - default "%Y-%m-%d"
-        :param _ts: Timestamp to format - default self.build_time
-        :return: Formatted date/time string
-        """
-        if _ts is None:
-            _ts = self.build_time
-        _date = datetime.datetime.fromtimestamp(_ts)
-        return _date.strftime(_format)
-
-    @staticmethod
-    def _re_sub_filter(text, pattern, replace, count=0, flags=0):
-        """
-        Filter for regular expression replacement.
-        :param text: The string being examined for ``pattern``
-        :param pattern: The pattern to find in ``text``
-        :param replace: The replacement for ``pattern``
-        :param count: How many matches of ``pattern`` to replace with ``replace`` (0=all)
-        :param flags: Regular expression flags
-        """
-        return re.sub(pattern, replace, text, count=count, flags=flags)
-
-    @staticmethod
-    def _re_split_filter(text, pattern, maxsplit=0, flags=0):
-        '''
-        Filter for regular expression replacement.
-        :param text: The string being examined for ``pattern``
-        :param pattern: The pattern used to split ``text``
-        :param maxsplit: How many instances of ``pattern`` to split (0=all)
-        :param flags: Regular expression flags
-        '''
-        return re.split(pattern, text, maxsplit=maxsplit, flags=flags)
-
-    @staticmethod
-    def _reorder_dependency_steps(config):
-        """
-        Reorders the steps based on the dependencies that are outlined in the config
-        """
-        # Defines configuration keywords, should add to a config validation class
-        keyword_version = 'version'
-        keyword_steps = 'steps'
-        keyword_depends =   'depends'
-        supported_version = 2.0
-
-        if keyword_version not in config.keys() \
-                or config[keyword_version] < supported_version:
-            return config
-
-        ordered_steps = OrderedDict()
-        if keyword_steps in config.keys():
-            topo_sorter = TopologicalSorter()
-            for name, instructions in config[keyword_steps].items():
-                if keyword_depends in instructions.keys():
-                    for depend in instructions[keyword_depends]:
-                        topo_sorter.add(name, depend)
-                else:
-                    topo_sorter.add(name)
-            for step in topo_sorter.static_order():
-                if step not in config[keyword_steps]:
-                    raise KeyError(f"Step '{step}' is not defined and is listed as a step dependency in "
-                                   f"the configuration. "
-                                   f"Please correct the typo or define step '{step}' in the configuration.")
-
-                if keyword_depends in config[keyword_steps][step].keys():
-                    del config[keyword_steps][step][keyword_depends]
-
-                ordered_steps[step] = config[keyword_steps][step]
-
-            config[keyword_steps] = ordered_steps
-
-        return config
-
-    @staticmethod
-    def _validate_version(config: OrderedDict, version_file_path: str):
-        """
-        Compares that the version in the config is less than or equal to the current version of
-        buildrunner. If the config version is greater than the buildrunner version or any parsing error occurs
-        it will raise a buildrunner exception.
-        """
-        buildrunner_version = None
-
-        if not os.path.exists(version_file_path):
-            print(f"WARNING: File {version_file_path} does not exist. This could indicate an error with "
-                  f"the buildrunner installation. Unable to validate version.")
-            return
-
-        with open(version_file_path, 'r') as version_file:
-            for line in version_file.readlines():
-                if '__version__' in line:
-                    try:
-                        version_values = line.split('=')[1].strip().replace("'","").split('.')
-                        buildrunner_version = f"{version_values[0]}.{version_values[1]}"
-                    except IndexError as exception:
-                        raise ConfigVersionFormatError(f"couldn't parse version from \"{line}\"") from exception
-
-        if not buildrunner_version:
-            raise BuildRunnerVersionError("unable to determine buildrunner version")
-
-        config_version = None
-
-        # version is optional and is valid to not have it in the config
-        if 'version' not in config.keys():
-            return
-
-        config_version = config['version']
-
-        try:
-            if float(config_version) > float(buildrunner_version):
-                raise ConfigVersionFormatError(f"configuration version {config_version} is higher than "
-                                         f"buildrunner version {buildrunner_version}")
-        except ValueError as exception:
-            raise ConfigVersionTypeError(f"unable to convert config version \"{config_version}\" "
-                                         f"or buildrunner version \"{buildrunner_version}\" "
-                                         f"to a float") from exception
-
-    def _load_config(self, cfg_file, ctx=None, log_file=True):
-        """
-        Load a config file templating it with Jinja and parsing the YAML.
-
-        Returns:
-          multi-structure: configuration keys and values
-        """
-
-        config = None
-        fetch_file = cfg_file
-        visited = set()
-
-        while True:
-            visited.add(fetch_file)
-            contents = fetch.fetch_file(fetch_file, self.global_config)
-            jenv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'), extensions=['jinja2.ext.do'])
-            jenv.filters['hash_sha1'] = hash_sha1
-            jenv.filters['base64encode'] = base64.encode
-            jenv.filters['base64decode'] = base64.decode
-            jenv.filters['re_sub'] = self._re_sub_filter
-            jenv.filters['re_split'] = self._re_split_filter
-
-            jenv.globals.update(checksum=checksum)
-            jtemplate = jenv.from_string(contents)
-
-            config_context = copy.deepcopy(self.env)
-            config_context.update({
-                'CONFIG_FILE': cfg_file,
-                'CONFIG_DIR': os.path.dirname(cfg_file),
-                # This is stored after the initial env is set
-                'DOCKER_REGISTRY': self.get_docker_registry(),
-                'read_yaml_file': self._read_yaml_file,
-                'raise': self._raise_exception_jinja,
-                'strftime': self._strftime,
-            })
-
-            if ctx:
-                config_context.update(ctx)
-
-            config_contents = jtemplate.render(config_context)
-            if log_file:
-                self._log_generated_file(cfg_file, config_contents)
-            config = load_config(StringIO(config_contents), cfg_file)
-
-            if not config:
-                break
-
-            redirect = config.get('redirect')
-            if redirect is None:
-                break
-
-            fetch_file = redirect
-            if fetch_file in visited:
-                raise BuildRunnerConfigurationError(
-                    f"Redirect loop visiting previously visited file: {fetch_file}"
-                )
-
-        self._validate_version(config=config,
-                               version_file_path=f"{os.path.dirname(os.path.realpath(__file__))}/version.py")
-
-        config = self._reorder_dependency_steps(config)
-
-        return config
-
     def __init__(
             self,
             build_dir,
@@ -425,6 +141,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         """
         """
+        print(DEFAULT_GLOBAL_CONFIG_FILES)
         self.build_dir = build_dir
         if build_results_dir:
             self.build_results_dir = build_results_dir
@@ -481,10 +198,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             shutil.rmtree(self.build_results_dir)
             self.log.write(f'Cleaned existing results directory "{RESULTS_DIR}"\n')
 
-        # cleanup local cache
-        if self.cleanup_cache:
-            self.clean_cache(self.log.write)
-
         # default environment - must come *after* VCS detection
         base_context = {}
         if push:
@@ -497,16 +210,19 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             LOGGER.debug(f'Environment: {key!s:>{key_len}}: {val}')
 
         # load global configuration
-        _gc_files = DEFAULT_GLOBAL_CONFIG_FILES[:]
-        _gc_files.append(global_config_file or f'{self.build_dir}/.buildrunner.yaml')
-
-        _global_config_files = self.to_abs_path(
-            _gc_files, return_list=True
+        self.global_config = BuildRunnerConfig(
+            build_dir=self.build_dir,
+            build_results_dir=self.build_results_dir,
+            global_config_file=global_config_file,
+            colorize_log=colorize_log,
+            log_generated_files=self.log_generated_files,
+            build_time=self.build_time,
+            env=self.env
         )
 
-        self.log.write(f"\nGlobal configuration is from: {', '.join(_global_config_files)}\n")
-        self.global_config = {}
-        self.global_config = self._load_config_files(_global_config_files, log_file=False)
+        # cleanup local cache
+        if self.cleanup_cache:
+            self.clean_cache(self.global_config)
 
         # load run configuration
         _run_config_file = None
@@ -514,11 +230,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             self.run_config = run_config
         else:
             if run_config_file:
-                _run_config_file = self.to_abs_path(run_config_file)
+                _run_config_file = self.global_config.to_abs_path(run_config_file)
             else:
                 self.log.write("looking for run configuration\n")
                 for name_to_try in DEFAULT_RUN_CONFIG_FILES:
-                    _to_try = self.to_abs_path(name_to_try)
+                    _to_try = self.global_config.to_abs_path(name_to_try)
                     if os.path.exists(_to_try):
                         _run_config_file = _to_try
                         break
@@ -528,7 +244,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                     'Cannot find build configuration file'
                 )
 
-            self.run_config = self._load_config(_run_config_file)
+            self.run_config = self.global_config.load_config(_run_config_file)
 
         if not isinstance(self.run_config, dict) or 'steps' not in self.run_config:
             cfg_file = _run_config_file if _run_config_file else 'provided config'
@@ -539,31 +255,16 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 f'The "steps" attribute is not a non-empty dictionary in {cfg_file}'
             )
 
-    def get_docker_registry(self):
-        """
-        Default to docker.io if none is configured
-        """
-        return self.global_config.get('docker-registry', 'docker.io')
-
-    def get_temp_dir(self):
-        """
-        Get temp dir in the following priorities:
-        * Environment variable
-        * Global configuration property
-        * Configured system temp directory
-        """
-        return os.getenv('BUILDRUNNER_TEMPDIR', self.global_config.get('temp-dir', tempfile.gettempdir()))
-
     def get_build_server_from_alias(self, host):
         """
         Given a host alias string determine the actual build server host value
         to use by checking the global configuration.
         """
+        build_servers = self.global_config.get('build-servers')
         # if no build servers configuration in global config just return host
-        if 'build-servers' not in self.global_config:
+        if not build_servers:
             return host
 
-        build_servers = self.global_config['build-servers']
         for _host, _host_aliases in build_servers.items():
             if host in _host_aliases:
                 return _host
@@ -578,13 +279,14 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         ssh_keys = []
         if not key_aliases:
             return ssh_keys
-        if 'ssh-keys' not in self.global_config:
+        ssh_keys = self.global_config.get('ssh-keys')
+        print(ssh_keys)
+        if not ssh_keys:
             raise BuildRunnerConfigurationError(
                 "SSH key aliases specified but no 'ssh-keys' "
                 "configuration in global build runner config"
             )
 
-        ssh_keys = self.global_config['ssh-keys']
         _keys = []
         _matched_aliases = []
         for key_info in ssh_keys:
@@ -636,11 +338,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         if not file_alias:
             return None
-        if 'local-files' not in self.global_config:
+        local_files = self.global_config.get('local-files')
+        if not local_files:
             self.log.write("No 'local-files' configuration in global build runner config")
             return None
 
-        local_files = self.global_config['local-files']
         for local_alias, local_file in local_files.items():
             if file_alias == local_alias:
                 local_path = os.path.realpath(
@@ -652,7 +354,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 # need to put the contents in a tmp file and return the path
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=self.get_temp_dir(),
+                    dir=self.global_config.get_temp_dir(),
                 )
                 _fileobj.write(local_file)
                 tmp_path = os.path.realpath(_fileobj.name)
@@ -691,7 +393,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         return local_cache_archive_file
 
     @staticmethod
-    def clean_cache(log_func=print):
+    def clean_cache(global_config):
         """
         Clean cache dir
         """
@@ -699,30 +401,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             DEFAULT_CACHES_ROOT
         )
         if os.path.exists(cache_dir):
-            log_func(f'Cleaning cache dir "{cache_dir}"\n')
+            global_config.log.write(f'Cleaning cache dir "{cache_dir}"\n')
             shutil.rmtree(f"{cache_dir}/")
-            log_func(f'Cleaned cache dir "{cache_dir}"\n')
+            global_config.log.write(f'Cleaned cache dir "{cache_dir}"\n')
         else:
-            log_func(f'Cache dir "{cache_dir}" is already clean\n')
-
-    def to_abs_path(self, path, return_list=False):
-        """
-        Convert a path to an absolute path (if it isn't one already).
-        """
-
-        paths = path
-        if not isinstance(path, list):
-            paths = [path]
-
-        for index, _ in enumerate(paths):
-            _path = os.path.expanduser(paths[index])
-            if os.path.isabs(_path):
-                paths[index] = os.path.realpath(_path)
-            else:
-                paths[index] = os.path.realpath(os.path.join(self.build_dir, _path))
-        if return_list:
-            return paths
-        return paths[0]
+            global_config.log.write(f'Cache dir "{cache_dir}" is already clean\n')
 
     def add_artifact(self, artifact_file, properties):
         """
@@ -739,7 +422,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             buildignore = os.path.join(self.build_dir, '.buildignore')
             excludes = []
             if os.path.exists(buildignore):
-                with open(buildignore, 'r') as _file:
+                with open(buildignore, 'r', encoding='utf-8') as _file:
                     excludes = _file.read().splitlines()
 
             def _exclude_working_dir(tarinfo):
@@ -758,7 +441,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             try:
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=self.get_temp_dir(),
+                    dir=self.global_config.get_temp_dir(),
                 )
                 with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
                     tfile.add(
@@ -785,10 +468,10 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
             source_builder = DockerBuilder(
-                temp_dir=self.get_temp_dir(),
+                temp_dir=self.global_config.get_temp_dir(),
                 inject=inject,
                 timeout=self.docker_timeout,
-                docker_registry=self.get_docker_registry(),
+                docker_registry=self.global_config.get_docker_registry(),
             )
             exit_code = source_builder.build(
                 nocache=True,
@@ -817,7 +500,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
             try:
                 log_file_path = os.path.join(self.build_results_dir, 'build.log')
-                self._log_file = open(log_file_path, 'w')
+                self._log_file = open(log_file_path, 'w', encoding='utf-8')
                 self._log = ConsoleLogger(self.colorize_log, self._log_file)
 
                 self.add_artifact(
@@ -843,13 +526,13 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             )
             # preserve contents of artifacts.json between steps run separately
             if os.path.exists(artifact_manifest):
-                with open(artifact_manifest, 'r') as _af:
+                with open(artifact_manifest, 'r', encoding='utf-8') as _af:
                     data = json.load(_af, object_pairs_hook=OrderedDict)
                     artifacts = OrderedDict(list(data.items()) + list(self.artifacts.items()))
             else:
                 artifacts = self.artifacts
 
-            with open(artifact_manifest, 'w') as _af:
+            with open(artifact_manifest, 'w', encoding='utf-8') as _af:
                 json.dump(artifacts, _af, indent=2)
 
     def _exit_message_and_close_log(self, exit_explanation):

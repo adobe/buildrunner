@@ -4,7 +4,12 @@ import unittest
 from collections import OrderedDict
 
 import pytest
-from buildrunner import BuildRunner, BuildRunnerVersionError, ConfigVersionFormatError, ConfigVersionTypeError
+from buildrunner.config import (
+    BuildRunnerConfig,
+    BuildRunnerVersionError,
+    ConfigVersionFormatError,
+    ConfigVersionTypeError,
+)
 
 buildrunner_version = '2.0.701'
 config_version = '2.0'
@@ -28,12 +33,12 @@ def fixture_setup_version_file():
 
 
 def test_valid_version_file(config, version_file):
-        BuildRunner._validate_version(config=config, version_file_path=f"{version_file}")
+        BuildRunnerConfig._validate_version(config=config, version_file_path=f"{version_file}")
 
 
 def test_missing_version_file(config, version_file):
     # No exception for a missing version file it just prints a warning
-    BuildRunner._validate_version(config=config, version_file_path=f"{version_file}-bogus")
+    BuildRunnerConfig._validate_version(config=config, version_file_path=f"{version_file}-bogus")
 
 
 def test_missing_version_in_version_file(config, version_file):
@@ -41,7 +46,7 @@ def test_missing_version_in_version_file(config, version_file):
         file.truncate()
 
     with pytest.raises(BuildRunnerVersionError) as file_error:
-        BuildRunner._validate_version(config=config, version_file_path=f"{version_file}")
+        BuildRunnerConfig._validate_version(config=config, version_file_path=f"{version_file}")
 
 
 def test_invalid_delim_version(config, version_file):
@@ -50,7 +55,7 @@ def test_invalid_delim_version(config, version_file):
         file.write(f"__version__: '1.3.4'")
 
     with pytest.raises(ConfigVersionFormatError) as file_error:
-        BuildRunner._validate_version(config=config, version_file_path=f"{version_file}")
+        BuildRunnerConfig._validate_version(config=config, version_file_path=f"{version_file}")
 
 
 def test_invalid_config_number_version(config, version_file):
@@ -59,7 +64,7 @@ def test_invalid_config_number_version(config, version_file):
         file.write(f"__version__ = '1'")
 
     with pytest.raises(ConfigVersionFormatError) as file_error:
-        BuildRunner._validate_version(config=config, version_file_path=f"{version_file}")
+        BuildRunnerConfig._validate_version(config=config, version_file_path=f"{version_file}")
 
 
 def test_invalid_config_version_type(config, version_file):
@@ -68,11 +73,11 @@ def test_invalid_config_version_type(config, version_file):
         file.write(f"__version__ = 'two.zero.five'")
 
     with pytest.raises(ConfigVersionTypeError) as file_error:
-        BuildRunner._validate_version(config=config, version_file_path=f"{version_file}")
+        BuildRunnerConfig._validate_version(config=config, version_file_path=f"{version_file}")
 
 
 def test_bad_version(config, version_file):
     config = OrderedDict({'version': 2.1})
 
     with pytest.raises(ConfigVersionFormatError) as file_error:
-        BuildRunner._validate_version(config=config, version_file_path=f"{version_file}")
+        BuildRunnerConfig._validate_version(config=config, version_file_path=f"{version_file}")

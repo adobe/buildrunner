@@ -12,6 +12,7 @@ from buildrunner import (
     __version__,
     BuildRunner,
     BuildRunnerConfigurationError,
+    BuildRunnerConfig,
 )
 
 

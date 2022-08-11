@@ -3,7 +3,7 @@ import unittest
 import copy
 import graphlib
 
-from buildrunner import BuildRunner
+from buildrunner import BuildRunnerConfig
 
 
 class TestDependencies(unittest.TestCase):
@@ -43,7 +43,7 @@ class TestDependencies(unittest.TestCase):
         config[self.KEYWORD_VERSION] = 2.0
         expected_step_names = iter(['step1', 'step3', 'step4', 'step2'])
 
-        reordered_steps = BuildRunner._reorder_dependency_steps(config)
+        reordered_steps = BuildRunnerConfig._reorder_dependency_steps(config)
 
         self.check_steps_equal(reordered_steps, expected_step_names)
 
@@ -53,7 +53,7 @@ class TestDependencies(unittest.TestCase):
         config[self.KEYWORD_VERSION] = 2.1
         expected_step_names = iter(['step1', 'step3', 'step4', 'step2'])
 
-        reordered_steps = BuildRunner._reorder_dependency_steps(config)
+        reordered_steps = BuildRunnerConfig._reorder_dependency_steps(config)
 
         self.check_steps_equal(reordered_steps, expected_step_names)
 
@@ -61,7 +61,7 @@ class TestDependencies(unittest.TestCase):
         config[self.KEYWORD_VERSION] = 3.1
         expected_step_names = iter(['step1', 'step3', 'step4', 'step2'])
 
-        reordered_steps = BuildRunner._reorder_dependency_steps(config)
+        reordered_steps = BuildRunnerConfig._reorder_dependency_steps(config)
 
         self.check_steps_equal(reordered_steps, expected_step_names)
 
@@ -75,7 +75,7 @@ class TestDependencies(unittest.TestCase):
             if self.KEYWORD_DEPENDS in step:
                 del step[self.KEYWORD_DEPENDS]
 
-        reordered_steps = BuildRunner._reorder_dependency_steps(config)
+        reordered_steps = BuildRunnerConfig._reorder_dependency_steps(config)
 
         self.assertDictEqual(config, reordered_steps)
 
@@ -84,7 +84,7 @@ class TestDependencies(unittest.TestCase):
         config = copy.deepcopy(self.config)
         config[self.KEYWORD_VERSION] = 1.9
 
-        reordered_steps = BuildRunner._reorder_dependency_steps(config)
+        reordered_steps = BuildRunnerConfig._reorder_dependency_steps(config)
 
         del reordered_steps[self.KEYWORD_VERSION]
         self.assertDictEqual(self.config, reordered_steps)
@@ -93,7 +93,7 @@ class TestDependencies(unittest.TestCase):
     def test_missing_version(self):
         config = copy.deepcopy(self.config)
 
-        reordered_steps = BuildRunner._reorder_dependency_steps(config)
+        reordered_steps = BuildRunnerConfig._reorder_dependency_steps(config)
 
         self.assertDictEqual(self.config, reordered_steps)
 
@@ -103,7 +103,7 @@ class TestDependencies(unittest.TestCase):
         config[self.KEYWORD_VERSION] = 2.0
         config[self.KEYWORD_STEPS]['step4'][self.KEYWORD_DEPENDS] = ['step3', 'step2']
 
-        self.assertRaises(graphlib.CycleError, BuildRunner._reorder_dependency_steps, config)
+        self.assertRaises(graphlib.CycleError, BuildRunnerConfig._reorder_dependency_steps, config)
 
 
     def test_not_defined_dependency(self):
@@ -111,4 +111,4 @@ class TestDependencies(unittest.TestCase):
         config[self.KEYWORD_VERSION] = 2.0
         config[self.KEYWORD_STEPS]['step4'][self.KEYWORD_DEPENDS] = ['step1-typo']
 
-        self.assertRaises(KeyError, BuildRunner._reorder_dependency_steps, config)
+        self.assertRaises(KeyError, BuildRunnerConfig._reorder_dependency_steps, config)

@@ -18,6 +18,7 @@ from . import (
     BuildRunner,
     BuildRunnerConfigurationError,
 )
+from buildrunner.config import BuildRunnerConfig
 
 
 PROC_NAME = 'buildrunner'
@@ -238,9 +239,17 @@ def parse_args(argv):
     return args
 
 
-def clean_cache(argv):  # pylint: disable=unused-argument
+def clean_cache(argv):
     """Cache cleanup"""
-    BuildRunner.clean_cache()
+    args = parse_args(argv)
+    global_config = BuildRunnerConfig(
+        build_dir=args.directory,
+        build_results_dir=args.build_results_dir,
+        global_config_file=args.global_config_file,
+        colorize_log=not args.no_log_color,
+        log_generated_files=(bool(args.log_generated_files or args.print_generated_files)),
+    )
+    BuildRunner.clean_cache(global_config)
 
 
 def main(argv):

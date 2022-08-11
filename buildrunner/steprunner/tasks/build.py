@@ -89,7 +89,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 )
 
             for src_glob, dest_path in self.config.get('inject', {}).items():
-                _src_glob = self.step_runner.build_runner.to_abs_path(src_glob)
+                _src_glob = self.step_runner.build_runner.global_config.to_abs_path(src_glob)
                 xsglob = glob.glob(_src_glob)
                 if not xsglob:
                     # Failed to resolve the glob
@@ -131,7 +131,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 )
 
         if self.path:
-            self.path = self.step_runner.build_runner.to_abs_path(self.path)
+            self.path = self.step_runner.build_runner.global_config.to_abs_path(self.path)
 
         if self.path and not os.path.exists(self.path):
             raise BuildRunnerConfigurationError(
@@ -151,7 +151,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
         dockerfile_image = None
         if self.dockerfile:
-            _dockerfile_abs_path = self.step_runner.build_runner.to_abs_path(
+            _dockerfile_abs_path = self.step_runner.build_runner.global_config.to_abs_path(
                 self.dockerfile,
             )
             if os.path.exists(_dockerfile_abs_path):
@@ -159,7 +159,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 if self.image_to_prepend_to_dockerfile:
                     # need to load the contents of the Dockerfile so that we
                     # can prepend the image
-                    with open(_dockerfile_abs_path, 'r') as _dockerfile:
+                    with open(_dockerfile_abs_path, 'r', encoding='utf-8') as _dockerfile:
                         self.dockerfile = _dockerfile.read()
 
             if self.image_to_prepend_to_dockerfile:
@@ -207,7 +207,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             self.path,
             inject=self.to_inject,
             dockerfile=self.dockerfile,
-            docker_registry=self.step_runner.build_runner.get_docker_registry(),
+            docker_registry=self.step_runner.build_runner.global_config.get_docker_registry(),
         )
         try:
             exit_code = builder.build(
@@ -226,7 +226,3 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
         finally:
             builder.cleanup()
         context['image'] = builder.image
-
-# Local Variables:
-# fill-column: 100
-# End:

@@ -18,7 +18,7 @@ import glob
 import hashlib
 from typing import Union, Tuple
 
-from buildrunner import BuildRunnerConfigurationError
+from buildrunner.errors import BuildRunnerConfigurationError
 
 
 class OrderedLoader(yaml.Loader):  # pylint: disable=too-many-ancestors
