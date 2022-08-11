@@ -247,7 +247,6 @@ def clean_cache(argv):
         build_dir=args.directory,
         build_results_dir=args.build_results_dir,
         global_config_file=args.global_config_file,
-        colorize_log=not args.no_log_color,
         log_generated_files=(bool(args.log_generated_files or args.print_generated_files)),
     )
     BuildRunner.clean_cache(global_config)

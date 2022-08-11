@@ -8,7 +8,6 @@ with the terms of the Adobe license agreement accompanying it.
 
 from collections import OrderedDict
 from datetime import datetime
-import errno
 from time import strftime, gmtime
 import os
 import sys
@@ -162,46 +161,6 @@ def hash_sha1(file_name_globs=None):
             except:
                 print(f"WARNING: Error reading file: {file_name}")
     return hasher.hexdigest()
-
-
-class BuildRunnerLogger:
-    """
-    Class used to wrap logger for buildrunner
-    """
-
-    def __init__(self, results_dir, colorize):
-        """
-        create the log file and open for writing
-        """
-        try:
-            os.makedirs(results_dir)
-        except OSError as exc:
-            if exc.errno != errno.EEXIST:
-                sys.stderr.write(f'ERROR: {str(exc)}\n')
-                sys.exit(os.EX_UNAVAILABLE)
-
-        try:
-            log_file_path = os.path.join(results_dir, 'build.log')
-            self.log_file = open(log_file_path, 'w', encoding='utf-8')
-            self.log = ConsoleLogger(colorize, self.log_file)
-
-        except Exception as exc:  # pylint: disable=broad-except
-            sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
-            self.log = sys.stderr
-
-    def write(self, output: Union[bytes, str], color=None):
-        """ pass through to the object method """
-        if isinstance(self.log, ConsoleLogger):
-            self.log.write(output, color)
-        else:
-            self.log.write(output)
-
-    def flush(self):
-        """ pass through to the object method """
-        self.log.flush()
-
-    def close(self):
-        self.log_file.close()
 
 
 class ConsoleLogger:

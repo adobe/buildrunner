@@ -8,6 +8,7 @@ with the terms of the Adobe license agreement accompanying it.
 # pylint: disable=too-many-lines
 
 from collections import OrderedDict
+import errno
 import fnmatch
 import getpass
 import importlib.machinery
@@ -44,7 +45,6 @@ from buildrunner.utils import (
     epoch_time,
     hash_sha1,
     load_config,
-    BuildRunnerLogger,
 )
 
 from . import fetch
@@ -148,6 +148,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # This is used to check if images should be pulled by default or not
         self.committed_images = set()
         self.repo_tags_to_push = []
+        self.colorize_log = colorize_log
         self.steps_to_run = steps_to_run
         self.publish_ports = publish_ports
         self.disable_timestamps = disable_timestamps
@@ -163,8 +164,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.exit_code = None
         self._source_image = None
         self._source_archive = None
-        # initialize log
-        self.log = BuildRunnerLogger(self.build_results_dir, colorize_log)
+        self._log_file = None
+        self._log = None
 
         # set build time
         self.build_time = epoch_time()
@@ -205,7 +206,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             build_dir=self.build_dir,
             build_results_dir=self.build_results_dir,
             global_config_file=global_config_file,
-            colorize_log=colorize_log,
             log_generated_files=self.log_generated_files,
             build_time=self.build_time,
             env=self.env,
@@ -246,6 +246,34 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             raise BuildRunnerConfigurationError(
                 f'The "steps" attribute is not a non-empty dictionary in {cfg_file}'
             )
+
+    @property
+    def log(self):
+        """
+        create the log file and open for writing
+        """
+        if self._log is None:
+            try:
+                os.makedirs(self.build_results_dir)
+            except OSError as exc:
+                if exc.errno != errno.EEXIST:
+                    sys.stderr.write(f'ERROR: {str(exc)}\n')
+                    sys.exit(os.EX_UNAVAILABLE)
+
+            try:
+                log_file_path = os.path.join(self.build_results_dir, 'build.log')
+                self._log_file = open(log_file_path, 'w')
+                self._log = ConsoleLogger(self.colorize_log, self._log_file)
+
+                self.add_artifact(
+                    os.path.basename(log_file_path),
+                    {'type': 'log'},
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
+                self._log = sys.stderr
+
+        return self._log
 
     def get_build_server_from_alias(self, host):
         """
@@ -513,7 +541,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 self.log.write(exit_message + '\n')
             finally:
                 # close the log
-                self.log.close()
+                self._log_file.close()
         else:
             if exit_explanation:
                 print(f'\n{exit_explanation}')

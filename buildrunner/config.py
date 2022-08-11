@@ -16,6 +16,7 @@ from graphlib import TopologicalSorter
 from io import StringIO
 import os
 import re
+import sys
 import tempfile
 
 import jinja2
@@ -31,7 +32,6 @@ from buildrunner.utils import (
     epoch_time,
     hash_sha1,
     load_config,
-    BuildRunnerLogger,
 )
 
 from . import fetch
@@ -164,7 +164,6 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
             build_dir=None,
             build_results_dir=None,
             global_config_file=None,
-            colorize_log=True,
             log_generated_files=False,
             build_time=None,
             env=None,
@@ -175,7 +174,6 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
             self.build_results_dir = build_results_dir
         else:
             self.build_results_dir = os.path.join(self.build_dir, RESULTS_DIR)
-        self.colorize_log = colorize_log
         self.log_generated_files = log_generated_files
         self.build_time = build_time
         if not self.build_time:
@@ -188,8 +186,8 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         self.log = log
         if self.log is None:
-            # initialize log
-            self.log = BuildRunnerLogger(self.build_results_dir, colorize_log)
+            # initialize log to stdout
+            self.log = sys.stdout
 
         # load global configuration
         _gc_files = DEFAULT_GLOBAL_CONFIG_FILES[:]
