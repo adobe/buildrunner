@@ -167,7 +167,8 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='clean_cache',
-        help='Clean local caches (~/.buildrunner/caches)',
+        help='Clean local caches as defined in buildrunner config ("caches-root"), which defaults to '
+             '~/.buildrunner/caches',
     )
 
     parser.add_argument(

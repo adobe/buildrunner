@@ -1282,8 +1282,9 @@ files - all other content is ignored when the ``redirect`` directive is found.
 Cleaning Cache
 ==============
 
-Buildrunner keeps a local cache in the ``~/.buildrunner/caches`` directory that will grow over time and
-should be cleaned out periodically. There are two methods for cleaning this cache.
+Buildrunner keeps a local cache in the ``~/.buildrunner/caches`` directory, which can be overridden
+by the "caches-root" config parameter, that will grow over time and should be cleaned out
+periodically. There are two methods for cleaning this cache.
 
 clean-cache parameter
 ---------------------
