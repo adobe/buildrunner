@@ -387,9 +387,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         Clean cache dir
         """
-        cache_dir = os.path.expanduser(
-            DEFAULT_CACHES_ROOT
-        )
+        cache_dir = os.path.expanduser(global_config.get("caches-root", DEFAULT_CACHES_ROOT))
         if os.path.exists(cache_dir):
             global_config.log.write(f'Cleaning cache dir "{cache_dir}"\n')
             shutil.rmtree(f"{cache_dir}/")
