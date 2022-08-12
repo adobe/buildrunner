@@ -272,6 +272,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             except Exception as exc:  # pylint: disable=broad-except
                 sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
                 self._log = sys.stderr
+                if self._log_file:
+                    self._log_file.close()
 
         return self._log
 
