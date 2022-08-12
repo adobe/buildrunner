@@ -51,7 +51,7 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                 )
             self._password = config['password']
 
-            if 'skip_existing' not in config:
+            if 'skip_existing' in config:
                 self._skip_existing = config['skip_existing']
 
         else:

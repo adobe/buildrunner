@@ -114,10 +114,10 @@ def get_version():
 
             # write the version file
             if os.path.exists(BUILDRUNNER_DIR):
-                with open(VERSION_FILE, 'w', encoding='utf8') as fobj:
-                    fobj.write("__version__ = '%s'\n" % new_version)
+                with open(VERSION_FILE, 'w', encoding='utf8') as _fobj:
+                    _fobj.write("__version__ = '%s'\n" % new_version)
             return new_version
-    except Exception as exc:
+    except Exception as exc:  # pylint: disable=broad-except
         print(f'Could not generate version from git commits: {exc}')
     # If all else fails, use development version
     return f'{BASE_VERSION}.DEVELOPMENT'
@@ -139,6 +139,7 @@ setup(
     packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
     scripts=[
         'bin/buildrunner',
+        'bin/buildrunner-cleanup',
     ],
     package_data={
         'buildrunner': ['SourceDockerfile'],

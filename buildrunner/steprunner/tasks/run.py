@@ -133,7 +133,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         artifact_lister = None
         try:
             image_config = DockerRunner.ImageConfig(
-                f'{self.step_runner.build_runner.get_docker_registry()}/{self.ARTIFACT_LISTER_DOCKER_IMAGE}',
+                f'{self.step_runner.build_runner.global_config.get_docker_registry()}/'
+                f'{self.ARTIFACT_LISTER_DOCKER_IMAGE}',
                 pull_image=False,
             )
             artifact_lister = DockerRunner(
@@ -168,7 +169,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                 # if the command was successful we found something
                 if exit_code == 0:
-                    with open(stat_output_file_local, 'r') as output_fd:
+                    with open(stat_output_file_local, 'r', encoding='utf-8') as output_fd:
                         output = output_fd.read()
                     artifact_files = [
                         af.strip() for af in output.split('\n')
@@ -254,7 +255,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 log=self.step_runner.log,
             )
             if find_exit_code == 0:
-                with open(find_output_file_local, 'r') as output_fd:
+                with open(find_output_file_local, 'r', encoding='utf-8') as output_fd:
                     output = output_fd.read()
                 for _file in [_f.strip() for _f in output.split('\n')]:
                     if not _file:
@@ -336,7 +337,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     artifact_file,
                 ]
 
-            new_properties = dict()
+            new_properties = {}
             if properties:
                 new_properties.update(properties)
             new_properties[
@@ -678,7 +679,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             nc_tester = None
             try:
                 image_config = DockerRunner.ImageConfig(
-                    f'{self.step_runner.build_runner.get_docker_registry()}/{self.NC_DOCKER_IMAGE}',
+                    f'{self.step_runner.build_runner.global_config.get_docker_registry()}/{self.NC_DOCKER_IMAGE}',
                     pull_image=False,
                 )
                 nc_tester = DockerRunner(
@@ -799,7 +800,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._sshagent = DockerSSHAgentProxy(
                 self._docker_client,
                 self.step_runner.log,
-                self.step_runner.build_runner.get_docker_registry(),
+                self.step_runner.build_runner.global_config.get_docker_registry(),
             )
             self._sshagent.start(
                 self.step_runner.build_runner.get_ssh_keys_from_aliases(
@@ -811,7 +812,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._dockerdaemonproxy = DockerDaemonProxy(
             self._docker_client,
             self.step_runner.log,
-            self.step_runner.build_runner.get_docker_registry(),
+            self.step_runner.build_runner.global_config.get_docker_registry(),
         )
         self._dockerdaemonproxy.start()
 
@@ -1124,7 +1125,3 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # Labels will be set as the string value.  Make sure we handle '0' and 'False'
         return bool(rval and rval != '0' and rval != 'False')
-
-# Local Variables:
-# fill-column: 100
-# End:
