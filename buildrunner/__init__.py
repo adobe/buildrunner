@@ -98,6 +98,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             'VCSINFO_ID': str(self.vcs.id),
             'VCSINFO_SHORT_ID': str(self.vcs.id)[:7],
             'VCSINFO_MODIFIED': str(self.vcs.modified),
+            'VCSINFO_RELEASE': str(self.vcs.release),
             'BUILDRUNNER_STEPS': self.steps_to_run,
         }
 
