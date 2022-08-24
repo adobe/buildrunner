@@ -456,7 +456,7 @@ every run container:
 
 :``BUILDRUNNER_BUILD_NUMBER``: the build number
 :``BUILDRUNNER_BUILD_ID``: a unique id identifying the build (includes vcs and build number
-                           information)
+                           information), e.g. "main-1791.Ia09cc5.M0-1661374484"
 :``BUILDRUNNER_BUILD_DOCKER_TAG``: identical to ``BUILDRUNNER_BUILD_ID`` but formatted for
                                    use as a Docker tag
 :``BUILDRUNNER_BUILD_TIME``: the "unix" time or "epoch" time of the build (in seconds)
@@ -468,13 +468,14 @@ every run container:
 :``BUILDRUNNER_INVOKE_UID``: The UID of the user that invoked Buildrunner
 :``BUILDRUNNER_INVOKE_GROUP``: The group of the user that invoked Buildrunner
 :``BUILDRUNNER_INVOKE_GID``: The GID (group ID) of the user that invoked Buildrunner
-:``VCSINFO_NAME``: the VCS repository name without a path
-:``VCSINFO_BRANCH``: the VCS branch
-:``VCSINFO_NUMBER``: the VCS commit number
-:``VCSINFO_ID``: the VCS commit id
-:``VCSINFO_SHORT_ID``: the VCS short commit id
+:``VCSINFO_NAME``: the VCS repository name without a path, "my-project"
+:``VCSINFO_BRANCH``: the VCS branch, e.g. "main"
+:``VCSINFO_NUMBER``: the VCS commit number, e.g. "1791"
+:``VCSINFO_ID``: the VCS commit id, e.g. "a09cc5c407af605b57a0f16b73f896873bb74759"
+:``VCSINFO_SHORT_ID``: the VCS short commit id, e.g. "a09cc5c"
+:``VCSINFO_RELEASE``: the VCS branch state, .e.g. "1791.Ia09cc5.M0"
 :``VCSINFO_MODIFIED``: the last file modification timestamp if local changes have been made and not
-                       committed to the source VCS repository
+                       committed to the source VCS repository, e.g. "1661373883"
 
 The following volumes are created within run containers:
 
