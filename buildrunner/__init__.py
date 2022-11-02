@@ -73,15 +73,15 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
     Class used to manage running a build.
     """
 
-    CONTEXT_ENV_PREFIXES = ['BUILDRUNNER_', 'VCSINFO_', 'PACKAGER_', 'GAUNTLET_']
+    CONTEXT_ENV_PREFIXES = ['ARTIFACTORY_', 'BUILDRUNNER_', 'VCSINFO_', 'PACKAGER_', 'GAUNTLET_']
 
-    def _get_config_context(self, ctx=None):
+    def _get_config_context(self, ctx=None, global_env=None):
         """
         Generate the Jinja configuration context for substitution
 
         Args:
-          ctx (dict): A dictionary of key/values to be merged
-          over the default, generated context.
+          global_env (dict): Env vars to set from the global config file.
+          ctx (dict): A dictionary of key/values to be merged over the default, generated context.
 
         Returns:
           dict: A dictionary of key/values to be substituted
@@ -102,6 +102,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             'BUILDRUNNER_STEPS': self.steps_to_run,
         }
 
+        # Add the global env vars before any other context vars
+        if global_env:
+            context.update(global_env)
         if ctx:
             context.update(ctx)
 
@@ -196,11 +199,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if push:
             base_context['BUILDRUNNER_DO_PUSH'] = 1
         self.env = self._get_config_context(base_context)
-        # pylint: disable=consider-iterating-dictionary
-        key_len = max([len(key) for key in self.env.keys()])
-        for key in sorted(self.env.keys()):
-            val = self.env[key]
-            LOGGER.debug(f'Environment: {key!s:>{key_len}}: {val}')
 
         # load global configuration
         self.global_config = BuildRunnerConfig(
@@ -212,6 +210,20 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             env=self.env,
             log=self.log,
         )
+
+        # load environment again, considering the global config env vars
+        # this ends up generating the context twice, but the first is needed to load
+        #   the global config object
+        self.env = self._get_config_context(base_context, self.global_config.get('env', {}))
+        # assign back to the global config env for loading files
+        self.global_config.env = self.env
+
+        # print out env vars
+        # pylint: disable=consider-iterating-dictionary
+        key_len = max([len(key) for key in self.env.keys()])
+        for key in sorted(self.env.keys()):
+            val = self.env[key]
+            LOGGER.debug(f'Environment: {key!s:>{key_len}}: {val}')
 
         # cleanup local cache
         if self.cleanup_cache:

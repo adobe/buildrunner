@@ -118,6 +118,15 @@ they are used when put into the global configuration file:
 
 .. code:: yaml
 
+  # The 'env' global configuration may be used to set environment variables
+  # available to all buildrunner runs that load this config file. Env vars do
+  # not need to begin with a prefix to be included in this list (i.e.
+  # BUILDRUNNER_ prefix is not needed for variables listed here).
+  env:
+    ENV_VAR1: 'value1'
+    # Values must always be strings
+    ENV_VAR2: 'true''
+
   # The 'build-servers' global configuration consists of a map where each key
   # is a server user@host string and the value is a list of host aliases that
   # map to the server. This allows builders to configure Buildrunner to talk to

@@ -26,3 +26,8 @@ local-files:
 # The 'caches-root' global configuration specifies the directory to use for
 # build caches. The default directory is ~/.buildrunner/caches.
 caches-root: ~/.buildrunner/caches
+
+# The 'env' global configuration specifies env vars that are available in
+# buildrunner scripts
+env:
+  GLOBAL_VAR1: 'value1'
