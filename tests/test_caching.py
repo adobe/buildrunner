@@ -268,7 +268,26 @@ def test_save_cache_basic(runner, tmp_dir_name):
     extracted_dir = "extracted_data"
     os.mkdir(extracted_dir)
     with tarfile.open(tarfile_name) as tar:
-        tar.extractall(extracted_dir)
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, extracted_dir)
         extracted_files = os.listdir(extracted_dir)
 
         assert len(test_files) == len(extracted_files)
@@ -315,7 +334,26 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name):
     extracted_dir = "extracted_data"
     os.mkdir(extracted_dir)
     with tarfile.open(tarfile_name) as tar:
-        tar.extractall(extracted_dir)
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, extracted_dir)
         extracted_files = os.listdir(extracted_dir)
 
         assert len(test_files) == len(extracted_files)
@@ -339,7 +377,26 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name):
     extracted_dir = "extracted_data2"
     os.mkdir(extracted_dir)
     with tarfile.open(tarfile_name) as tar:
-        tar.extractall(extracted_dir)
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, extracted_dir)
         extracted_files = os.listdir(extracted_dir)
 
         assert len(test_files) == len(extracted_files)
@@ -378,7 +435,26 @@ def test_save_cache_multiple_caches(runner, tmp_dir_name):
 
     os.mkdir(venv_extracted_dir)
     with tarfile.open(venv_tarfile_name) as tar:
-        tar.extractall(venv_extracted_dir)
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, venv_extracted_dir)
         extracted_files = os.listdir(venv_extracted_dir)
 
         assert len(venv_test_files) == len(extracted_files)
@@ -389,7 +465,26 @@ def test_save_cache_multiple_caches(runner, tmp_dir_name):
 
     os.mkdir(maven_extracted_dir)
     with tarfile.open(maven_tarfile_name) as tar:
-        tar.extractall(maven_extracted_dir)
+        def is_within_directory(directory, target):
+            
+            abs_directory = os.path.abspath(directory)
+            abs_target = os.path.abspath(target)
+        
+            prefix = os.path.commonprefix([abs_directory, abs_target])
+            
+            return prefix == abs_directory
+        
+        def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+        
+            for member in tar.getmembers():
+                member_path = os.path.join(path, member.name)
+                if not is_within_directory(path, member_path):
+                    raise Exception("Attempted Path Traversal in Tar File")
+        
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
+            
+        
+        safe_extract(tar, maven_extracted_dir)
         extracted_files = os.listdir(maven_extracted_dir)
 
         assert len(maven_test_files) == len(extracted_files)
