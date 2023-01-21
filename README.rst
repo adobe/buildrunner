@@ -679,7 +679,9 @@ the run step:
         # value is present it should be a map of additional properties that
         # should be added to the build artifacts.json file. The artifacts.json
         # file can be used to publish artifacts to another system (such as
-        # Gauntlet) with the accompanying metadata.
+        # Gauntlet) with the accompanying metadata. By default artifacts will be
+        # listed in the artifacts.json file; this can be disabled by adding the
+        # ``push`` property and set it to false.
         #
         # When archiving *directories* special properties can be set to change
         # the behavior of the archiver.  Directories by default are archived as
@@ -698,6 +700,7 @@ the run step:
             [format: uncompressed]
             [type: tar|zip]
             [compression: gz|bz2|xz|lzma|lzip|lzop|z]
+            [push: true|false]
             property1: value1
             property2: value2
 

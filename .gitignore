@@ -5,6 +5,8 @@ dist
 *.egg
 *.pyc
 .idea
+.vscode
+.DS_Store
 .*sw*
 .env
 *~

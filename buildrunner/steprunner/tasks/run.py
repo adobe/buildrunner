@@ -387,14 +387,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 f"Error gathering artifact {artifact_file}",
             )
 
-        # register the artifact with the run controller
-        self.step_runner.build_runner.add_artifact(
-            os.path.join(
-                self.step_runner.name,
-                output_file_name,
-            ),
-            properties,
-        )
+        if properties is None or (isinstance(properties, OrderedDict) \
+            and ('push' not in properties.keys() or ('push' in properties.keys() and properties['push'] is True))):
+            # register the artifact with the run controller
+            self.step_runner.build_runner.add_artifact(
+                os.path.join(
+                    self.step_runner.name,
+                    output_file_name,
+                ),
+                properties,
+            )
 
     # pylint: disable=too-many-statements,too-many-branches,too-many-locals
     def _start_service_container(self, name, config):

@@ -49,6 +49,7 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
             log_generated_files=args.log_generated_files,
             docker_timeout=args.docker_timeout,
             platform=args.platform,
+            build_results_dir=args.build_results_dir
         )
 
         build_runner.run()
