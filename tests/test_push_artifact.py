@@ -6,6 +6,7 @@ import json
 from tests import test_runner
 
 test_dir_path = os.path.realpath(os.path.dirname(__file__))
+TEST_DIR = os.path.basename(os.path.dirname(__file__))
 top_dir_path = os.path.realpath(os.path.dirname(test_dir_path))
 
 def _test_buildrunner_file(test_dir, file_name, args, exit_code, artifacts_in_file: dict):
@@ -50,8 +51,8 @@ def _test_buildrunner_file(test_dir, file_name, args, exit_code, artifacts_in_fi
 def test_no_artifacts():
     artifacts_in_file = {  }
     _test_buildrunner_file(
-            f'{test_dir_path}/test-files',
-            'test-push-artifact.yaml',
+            f'{TEST_DIR}/test-files',
+            'artifacts/test-push-artifact.yaml',
             ['-s', 'test-no-artifacts'],
             0,
             artifacts_in_file
@@ -65,8 +66,8 @@ def test_no_artifact_properties():
             "test-no-artifact-properties/test-no-artifact-properties.txt": False,
         }
     _test_buildrunner_file(
-            f'{test_dir_path}/test-files',
-            'test-push-artifact.yaml',
+            f'{TEST_DIR}/test-files',
+            'artifacts/test-push-artifact.yaml',
             ['-s', 'test-no-artifact-properties'],
             0,
             artifacts_in_file
@@ -80,8 +81,8 @@ def test_no_push_property():
             "test-no-push-properties/test-no-push-properties.txt": True,
         }
     _test_buildrunner_file(
-            f'{test_dir_path}/test-files',
-            'test-push-artifact.yaml',
+            f'{TEST_DIR}/test-files',
+            'artifacts/test-push-artifact.yaml',
             ['-s', 'test-no-push-properties'],
             0,
             artifacts_in_file
@@ -95,8 +96,8 @@ def test_push_true():
             "test-push-true/test-push-true.txt": True,
         }
     _test_buildrunner_file(
-            f'{test_dir_path}/test-files',
-            'test-push-artifact.yaml',
+            f'{TEST_DIR}/test-files',
+            'artifacts/test-push-artifact.yaml',
             ['-s', 'test-push-true'],
             0,
             artifacts_in_file
@@ -110,8 +111,8 @@ def test_push_false():
             "test-push-false/test-push-false.txt": False,
         }
     _test_buildrunner_file(
-            f'{test_dir_path}/test-files',
-            'test-push-artifact.yaml',
+            f'{TEST_DIR}/test-files',
+            'artifacts/test-push-artifact.yaml',
             ['-s', 'test-push-false'],
             0,
             artifacts_in_file
