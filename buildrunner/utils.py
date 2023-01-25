@@ -197,8 +197,8 @@ class ConsoleLogger:
             try:
                 if stream.closed:
                     self.stderr.write(
-                        f'WARNING: Attempted to write to closed stream {stream}.' \
-                        f' Removed from list of streams in {__class__} and not writing {output} to {stream}.'
+                        f'WARNING: Attempted to write to a closed stream {stream}. ' \
+                        f'Not writing {output} to {stream}.'
                     )
                 else:
                     stream.write(output)
