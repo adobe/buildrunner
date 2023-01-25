@@ -1,0 +1,57 @@
+steps:
+
+  test-no-artifacts:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'echo "hello"'
+      ]
+
+  test-no-artifact-properties:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-no-artifact-properties-dir',
+        'echo "hello" > test-no-artifact-properties-dir/test1.txt',
+        'echo "hello" > test-no-artifact-properties-dir/test2.txt',
+        'echo "hello" > test-no-artifact-properties.txt',
+      ]
+
+  test-no-push-properties:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-no-push-properties-dir',
+        'echo "hello" > test-no-push-properties-dir/test1.txt',
+        'echo "hello" > test-no-push-properties-dir/test2.txt',
+        'echo "hello" > test-no-push-properties.txt',
+      ]
+      artifacts:
+        'test-no-push-properties-dir': {format: 'uncompressed', prop1: 'hello'}
+        'test-no-push-properties.txt': {format: 'file'}
+
+  test-push-true:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-push-true-dir',
+        'echo "hello" > test-push-true-dir/test1.txt',
+        'echo "hello" > test-push-true-dir/test2.txt',
+        'echo "hello" > test-push-true.txt',
+      ]
+      artifacts:
+        'test-push-true-dir': {format: 'uncompressed', prop1: 'hello', push: True}
+        'test-push-true.txt': {format: 'file', push: True}
+
+  test-push-false:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-push-false-dir',
+        'echo "hello" > test-push-false-dir/test1.txt',
+        'echo "hello" > test-push-false-dir/test2.txt',
+        'echo "hello" > test-push-false.txt',
+      ]
+      artifacts:
+        'test-push-false-dir': {format: 'uncompressed', prop1: 'hello', push: False}
+        'test-push-false.txt': {format: 'file', push: False}

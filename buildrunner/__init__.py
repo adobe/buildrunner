@@ -192,7 +192,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # cleanup existing results dir (if needed)
         if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
             shutil.rmtree(self.build_results_dir)
-            self.log.write(f'Cleaned existing results directory "{config.RESULTS_DIR}"\n')
 
         # default environment - must come *after* VCS detection
         base_context = {}
