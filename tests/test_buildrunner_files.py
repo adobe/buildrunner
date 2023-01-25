@@ -48,7 +48,8 @@ def _test_buildrunner_file(test_dir, file_name, args, exit_code):
         command_line = [
             'buildrunner-test',
             '-d', top_dir_path,
-            '-b', temp_dir,
+            # FIXME containerize step looks for buildrunner.results/artifacts/ and fails with temp_dir
+            # '-b', temp_dir,
             # Since we are using a fresh temp directory, don't delete it first
             '--keep-step-artifacts',
             '-f', os.path.join(test_dir, file_name),
