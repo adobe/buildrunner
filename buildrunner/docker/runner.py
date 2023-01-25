@@ -7,6 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import base64
+import fcntl
 import os.path
 import socket
 import ssl
@@ -273,9 +274,9 @@ class DockerRunner:
 
         most_recent_time = 0
         local_cache_archive_match = None
-        for file in files:
-            if file.startswith(cache_key):
-                curr_archive_file = join(cache_dir, file)
+        for file_name in files:
+            if file_name.startswith(cache_key):
+                curr_archive_file = join(cache_dir, file_name)
                 mod_time = getmtime(curr_archive_file)
                 if mod_time > most_recent_time:
                     most_recent_time = mod_time
@@ -316,10 +317,18 @@ class DockerRunner:
                     print(f"WARNING: There was an issue creating {docker_path} on the docker container.")
 
                 with open(actual_cache_archive_file, 'rb') as data:
-                    restored_cache_src.add(docker_path)
-                    if not self.docker_client.put_archive(self.container['Id'], docker_path, data):
-                        print(f"WARNING: An error occurred when trying to use cache "
-                              f"{actual_cache_archive_file} at the path {docker_path}")
+                    try:
+                        # Allow multiple people to read from the file at the same time
+                        # If another instance adds an exclusive lock in the save method below,
+                        # this will block until the lock is released
+                        fcntl.lockf(data, fcntl.LOCK_SH)
+                        restored_cache_src.add(docker_path)
+                        if not self.docker_client.put_archive(self.container['Id'], docker_path, data):
+                            print(f"WARNING: An error occurred when trying to use cache "
+                                  f"{actual_cache_archive_file} at the path {docker_path}")
+                    finally:
+                        # Always unlock the file after extracting the archive
+                        fcntl.lockf(data, fcntl.LOCK_UN)
 
             except docker.errors.APIError as exception:
                 print(f"WARNING: Encountered exception\n{exception}")
@@ -339,10 +348,16 @@ class DockerRunner:
                           f"running on container {self.container['Id']} "
                           f"to local cache `{local_cache_archive_file}`")
 
-                    with open(local_cache_archive_file, 'wb') as file:
-                        bits, _ = self.docker_client.get_archive(self.container['Id'], f"{docker_path}/.")
-                        for chunk in bits:
-                            file.write(chunk)
+                    with open(local_cache_archive_file, 'wb') as fobj:
+                        try:
+                            # Obtain an exclusive lock, blocks shared (read) locks in the restore method above
+                            fcntl.lockf(fobj, fcntl.LOCK_EX)
+                            bits, _ = self.docker_client.get_archive(self.container['Id'], f"{docker_path}/.")
+                            for chunk in bits:
+                                fobj.write(chunk)
+                        finally:
+                            # Always unlock the file after persisting the archive
+                            fcntl.lockf(fobj, fcntl.LOCK_UN)
                 else:
                     print(f"The following `{docker_path}` in docker has already been saved. "
                           f"It will not be saved again to `{local_cache_archive_file}`")
