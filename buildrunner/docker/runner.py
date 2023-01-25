@@ -15,6 +15,7 @@ from os import listdir
 from os.path import isfile, join, getmtime
 from pathlib import Path
 from types import GeneratorType
+from typing import Optional
 
 import docker.errors
 import six
@@ -255,7 +256,39 @@ class DockerRunner:
 
         self.container = None
 
-    def restore_caches(self, caches: OrderedDict):  # pylint: disable=too-many-branches,too-many-locals
+    @staticmethod
+    def _get_cache_file_from_prefix(local_cache_archive_file: str, docker_path: str) -> Optional[str]:
+        if os.path.exists(local_cache_archive_file):
+            return local_cache_archive_file
+        cache_dir = os.path.dirname(local_cache_archive_file)
+
+        if not os.path.exists(cache_dir):
+            print(f"Cache directory {cache_dir} does not exist, "
+                  f"skipping restore of archive {local_cache_archive_file}")
+            return None
+
+        files = [f for f in listdir(cache_dir) if isfile(join(cache_dir, f))]
+
+        cache_key = Path(local_cache_archive_file).stem
+
+        most_recent_time = 0
+        local_cache_archive_match = None
+        for file in files:
+            if file.startswith(cache_key):
+                curr_archive_file = join(cache_dir, file)
+                mod_time = getmtime(curr_archive_file)
+                if mod_time > most_recent_time:
+                    most_recent_time = mod_time
+                    local_cache_archive_match = curr_archive_file
+
+        if local_cache_archive_match is None:
+            print(f"Not able to restore cache {docker_path} since "
+                  f"there was no matching prefix for `{local_cache_archive_file}`")
+            return None
+
+        return local_cache_archive_match
+
+    def restore_caches(self, caches: OrderedDict):
         """
         Restores caches from the host system to the destination location in the docker container.
         """
@@ -270,34 +303,10 @@ class DockerRunner:
                 continue
 
             # Check for prefix matching
-            if not os.path.exists(local_cache_archive_file):
-                cache_dir = os.path.dirname(local_cache_archive_file)
-
-                if not os.path.exists(cache_dir):
-                    print(f"Cache directory {cache_dir} does not exist, "
-                          f"skipping restore of archive {local_cache_archive_file}")
-                    continue
-
-                files = [f for f in listdir(cache_dir) if isfile(join(cache_dir, f))]
-
-                cache_key = Path(local_cache_archive_file).stem
-
-                most_recent_time = 0
-                local_cache_archive_match = None
-                for file in files:
-                    if file.startswith(cache_key):
-                        curr_archive_file = join(cache_dir, file)
-                        mod_time = getmtime(curr_archive_file)
-                        if mod_time > most_recent_time:
-                            most_recent_time = mod_time
-                            local_cache_archive_match = curr_archive_file
-
-                if local_cache_archive_match is None:
-                    print(f"Not able to restore cache {docker_path} since "
-                          f"there was no matching prefix for `{local_cache_archive_file}`")
-                    continue
-
-                local_cache_archive_file = local_cache_archive_match
+            actual_cache_archive_file = self._get_cache_file_from_prefix(local_cache_archive_file, docker_path)
+            if actual_cache_archive_file is None:
+                # Errors are printed out in the other method
+                continue
 
             orig_shell = self.shell
             try:
@@ -306,11 +315,11 @@ class DockerRunner:
                 if exit_code:
                     print(f"WARNING: There was an issue creating {docker_path} on the docker container.")
 
-                with open(local_cache_archive_file, 'rb') as data:
+                with open(actual_cache_archive_file, 'rb') as data:
                     restored_cache_src.add(docker_path)
                     if not self.docker_client.put_archive(self.container['Id'], docker_path, data):
                         print(f"WARNING: An error occurred when trying to use cache "
-                              f"{local_cache_archive_file} at the path {docker_path}")
+                              f"{actual_cache_archive_file} at the path {docker_path}")
 
             except docker.errors.APIError as exception:
                 print(f"WARNING: Encountered exception\n{exception}")
