@@ -1,5 +1,4 @@
 import os
-from os import path
 import tempfile
 import json
 
@@ -52,7 +51,7 @@ def test_no_artifacts():
     artifacts_in_file = {  }
     _test_buildrunner_file(
             f'{TEST_DIR}/test-files',
-            'artifacts/test-push-artifact.yaml',
+            'test-push-artifact.yaml',
             ['-s', 'test-no-artifacts'],
             0,
             artifacts_in_file
@@ -67,7 +66,7 @@ def test_no_artifact_properties():
         }
     _test_buildrunner_file(
             f'{TEST_DIR}/test-files',
-            'artifacts/test-push-artifact.yaml',
+            'test-push-artifact.yaml',
             ['-s', 'test-no-artifact-properties'],
             0,
             artifacts_in_file
@@ -82,7 +81,7 @@ def test_no_push_property():
         }
     _test_buildrunner_file(
             f'{TEST_DIR}/test-files',
-            'artifacts/test-push-artifact.yaml',
+            'test-push-artifact.yaml',
             ['-s', 'test-no-push-properties'],
             0,
             artifacts_in_file
@@ -97,7 +96,7 @@ def test_push_true():
         }
     _test_buildrunner_file(
             f'{TEST_DIR}/test-files',
-            'artifacts/test-push-artifact.yaml',
+            'test-push-artifact.yaml',
             ['-s', 'test-push-true'],
             0,
             artifacts_in_file
@@ -112,7 +111,7 @@ def test_push_false():
         }
     _test_buildrunner_file(
             f'{TEST_DIR}/test-files',
-            'artifacts/test-push-artifact.yaml',
+            'test-push-artifact.yaml',
             ['-s', 'test-push-false'],
             0,
             artifacts_in_file

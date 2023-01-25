@@ -175,6 +175,7 @@ class ConsoleLogger:
         for stream in streams:
             self.streams.append(stream)
         self.stdout = sys.stdout
+        self.stderr = sys.stderr
 
     def write(self, output: Union[bytes, str], color=None):
         """
@@ -194,7 +195,13 @@ class ConsoleLogger:
         # do not colorize output to other streams
         for stream in self.streams:
             try:
-                stream.write(output)
+                if stream.closed:
+                    self.stderr.write(
+                        f'WARNING: Attempted to write to closed stream {stream}.' \
+                        f' Removed from list of streams in {__class__} and not writing {output} to {stream}.'
+                    )
+                else:
+                    stream.write(output)
             except UnicodeDecodeError as ude:
                 stream.write(f"\nERROR writing to log: {str(ude)}\n")
 
@@ -202,7 +209,8 @@ class ConsoleLogger:
         """
         Flush.
         """
-        pass
+        for stream in self.streams:
+            stream.flush()
 
 
 class ContainerLogger:

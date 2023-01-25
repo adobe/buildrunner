@@ -387,8 +387,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 f"Error gathering artifact {artifact_file}",
             )
 
-        if properties is None or (isinstance(properties, OrderedDict) \
-            and ('push' not in properties.keys() or ('push' in properties.keys() and properties['push'] is True))):
+        if not properties or (isinstance(properties, dict) and properties.get('push', True)):
             # register the artifact with the run controller
             self.step_runner.build_runner.add_artifact(
                 os.path.join(
