@@ -97,6 +97,8 @@ tqdm==4.64.0
     # via twine
 twine==3.2.0
     # via -r requirements.in
+typing-extensions==4.1.1
+    # via -r requirements.in
 urllib3==1.26.9
     # via requests
 vcsinfo==2.1.105
