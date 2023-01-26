@@ -8,7 +8,7 @@ from time import sleep
 
 from buildrunner import BuildRunner
 from buildrunner.docker.runner import DockerRunner
-from buildrunner.utils import ContainerLogger, ConsoleLogger
+from buildrunner.utils import ConsoleLogger
 import pytest
 
 
@@ -21,7 +21,7 @@ def fixture_setup_runner():
     runner = DockerRunner(
         image_config=image_config,
     )
-    container_id = runner.start(working_dir="/root")
+    runner.start(working_dir="/root")
 
     yield runner
 
