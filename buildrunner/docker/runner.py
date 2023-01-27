@@ -293,11 +293,10 @@ class DockerRunner:
                 f"there was no matching prefix for `{local_cache_archive_file}`\n"
             )
             return None
-        else:
-            logger.write(
-                f"Found cache {local_cache_archive_match} matching prefix {local_cache_archive_file} "
-                f"for destination path {docker_path}\n"
-            )
+        logger.write(
+            f"Found cache {local_cache_archive_match} matching prefix {local_cache_archive_file} "
+            f"for destination path {docker_path}\n"
+        )
 
         return local_cache_archive_match
 
