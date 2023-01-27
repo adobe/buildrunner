@@ -1,14 +1,15 @@
 import io
 import os
 import tarfile
-from collections import OrderedDict
 import tempfile
+from collections import OrderedDict
 from os.path import isfile, join
 from time import sleep
+from unittest import mock
 
 from buildrunner import BuildRunner
 from buildrunner.docker.runner import DockerRunner
-from buildrunner.utils import ConsoleLogger
+from buildrunner.utils import ConsoleLogger, ContainerLogger
 import pytest
 
 
@@ -35,6 +36,13 @@ def fixture_setup_tmp_dir_context():
         os.chdir(tmp_dir_name)
         yield tmp_dir_name
         os.chdir(cwd)
+
+
+@pytest.fixture(name="mock_logger")
+def fixture_mock_logger():
+    mock_logger = mock.create_autospec(ContainerLogger)
+    mock_logger.write.side_effect = lambda message: print(message.strip())
+    return mock_logger
 
 
 def create_test_files_in_docker(drunner, cache_name, docker_path, num_of_test_files: int = 5) -> list:
@@ -82,7 +90,7 @@ def setup_cache_test_files(tmp_dir_name: str, cache_name: str, num_files: int = 
     return test_files
 
 
-def test_restore_cache_basic(runner, tmp_dir_name):
+def test_restore_cache_basic(runner, tmp_dir_name, mock_logger):
     """
     Tests basic restore cache functionality
     """
@@ -98,7 +106,7 @@ def test_restore_cache_basic(runner, tmp_dir_name):
     caches = OrderedDict()
     caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-    runner.restore_caches(caches)
+    runner.restore_caches(mock_logger, caches)
 
     with io.StringIO() as my_stream:
         log = ConsoleLogger(
@@ -118,7 +126,7 @@ def test_restore_cache_basic(runner, tmp_dir_name):
             assert f"{file}\n" in output
 
 
-def test_restore_cache_no_cache(runner):
+def test_restore_cache_no_cache(runner, mock_logger):
     """
     Tests restore cache when a match is not found
     """
@@ -132,7 +140,7 @@ def test_restore_cache_no_cache(runner):
         caches = OrderedDict()
         caches[f"{tmp_dir_name}/{cache_name}-bogusname.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-        runner.restore_caches(caches)
+        runner.restore_caches(mock_logger, caches)
 
         with io.StringIO() as my_stream:
             log = ConsoleLogger(
@@ -152,7 +160,7 @@ def test_restore_cache_no_cache(runner):
                 assert f"{file}\n" not in output
 
 
-def test_restore_cache_prefix_matching(runner, tmp_dir_name):
+def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger):
     """
     Tests restore cache when there is prefix matching
     """
@@ -172,7 +180,7 @@ def test_restore_cache_prefix_matching(runner, tmp_dir_name):
     caches[f"{tmp_dir_name}/{cache_name_checksum}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
     caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-    runner.restore_caches(caches)
+    runner.restore_caches(mock_logger, caches)
 
     with io.StringIO() as my_stream:
         log = ConsoleLogger(
@@ -195,7 +203,7 @@ def test_restore_cache_prefix_matching(runner, tmp_dir_name):
             assert f"{file}\n" in output
 
 
-def test_restore_cache_prefix_timestamps(runner, tmp_dir_name):
+def test_restore_cache_prefix_timestamps(runner, tmp_dir_name, mock_logger):
     """
     Tests that when the cache prefix matches it chooses the most recent archive file
     """
@@ -220,7 +228,7 @@ def test_restore_cache_prefix_timestamps(runner, tmp_dir_name):
     caches = OrderedDict()
     caches[f"{tmp_dir_name}/{cache_name_prefix}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
 
-    runner.restore_caches(caches)
+    runner.restore_caches(mock_logger, caches)
 
     with io.StringIO() as my_stream:
         log = ConsoleLogger(
@@ -246,7 +254,7 @@ def test_restore_cache_prefix_timestamps(runner, tmp_dir_name):
             assert f"{file}\n" in output
 
 
-def test_save_cache_basic(runner, tmp_dir_name):
+def test_save_cache_basic(runner, tmp_dir_name, mock_logger):
     """
     Test basic save cache functionality
     """
@@ -260,7 +268,7 @@ def test_save_cache_basic(runner, tmp_dir_name):
     caches = OrderedDict()
     tarfile_name = f"{cache_name}.{BuildRunner.get_cache_archive_ext()}"
     caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    runner.save_caches(caches)
+    runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
     assert tarfile_name in files
@@ -276,7 +284,7 @@ def test_save_cache_basic(runner, tmp_dir_name):
             assert file in extracted_files
 
 
-def test_save_cache_multiple_cache_keys(runner, tmp_dir_name):
+def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     """
     Test save cache functionality when there are multiple cache keys.
     At the time of this writing it should take the topmost cache key
@@ -305,7 +313,7 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name):
     caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
     caches[f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
     caches[f"{tmp_dir_name}/{cache_name_maven}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    runner.save_caches(caches)
+    runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
     assert tarfile_name in files
@@ -329,7 +337,7 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name):
     caches[f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
     caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
     caches[f"{tmp_dir_name}/{cache_name_maven}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    runner.save_caches(caches)
+    runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
     assert cache_name not in files
@@ -347,7 +355,7 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name):
             assert file in extracted_files
 
 
-def test_save_cache_multiple_caches(runner, tmp_dir_name):
+def test_save_cache_multiple_caches(runner, tmp_dir_name, mock_logger):
     venv_cache_name = "venv"
     venv_docker_path = "/root/venv_cache"
     venv_tarfile_name = f"{venv_cache_name}.{BuildRunner.get_cache_archive_ext()}"
@@ -370,7 +378,7 @@ def test_save_cache_multiple_caches(runner, tmp_dir_name):
 
     caches[f"{tmp_dir_name}/{venv_cache_name}.{BuildRunner.get_cache_archive_ext()}"] = venv_docker_path
     caches[f"{tmp_dir_name}/{maven_cache_name}.{BuildRunner.get_cache_archive_ext()}"] = maven_docker_path
-    runner.save_caches(caches)
+    runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
     assert venv_tarfile_name in files
