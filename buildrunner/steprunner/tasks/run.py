@@ -951,7 +951,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     )
                     caches[cache_archive_file] = value
                     container_meta_logger.write(
-                        f"Copying local cache `{cache_archive_file}` -> docker path `{value}`\n"
+                        f"Considering local cache `{cache_archive_file}` -> docker path `{value}`\n"
                     )
                 elif isinstance(value, list):
                     for cache_local in value:
@@ -960,7 +960,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         )
                         caches[cache_archive_file] = key
                         container_meta_logger.write(
-                            f"Copying local cache [{cache_archive_file}] -> docker path [{key}]\n"
+                            f"Considering local cache [{cache_archive_file}] -> docker path [{key}]\n"
                         )
                 else:
                     print(f"Warning: Type {type(value)} is not supported. "
@@ -1001,7 +1001,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 **container_args
             )
 
-            self.runner.restore_caches(caches)
+            self.runner.restore_caches(container_meta_logger, caches)
 
             self.step_runner.log.write(
                 f'Started build container {container_id:.10}\n'
@@ -1031,7 +1031,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     f'Container exited with code {exit_code}\n'
                 )
 
-            self.runner.save_caches(caches)
+            self.runner.save_caches(container_meta_logger, caches)
 
         finally:
             if self.runner:
