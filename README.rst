@@ -1361,6 +1361,30 @@ To use the registry in a ``Dockerfile``:
     ARG DOCKER_REGISTRY
     FROM $DOCKER_REGISTRY/busybox:latest
 
+Docker image build/tag/push race condition
+------------------------------------------
+
+A race condition exists when building, tagging, then pushing a docker image.
+
+The Scenario
+````````````
+
+Not every project will be impacted by this problem, and understanding the problem will help you know if you need to
+account for it. The basic scenario is as follows:
+
+- job 1 builds the docker image ``XYZ`` and tags it latest
+- job 2 starts and pulls the ``XYZ:latest`` image, overwriting the newly built ``XYZ:latest`` image
+- job 1 pushes the older ``XYZ:latest`` image, because it was overwritten by job 2
+
+Solutions
+`````````
+
+A couple of potential solutions are:
+
+- tag the image as ``latest`` as the last step/steps
+- tag and pushing ``latest`` outside of buildrunner after it is done (e.g. in a subsequent deployment pipeline, etc)
+
+Neither of these solutions are perfect, but both significantly shrink the chance of encountering the race condition.
 
 Contributing
 ============
