@@ -1361,10 +1361,10 @@ To use the registry in a ``Dockerfile``:
     ARG DOCKER_REGISTRY
     FROM $DOCKER_REGISTRY/busybox:latest
 
-Docker image build/tag/push race condition
-------------------------------------------
+Caution when using ``latest`` tag
+---------------------------------
 
-A race condition exists when building, tagging, then pushing a docker image.
+A race condition exists when pushing a docker image with a static tag such as ``latest``.
 
 The Scenario
 ````````````
