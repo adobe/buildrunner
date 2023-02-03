@@ -8,9 +8,11 @@ with the terms of the Adobe license agreement accompanying it.
 
 from collections import OrderedDict
 from datetime import datetime
+import fcntl
 from time import strftime, gmtime
 import os
 import sys
+import time
 import uuid
 import yaml.resolver
 import yaml.scanner
@@ -309,3 +311,72 @@ class ContainerLogger:
         colors[-1] = current
 
         return current
+
+def acquire_flock(
+        lock_file: str,
+        logger: ContainerLogger,
+        timeout_seconds:
+        float = 20.0,
+        exclusive: bool = True, ) -> int:
+    """
+    Acquire file lock and open file with configurable timeout
+
+    :param lock_file: path and file name of file open and lock
+    :param logger: logger to log messages
+    :param timeout_seconds: number of seconds for timeout, defaults to 20.0
+    :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
+    :return: the open file descriptor if lock acquisition was successful else None
+    """
+    # Inspired by https://gist.github.com/jirihnidek/430d45c54311661b47fb45a3a7846537
+    file_descriptor = os.open(lock_file, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+    pid = os.getpid()
+    lock_file_fd = None
+    retry_sleep_seconds = 0.5
+
+    start_time = current_time = time.time()
+    duration_seconds = current_time - start_time
+
+    while duration_seconds < timeout_seconds:
+        try:
+            # The LOCK_NB means non blocking
+            # More information here:
+            # https://docs.python.org/3/library/fcntl.html#fcntl.flock
+            if exclusive:
+                # Obtain an exclusive lock, blocks shared (read) locks
+                fcntl.flock(file_descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            else:
+                # Allow multiple people to read from the file at the same time
+                # If another instance adds an exclusive lock in the save method below,
+                # this will block until the lock is released
+                fcntl.flock(file_descriptor, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except (IOError, OSError):
+            # Limit the amount of logs written while waiting for the file lock
+            num_seconds_between_log_writes = 10
+            if 0 <= (duration_seconds % num_seconds_between_log_writes) <= retry_sleep_seconds:
+                logger.write(f"PID:{pid} waiting for file lock on {lock_file} after {duration_seconds} seconds")
+        else:
+            lock_file_fd = file_descriptor
+            break
+        time.sleep(retry_sleep_seconds)
+        duration_seconds = time.time() - start_time
+
+    if lock_file_fd is None:
+        os.close(file_descriptor)
+        logger.write(
+            f"PID:{pid} failed to acquire file lock for {lock_file} after timeout of {timeout_seconds} seconds"
+        )
+    else:
+        logger.write(f"PID:{pid} file opened and lock acquired for {lock_file} (fd={lock_file_fd})")
+
+    return lock_file_fd
+
+def release_flock(lock_file_fd: int, logger: ContainerLogger):
+    """
+    Release the file lock and close file descriptor
+
+    :param lock_file_fd: file descriptor
+    :param logger: logger to log messages
+    """
+    fcntl.flock(lock_file_fd, fcntl.LOCK_UN)
+    os.close(lock_file_fd)
+    logger.write(f"PID:{os.getpid()} released and closed file descriptor {lock_file_fd}")
