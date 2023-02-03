@@ -5,7 +5,7 @@ from unittest import mock
 from os import path
 
 import pytest
-from buildrunner.utils import ContainerLogger, acquire_read_binary_flock, acquire_write_binary_flock, release_flock
+from buildrunner.utils import ContainerLogger, FailureToAcquireLockException, acquire_read_binary_flock, acquire_write_binary_flock, release_flock
 
 @pytest.fixture(name="mock_logger")
 def fixture_mock_logger():
@@ -49,7 +49,8 @@ def test_flock_exclusive_aquire(mock_logger):
             p = Process(target=get_and_hold_lock, args=(lock_file, 4))
             p.start()
             time.sleep(1)
-            fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=1.0)
+            with pytest.raises(FailureToAcquireLockException):
+                fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=1.0)
             assert fd is None
             p.join()
 
@@ -57,7 +58,8 @@ def test_flock_exclusive_aquire(mock_logger):
             p = Process(target=get_and_hold_lock, args=(lock_file, 4, False))
             p.start()
             time.sleep(1)
-            fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=1.0)
+            with pytest.raises(FailureToAcquireLockException):
+                fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=1.0)
             assert fd is None
             p.join()
 
@@ -65,7 +67,8 @@ def test_flock_exclusive_aquire(mock_logger):
             p = Process(target=get_and_hold_lock, args=(lock_file, 4, True))
             p.start()
             time.sleep(1)
-            fd = acquire_read_binary_flock(lock_file, mock_logger, timeout_seconds=1.0)
+            with pytest.raises(FailureToAcquireLockException):
+                fd = acquire_read_binary_flock(lock_file, mock_logger, timeout_seconds=1.0)
             assert fd is None
             p.join()
 
@@ -102,7 +105,8 @@ def test_flock_aquire_exlusive_timeout(mock_logger):
 
             timeout_seconds = 5
             start_time = time.time()
-            fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=timeout_seconds)
+            with pytest.raises(FailureToAcquireLockException):
+                fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=timeout_seconds)
             duration_seconds = time.time() - start_time
             tolerance_seconds = 0.6
             assert (timeout_seconds - tolerance_seconds) <= duration_seconds <= (timeout_seconds + tolerance_seconds)
@@ -116,7 +120,8 @@ def test_flock_aquire_exlusive_timeout(mock_logger):
 
             timeout_seconds = 5
             start_time = time.time()
-            fd = acquire_read_binary_flock(lock_file, mock_logger, timeout_seconds=timeout_seconds)
+            with pytest.raises(FailureToAcquireLockException):
+                fd = acquire_read_binary_flock(lock_file, mock_logger, timeout_seconds=timeout_seconds)
             duration_seconds = time.time() - start_time
             tolerance_seconds = 0.6
             assert (timeout_seconds - tolerance_seconds) <= duration_seconds <= (timeout_seconds + tolerance_seconds)
@@ -130,7 +135,8 @@ def test_flock_aquire_exlusive_timeout(mock_logger):
 
             timeout_seconds = 5
             start_time = time.time()
-            fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=timeout_seconds)
+            with pytest.raises(FailureToAcquireLockException):
+                fd = acquire_write_binary_flock(lock_file, mock_logger, timeout_seconds=timeout_seconds)
             duration_seconds = time.time() - start_time
             tolerance_seconds = 0.6
             assert (timeout_seconds - tolerance_seconds) <= duration_seconds <= (timeout_seconds + tolerance_seconds)

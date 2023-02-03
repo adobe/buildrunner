@@ -23,6 +23,13 @@ from typing import Union, Tuple
 
 from buildrunner.errors import BuildRunnerConfigurationError
 
+LOCK_TIMEOUT_SECONDS = 600.0
+
+class FailureToAcquireLockException(Exception):
+    """
+    Raised when there is failure to acquire file lock
+    """
+    pass
 
 class OrderedLoader(yaml.Loader):  # pylint: disable=too-many-ancestors
     """
@@ -317,7 +324,7 @@ def _acquire_flock(
         lock_file: str,
         logger: ContainerLogger,
         mode: str,
-        timeout_seconds: float = 20.0,
+        timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
         exclusive: bool = True) -> io.IOBase:
     """
     Acquire file lock and open file with configurable timeout
@@ -325,15 +332,20 @@ def _acquire_flock(
     :param lock_file: path and file name of file open and lock
     :param logger: logger to log messages
     :param mode: open mode
-    :param timeout_seconds: number of seconds for timeout, defaults to 20.0
+    :param timeout_seconds: number of seconds for timeout
     :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
     :return: opened file object if successful else None
     """
     # Inspired by https://gist.github.com/jirihnidek/430d45c54311661b47fb45a3a7846537
-    fd = os.open(lock_file, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
-    file_obj = os.fdopen(fd, mode)
+    flags = os.O_RDWR | os.O_CREAT
+
+    if 'a' in mode:
+        flags = flags | os.O_TRUNC
+
+    file_descriptor = os.open(lock_file, flags)
+    file_obj = os.fdopen(file_descriptor, mode)
     pid = os.getpid()
-    lock_file_fd = None
+    lock_file_obj = None
     retry_sleep_seconds = 0.5
 
     start_time = current_time = time.time()
@@ -358,32 +370,31 @@ def _acquire_flock(
             if 0 <= (duration_seconds % num_seconds_between_log_writes) <= retry_sleep_seconds:
                 logger.write(f"PID:{pid} waiting for file lock on {lock_file} after {duration_seconds} seconds")
         else:
-            lock_file_fd = file_obj
+            lock_file_obj = file_obj
             break
         time.sleep(retry_sleep_seconds)
         duration_seconds = time.time() - start_time
 
-    if lock_file_fd is None:
-        # os.close(fd)
+    if lock_file_obj is None:
         file_obj.close()
-        logger.write(
+        raise FailureToAcquireLockException(
             f"PID:{pid} failed to acquire file lock for {lock_file} after timeout of {timeout_seconds} seconds"
         )
-    else:
-        logger.write(f"PID:{pid} file opened and lock acquired for {lock_file} ({lock_file_fd})")
 
-    return lock_file_fd
+    logger.write(f"PID:{pid} file opened and lock acquired for {lock_file} ({lock_file_obj})")
+
+    return lock_file_obj
 
 def acquire_read_binary_flock(
         lock_file: str,
         logger: ContainerLogger,
-        timeout_seconds: float = 20.0) -> io.BufferedReader:
+        timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedReader:
     """
     Acquire file lock and open binary file in read mode with configurable timeout
 
     :param lock_file: path and file name of file open and lock
     :param logger: logger to log messages
-    :param timeout_seconds: number of seconds for timeout, defaults to 20.0
+    :param timeout_seconds: number of seconds for timeout
     :return: opened file object
     """
     return _acquire_flock(
@@ -396,13 +407,13 @@ def acquire_read_binary_flock(
 def acquire_write_binary_flock(
         lock_file: str,
         logger: ContainerLogger,
-        timeout_seconds: float = 20.0) -> io.BufferedWriter:
+        timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedWriter:
     """
     Acquire file lock and open binary file in write mode with configurable timeout
 
     :param lock_file: path and file name of file open and lock
     :param logger: logger to log messages
-    :param timeout_seconds: number of seconds for timeout, defaults to 20.0
+    :param timeout_seconds: number of seconds for timeout
     :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
     :return: opened file object
     """
