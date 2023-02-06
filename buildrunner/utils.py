@@ -380,7 +380,7 @@ def _acquire_flock_open(
 
     return lock_file_obj
 
-def acquire_flock_open_read_binary_(
+def acquire_flock_open_read_binary(
         lock_file: str,
         logger: ContainerLogger,
         timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedReader:

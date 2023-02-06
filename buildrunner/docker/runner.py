@@ -7,6 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import base64
+import io
 import os.path
 import socket
 import ssl
@@ -28,7 +29,7 @@ from buildrunner.docker import (
     BuildRunnerContainerError,
 )
 from buildrunner.utils import (
-    acquire_flock_open_read_binary_,
+    acquire_flock_open_read_binary,
     acquire_flock_open_write_binary,
     release_flock,
     tempfile,
@@ -316,8 +317,15 @@ class DockerRunner:
         return local_cache_archive_match
 
     @timeout_decorator.timeout(CACHE_TIMEOUT_SECONDS, BuildRunnerCacheTimeout)
-    def _put_cache_in_container(self, restored_cache_src, docker_path, file_obj):
-        restored_cache_src.add(docker_path)
+    def _put_cache_in_container(self, docker_path: str, file_obj: io.IOBase) -> bool:
+        """
+        Insert a file or folder in an existing container using a tar archive as
+        source.
+
+        :param docker_path: Path of file or folder in the container
+        :param file_obj: Opened file object of cache
+        :return: True if the call succeeds.
+        """
         return self.docker_client.put_archive(self.container['Id'], docker_path, file_obj)
 
     def restore_caches(self, logger: ContainerLogger, caches: OrderedDict) -> None:
@@ -353,13 +361,14 @@ class DockerRunner:
                 # Allow multiple people to read from the file at the same time
                 # If another instance adds an exclusive lock in the save method below,
                 # this will block until the lock is released
-                file_obj = acquire_flock_open_read_binary_(
+                file_obj = acquire_flock_open_read_binary(
                     lock_file=actual_cache_archive_file,
                     logger=logger
                 )
                 logger.write("File lock acquired. Attempting to put cache into the container.")
 
-                if not self._put_cache_in_container(restored_cache_src, docker_path, file_obj):
+                restored_cache_src.add(docker_path)
+                if not self._put_cache_in_container(docker_path, file_obj):
                     logger.write(
                         f"WARNING: An error occurred when trying to use cache "
                         f"{actual_cache_archive_file} at the path {docker_path}\n"
@@ -373,7 +382,13 @@ class DockerRunner:
                 logger.write("Cache was put into the container. Released file lock.")
 
     @timeout_decorator.timeout(CACHE_TIMEOUT_SECONDS, BuildRunnerCacheTimeout)
-    def _write_cache(self, docker_path, file_obj):
+    def _write_cache(self, docker_path: str, file_obj: io.IOBase):
+        """
+        Write cache locally from file or folder in a running container
+
+        :param docker_path: Path of file or folder in the container
+        :param file_obj: Opened file object to write cache
+        """
         bits, _ = self.docker_client.get_archive(self.container['Id'], f"{docker_path}/.")
         for chunk in bits:
             file_obj.write(chunk)
