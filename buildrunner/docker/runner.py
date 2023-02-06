@@ -7,7 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import base64
-import fcntl
+import io
 import os.path
 import socket
 import ssl
@@ -21,13 +21,29 @@ from typing import Optional
 import docker.errors
 import six
 from docker.utils import compare_version
+import timeout_decorator
 
 from buildrunner.docker import (
     new_client,
     force_remove_container,
     BuildRunnerContainerError,
 )
-from buildrunner.utils import tempfile, ContainerLogger
+from buildrunner.utils import (
+    acquire_flock_open_read_binary,
+    acquire_flock_open_write_binary,
+    release_flock,
+    tempfile,
+    ContainerLogger,
+)
+
+CACHE_TIMEOUT_SECONDS = 180
+
+
+class BuildRunnerCacheTimeout(Exception):
+    """
+    Exception which is raised when there is a timeout issue related to caching.
+    """
+    pass
 
 
 class DockerRunner:
@@ -300,6 +316,18 @@ class DockerRunner:
 
         return local_cache_archive_match
 
+    @timeout_decorator.timeout(CACHE_TIMEOUT_SECONDS, BuildRunnerCacheTimeout)
+    def _put_cache_in_container(self, docker_path: str, file_obj: io.IOBase) -> bool:
+        """
+        Insert a file or folder in an existing container using a tar archive as
+        source.
+
+        :param docker_path: Path of file or folder in the container
+        :param file_obj: Opened file object of cache
+        :return: True if the call succeeds.
+        """
+        return self.docker_client.put_archive(self.container['Id'], docker_path, file_obj)
+
     def restore_caches(self, logger: ContainerLogger, caches: OrderedDict) -> None:
         """
         Restores caches from the host system to the destination location in the docker container.
@@ -323,32 +351,47 @@ class DockerRunner:
                 continue
 
             orig_shell = self.shell
+            file_obj = None
             try:
                 self.shell = "/bin/sh"
                 exit_code = self.run(f"mkdir -p {docker_path}")
                 if exit_code:
                     logger.write(f"WARNING: There was an issue creating {docker_path} on the docker container\n")
 
-                with open(actual_cache_archive_file, 'rb') as data:
-                    try:
-                        # Allow multiple people to read from the file at the same time
-                        # If another instance adds an exclusive lock in the save method below,
-                        # this will block until the lock is released
-                        fcntl.lockf(data, fcntl.LOCK_SH)
-                        restored_cache_src.add(docker_path)
-                        if not self.docker_client.put_archive(self.container['Id'], docker_path, data):
-                            logger.write(
-                                f"WARNING: An error occurred when trying to use cache "
-                                f"{actual_cache_archive_file} at the path {docker_path}\n"
-                            )
-                    finally:
-                        # Always unlock the file after extracting the archive
-                        fcntl.lockf(data, fcntl.LOCK_UN)
+                # Allow multiple people to read from the file at the same time
+                # If another instance adds an exclusive lock in the save method below,
+                # this will block until the lock is released
+                file_obj = acquire_flock_open_read_binary(
+                    lock_file=actual_cache_archive_file,
+                    logger=logger
+                )
+                logger.write("File lock acquired. Attempting to put cache into the container.")
+
+                restored_cache_src.add(docker_path)
+                if not self._put_cache_in_container(docker_path, file_obj):
+                    logger.write(
+                        f"WARNING: An error occurred when trying to use cache "
+                        f"{actual_cache_archive_file} at the path {docker_path}\n"
+                    )
 
             except docker.errors.APIError as exception:
                 logger.write(f"WARNING: Encountered exception\n{exception}\n")
             finally:
                 self.shell = orig_shell
+                release_flock(file_obj, logger)
+                logger.write("Cache was put into the container. Released file lock.")
+
+    @timeout_decorator.timeout(CACHE_TIMEOUT_SECONDS, BuildRunnerCacheTimeout)
+    def _write_cache(self, docker_path: str, file_obj: io.IOBase):
+        """
+        Write cache locally from file or folder in a running container
+
+        :param docker_path: Path of file or folder in the container
+        :param file_obj: Opened file object to write cache
+        """
+        bits, _ = self.docker_client.get_archive(self.container['Id'], f"{docker_path}/.")
+        for chunk in bits:
+            file_obj.write(chunk)
 
     def save_caches(self, logger: ContainerLogger, caches: OrderedDict) -> None:
         """
@@ -365,16 +408,17 @@ class DockerRunner:
                         f"to local cache `{local_cache_archive_file}`\n"
                     )
 
-                    with open(local_cache_archive_file, 'wb') as fobj:
-                        try:
-                            # Obtain an exclusive lock, blocks shared (read) locks in the restore method above
-                            fcntl.lockf(fobj, fcntl.LOCK_EX)
-                            bits, _ = self.docker_client.get_archive(self.container['Id'], f"{docker_path}/.")
-                            for chunk in bits:
-                                fobj.write(chunk)
-                        finally:
-                            # Always unlock the file after persisting the archive
-                            fcntl.lockf(fobj, fcntl.LOCK_UN)
+                    file_obj = None
+                    try:
+                        file_obj = acquire_flock_open_write_binary(
+                            lock_file=local_cache_archive_file,
+                            logger=logger
+                        )
+                        logger.write("File lock acquired. Attempting to write to cache.")
+                        self._write_cache(docker_path, file_obj)
+                    finally:
+                        release_flock(file_obj, logger)
+                        logger.write("Writing to cache completed. Released file lock.")
                 else:
                     logger.write(
                         f"The following `{docker_path}` in docker has already been saved. "

@@ -8,9 +8,12 @@ with the terms of the Adobe license agreement accompanying it.
 
 from collections import OrderedDict
 from datetime import datetime
+import fcntl
+import io
 from time import strftime, gmtime
 import os
 import sys
+import time
 import uuid
 import yaml.resolver
 import yaml.scanner
@@ -19,6 +22,15 @@ import hashlib
 from typing import Union, Tuple
 
 from buildrunner.errors import BuildRunnerConfigurationError
+
+LOCK_TIMEOUT_SECONDS = 1800.0
+
+
+class FailureToAcquireLockException(Exception):
+    """
+    Raised when there is failure to acquire file lock
+    """
+    pass
 
 
 class OrderedLoader(yaml.Loader):  # pylint: disable=too-many-ancestors
@@ -309,3 +321,111 @@ class ContainerLogger:
         colors[-1] = current
 
         return current
+
+def _acquire_flock_open(
+        lock_file: str,
+        logger: ContainerLogger,
+        mode: str,
+        timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
+        exclusive: bool = True) -> io.IOBase:
+    """
+    Acquire file lock and open file with configurable timeout
+
+    :param lock_file: path and file name of file open and lock
+    :param logger: logger to log messages
+    :param mode: mode used by open()
+    :param timeout_seconds: number of seconds for timeout
+    :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
+    :return: opened file object if successful else None
+    """
+    file_obj = open(lock_file, mode)
+    pid = os.getpid()
+    lock_file_obj = None
+    retry_sleep_seconds = 0.5
+
+    start_time = current_time = time.time()
+    duration_seconds = current_time - start_time
+
+    while duration_seconds < timeout_seconds:
+        try:
+            # The LOCK_NB means non blocking
+            # More information here:
+            # https://docs.python.org/3/library/fcntl.html#fcntl.flock
+            if exclusive:
+                # Obtain an exclusive lock, blocks shared (read) locks
+                fcntl.flock(file_obj, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            else:
+                # Allow multiple people to read from the file at the same time
+                # If another instance adds an exclusive lock in the save method below,
+                # this will block until the lock is released
+                fcntl.flock(file_obj, fcntl.LOCK_SH | fcntl.LOCK_NB)
+        except (IOError, OSError):
+            # Limit the amount of logs written while waiting for the file lock
+            num_seconds_between_log_writes = 10
+            if 0 <= (duration_seconds % num_seconds_between_log_writes) <= retry_sleep_seconds:
+                logger.write(f"PID:{pid} waiting for file lock on {lock_file} after {duration_seconds} seconds")
+        else:
+            lock_file_obj = file_obj
+            break
+        time.sleep(retry_sleep_seconds)
+        duration_seconds = time.time() - start_time
+
+    if lock_file_obj is None:
+        file_obj.close()
+        raise FailureToAcquireLockException(
+            f"PID:{pid} failed to acquire file lock for {lock_file} after timeout of {timeout_seconds} seconds"
+        )
+
+    logger.write(f"PID:{pid} file opened and lock acquired for {lock_file} ({lock_file_obj})")
+
+    return lock_file_obj
+
+def acquire_flock_open_read_binary(
+        lock_file: str,
+        logger: ContainerLogger,
+        timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedReader:
+    """
+    Acquire file lock and open binary file in read mode with configurable timeout
+
+    :param lock_file: path and file name of file open and lock
+    :param logger: logger to log messages
+    :param timeout_seconds: number of seconds for timeout
+    :return: opened file object
+    """
+    return _acquire_flock_open(
+        lock_file=lock_file,
+        logger=logger,
+        mode='rb',
+        timeout_seconds=timeout_seconds,
+        exclusive=False)
+
+def acquire_flock_open_write_binary(
+        lock_file: str,
+        logger: ContainerLogger,
+        timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedWriter:
+    """
+    Acquire file lock and open binary file in write mode with configurable timeout
+
+    :param lock_file: path and file name of file open and lock
+    :param logger: logger to log messages
+    :param timeout_seconds: number of seconds for timeout
+    :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
+    :return: opened file object
+    """
+    return _acquire_flock_open(
+        lock_file=lock_file,
+        logger=logger,
+        mode='wb',
+        timeout_seconds=timeout_seconds,
+        exclusive=True)
+
+def release_flock(lock_file_obj, logger: ContainerLogger):
+    """
+    Release the file lock and close file descriptor
+
+    :param lock_file_fd: file descriptor
+    :param logger: logger to log messages
+    """
+    fcntl.flock(lock_file_obj, fcntl.LOCK_UN)
+    lock_file_obj.close()
+    logger.write(f"PID:{os.getpid()} released and closed file {lock_file_obj}")
