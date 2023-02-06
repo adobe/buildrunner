@@ -23,13 +23,15 @@ from typing import Union, Tuple
 
 from buildrunner.errors import BuildRunnerConfigurationError
 
-LOCK_TIMEOUT_SECONDS = 600.0
+LOCK_TIMEOUT_SECONDS = 1800.0
+
 
 class FailureToAcquireLockException(Exception):
     """
     Raised when there is failure to acquire file lock
     """
     pass
+
 
 class OrderedLoader(yaml.Loader):  # pylint: disable=too-many-ancestors
     """
@@ -320,7 +322,7 @@ class ContainerLogger:
 
         return current
 
-def _acquire_flock(
+def _acquire_flock_open(
         lock_file: str,
         logger: ContainerLogger,
         mode: str,
@@ -331,19 +333,12 @@ def _acquire_flock(
 
     :param lock_file: path and file name of file open and lock
     :param logger: logger to log messages
-    :param mode: open mode
+    :param mode: mode used by open()
     :param timeout_seconds: number of seconds for timeout
     :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
     :return: opened file object if successful else None
     """
-    # Inspired by https://gist.github.com/jirihnidek/430d45c54311661b47fb45a3a7846537
-    flags = os.O_RDWR | os.O_CREAT
-
-    if 'a' in mode:
-        flags = flags | os.O_TRUNC
-
-    file_descriptor = os.open(lock_file, flags)
-    file_obj = os.fdopen(file_descriptor, mode)
+    file_obj = open(lock_file, mode)
     pid = os.getpid()
     lock_file_obj = None
     retry_sleep_seconds = 0.5
@@ -385,7 +380,7 @@ def _acquire_flock(
 
     return lock_file_obj
 
-def acquire_read_binary_flock(
+def acquire_flock_open_read_binary_(
         lock_file: str,
         logger: ContainerLogger,
         timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedReader:
@@ -397,14 +392,14 @@ def acquire_read_binary_flock(
     :param timeout_seconds: number of seconds for timeout
     :return: opened file object
     """
-    return _acquire_flock(
+    return _acquire_flock_open(
         lock_file=lock_file,
         logger=logger,
         mode='rb',
         timeout_seconds=timeout_seconds,
         exclusive=False)
 
-def acquire_write_binary_flock(
+def acquire_flock_open_write_binary(
         lock_file: str,
         logger: ContainerLogger,
         timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedWriter:
@@ -417,7 +412,7 @@ def acquire_write_binary_flock(
     :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
     :return: opened file object
     """
-    return _acquire_flock(
+    return _acquire_flock_open(
         lock_file=lock_file,
         logger=logger,
         mode='wb',

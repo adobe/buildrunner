@@ -93,6 +93,8 @@ six==1.16.0
     #   paramiko
 smmap==5.0.0
     # via gitdb
+timeout-decorator==0.5.0
+    # via -r requirements.in
 tqdm==4.64.0
     # via twine
 twine==3.2.0
