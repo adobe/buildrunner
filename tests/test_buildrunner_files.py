@@ -31,6 +31,10 @@ def _get_test_args(file_name: str) -> Optional[List[str]]:
 def _get_exit_code(file_name: str) -> int:
     if file_name.startswith('test-xfail'):
         return os.EX_CONFIG
+
+    if file_name.startswith('test-inject-nonexistent-dir'):
+        return os.EX_CONFIG
+
     return os.EX_OK
 
 
@@ -48,8 +52,7 @@ def _test_buildrunner_file(test_dir, file_name, args, exit_code):
         command_line = [
             'buildrunner-test',
             '-d', top_dir_path,
-            # FIXME containerize step looks for buildrunner.results/artifacts/ and fails with temp_dir
-            # '-b', temp_dir,
+            '-b', temp_dir,
             # Since we are using a fresh temp directory, don't delete it first
             '--keep-step-artifacts',
             '-f', os.path.join(test_dir, file_name),
