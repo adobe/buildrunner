@@ -1,0 +1,10 @@
+steps:
+  containerize:
+    build:
+      path: tests
+      no-cache: true
+      inject:
+        'bogus_dir/*.txt': files/
+    push:
+      repository: adobe/buildrunner-test
+      tags: ['latest']

@@ -122,16 +122,6 @@ steps:
         'marathon.config': {'marathon.config': 'releng/testmodule'}
         'flight-director.config': {type: 'flight-director-config', 'fd:repo': 'releng/testmodule'}
 
-  containerize:
-    build:
-      path: tests
-      no-cache: true
-      inject:
-        'buildrunner.results/artifacts/*.txt': files/
-    push:
-      repository: adobe/buildrunner-test
-      tags: ['latest']
-
   test-dir-archive:
     run:
       image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
