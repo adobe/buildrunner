@@ -170,7 +170,7 @@ def hash_sha1(file_name_globs=None):
                     while len(buf) > 0:
                         hasher.update(buf)
                         buf = open_file.read(blocksize)
-            except:
+            except Exception:  # pylint: disable=broad-except
                 print(f"WARNING: Error reading file: {file_name}")
     return hasher.hexdigest()
 
@@ -209,7 +209,7 @@ class ConsoleLogger:
             try:
                 if stream.closed:
                     self.stderr.write(
-                        f'WARNING: Attempted to write to a closed stream {stream}. ' \
+                        f'WARNING: Attempted to write to a closed stream {stream}. '
                         f'Not writing {output} to {stream}.'
                     )
                 else:
@@ -322,6 +322,7 @@ class ContainerLogger:
 
         return current
 
+
 def _acquire_flock_open(
         lock_file: str,
         logger: ContainerLogger,
@@ -380,6 +381,7 @@ def _acquire_flock_open(
 
     return lock_file_obj
 
+
 def acquire_flock_open_read_binary(
         lock_file: str,
         logger: ContainerLogger,
@@ -398,6 +400,7 @@ def acquire_flock_open_read_binary(
         mode='rb',
         timeout_seconds=timeout_seconds,
         exclusive=False)
+
 
 def acquire_flock_open_write_binary(
         lock_file: str,
@@ -418,6 +421,7 @@ def acquire_flock_open_write_binary(
         mode='wb',
         timeout_seconds=timeout_seconds,
         exclusive=True)
+
 
 def release_flock(lock_file_obj, logger: ContainerLogger):
     """

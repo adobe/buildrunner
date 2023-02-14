@@ -29,6 +29,8 @@ jobs:
         pip install -r test_requirements.txt
     - name: Lint with pylint
       run: pylint buildrunner
+    - name: Check code style with pycodestyle
+      run: pycodestyle buildrunner
     - name: Write SSH keys
       env:
         # These were generated with:

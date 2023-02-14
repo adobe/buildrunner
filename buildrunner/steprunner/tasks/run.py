@@ -550,7 +550,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             ))
 
         _volumes = {
-            self.step_runner.build_runner.build_results_dir: \
+            self.step_runner.build_runner.build_results_dir:
                 ARTIFACTS_VOLUME_MOUNT + ':ro',
         }
         if 'files' in config:

@@ -54,7 +54,7 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         self.name = step_name
         self.config = step_config
         self.local_images = local_images
-        self.platform=platform
+        self.platform = platform
 
         self.build_runner = build_runner
         self.src_dir = self.build_runner.build_dir
@@ -108,6 +108,6 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
             for _task in _tasks:
                 try:
                     _task.cleanup(_context)
-                except:
+                except Exception:  # pylint: disable=broad-except
                     self.log.write('\nError cleaning up task:\n')
                     traceback.print_exc(file=self.log)

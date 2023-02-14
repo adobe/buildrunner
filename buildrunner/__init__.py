@@ -59,7 +59,7 @@ try:
         _VERSION_MOD = types.ModuleType(loader.name)
         loader.exec_module(_VERSION_MOD)
         __version__ = getattr(_VERSION_MOD, '__version__', __version__)
-except:
+except Exception:  # pylint: disable=broad-except
     pass
 
 DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'

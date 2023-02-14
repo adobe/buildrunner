@@ -5,3 +5,4 @@ pytest-xdist==2.4.0
 pylint==2.7.1
 pylintfileheader==0.3.0
 graphlib-backport>=1.0.3
+pycodestyle>=2.10.0

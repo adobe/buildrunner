@@ -16,12 +16,12 @@ from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
 try:
     # Newer API
     Client = docker.client.Client  # pylint: disable=no-member
-except:
+except Exception:  # pylint: disable=broad-except
     try:
         # Older API
         Client = docker.client.APIClient
 
-    except:
+    except Exception:  # pylint: disable=broad-except
         # Older API
         Client = docker.api.client.APIClient
 
