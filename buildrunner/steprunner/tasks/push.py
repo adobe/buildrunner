@@ -38,8 +38,8 @@ class RepoDefinition:
             self,
             log,
             repository: str,
-            tags: Optional[List[str]]=None,
-            insecure_registry: Optional[bool]=None,
+            tags: Optional[List[str]] = None,
+            insecure_registry: Optional[bool] = None,
     ):
         # Force a lower-case repo
         repo_lower = repository.lower()

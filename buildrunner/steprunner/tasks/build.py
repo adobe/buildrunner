@@ -80,7 +80,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     # If the pull is successful, add the image to be cleaned up at the end of the script
                     self.step_runner.build_runner.generated_images.append(cache_from_image)
                     self.step_runner.log.write(f'Using cache_from image: {cache_from_image}\n')
-                except:
+                except Exception:  # pylint: disable=broad-except
                     self.step_runner.log.write(f'WARNING: Unable to pull the cache_from image: {cache_from_image}\n')
 
             if not is_dict(self.config.get('inject', {})):
