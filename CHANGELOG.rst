@@ -5,6 +5,14 @@
 .. contents::
    :local:
 
+3.0
+###
+
+* 3.0
+
+  * Add python 3.11 support
+  * Remove python 3.6 and 3.7 support
+
 2.0
 ###
 

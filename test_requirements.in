@@ -1,8 +1,8 @@
 pytest>=7.2.1
-pytest-randomly==3.5.0
-pytest-cov==2.10.1
-pytest-xdist==2.4.0
-pylint==2.7.1
-pylintfileheader==0.3.0
+pytest-randomly>=3.5.0
+pytest-cov>=2.10.1
+pytest-xdist>=2.4.0
+pylint>=2.7.1
+pylintfileheader>=0.3.0
 graphlib-backport>=1.0.3
 pycodestyle>=2.10.0

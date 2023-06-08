@@ -201,6 +201,7 @@ class ConsoleLogger:
         # colorize stdout
         if color and self.colorize_log:
             # Colorize stdout
+            # pylint: disable=invalid-character-esc
             _stdout = f'[01;3{color}m{_stdout}\033[00;00m'
         self.stdout.write(_stdout)
 
@@ -339,6 +340,7 @@ def _acquire_flock_open(
     :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
     :return: opened file object if successful else None
     """
+    # pylint: disable=unspecified-encoding,consider-using-with
     file_obj = open(lock_file, mode)
     pid = os.getpid()
     lock_file_obj = None

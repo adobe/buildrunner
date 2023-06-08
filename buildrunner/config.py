@@ -54,6 +54,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         """
         Raises an exception from a jinja template.
         """
+        # pylint: disable=broad-exception-raised
         raise Exception(message)
 
     @staticmethod
