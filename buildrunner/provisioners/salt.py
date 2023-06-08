@@ -32,7 +32,7 @@ class SaltProvisioner:
         # see if salt is installed, bootstrap if it isn't
         if runner.run('salt-call -h') != 0:
             # pull bootstrap and run as a script
-            bootstrap_response = requests.get('http://bootstrap.saltstack.org')
+            bootstrap_response = requests.get('http://bootstrap.saltstack.org', timeout=600)
             if bootstrap_response.status_code != 200:
                 raise BuildRunnerProvisionerError(
                     "Unable to get salt bootstrap"

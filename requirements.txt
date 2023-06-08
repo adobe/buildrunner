@@ -4,113 +4,112 @@
 #
 #    pip-compile
 #
-bcrypt==3.2.0
+bcrypt==4.0.1
     # via
     #   -r requirements.in
     #   paramiko
-bleach==4.1.0
+bleach==6.0.0
     # via readme-renderer
-certifi==2022.6.15
+certifi==2023.5.7
     # via requests
-cffi==1.15.0
+cffi==1.15.1
     # via
-    #   bcrypt
     #   cryptography
     #   pynacl
-charset-normalizer==2.0.12
+charset-normalizer==3.1.0
     # via requests
-colorama==0.4.5
-    # via twine
-cryptography==37.0.2
+cryptography==41.0.1
     # via paramiko
-decorator==5.1.0
-    # via -r requirements.in
-docker==4.4.4
-    # via -r requirements.in
-docutils==0.18.1
-    # via readme-renderer
-fabric==2.5.0
-    # via -r requirements.in
-gitdb==4.0.9
-    # via
-    #   gitpython
-    #   vcsinfo
-gitpython==3.1.18
-    # via
-    #   -r requirements.in
-    #   vcsinfo
-graphlib-backport==1.0.3
-    # via -r requirements.in
-idna==3.3
-    # via requests
-importlib-metadata==4.8.3
-    # via keyring
-invoke==1.7.1
-    # via fabric
-jinja2==2.11.2
-    # via -r requirements.in
-keyring==23.4.1
-    # via twine
-markupsafe==1.1.1
-    # via
-    #   -r requirements.in
-    #   jinja2
-packaging==21.3
-    # via bleach
-paramiko==2.10.3
+decorator==5.1.1
     # via
     #   -r requirements.in
     #   fabric
-pkginfo==1.8.3
+docker==6.1.3
+    # via -r requirements.in
+docutils==0.20.1
+    # via readme-renderer
+fabric==3.1.0
+    # via -r requirements.in
+gitdb==4.0.10
+    # via
+    #   gitpython
+    #   vcsinfo
+gitpython==3.1.31
+    # via vcsinfo
+graphlib-backport==1.0.3
+    # via -r requirements.in
+idna==3.4
+    # via requests
+importlib-metadata==6.6.0
+    # via
+    #   keyring
+    #   twine
+invoke==2.1.2
+    # via fabric
+jaraco-classes==3.2.3
+    # via keyring
+jinja2==3.1.2
+    # via -r requirements.in
+keyring==23.13.1
+    # via twine
+markdown-it-py==2.2.0
+    # via rich
+markupsafe==2.1.3
+    # via jinja2
+mdurl==0.1.2
+    # via markdown-it-py
+more-itertools==9.1.0
+    # via jaraco-classes
+packaging==23.1
+    # via docker
+paramiko==3.2.0
+    # via
+    #   -r requirements.in
+    #   fabric
+pkginfo==1.9.6
     # via twine
 pycparser==2.21
     # via cffi
-pygments==2.12.0
-    # via readme-renderer
+pygments==2.15.1
+    # via
+    #   readme-renderer
+    #   rich
 pynacl==1.5.0
     # via paramiko
-pyparsing==3.0.9
-    # via packaging
 pyyaml==6.0
     # via -r requirements.in
-readme-renderer==34.0
+readme-renderer==37.3
     # via twine
-requests==2.27.0
+requests==2.31.0
     # via
     #   -r requirements.in
     #   docker
     #   requests-toolbelt
     #   twine
-requests-toolbelt==0.9.1
+requests-toolbelt==1.0.0
     # via twine
-rfc3986==1.5.0
+rfc3986==2.0.0
+    # via twine
+rich==13.4.1
     # via twine
 six==1.16.0
-    # via
-    #   bcrypt
-    #   bleach
-    #   docker
-    #   paramiko
+    # via bleach
 smmap==5.0.0
     # via gitdb
 timeout-decorator==0.5.0
     # via -r requirements.in
-tqdm==4.64.0
-    # via twine
-twine==3.2.0
+twine==4.0.2
     # via -r requirements.in
-typing-extensions==4.1.1
-    # via -r requirements.in
-urllib3==1.26.9
-    # via requests
+urllib3==2.0.3
+    # via
+    #   docker
+    #   requests
+    #   twine
 vcsinfo==2.1.105
     # via -r requirements.in
 webencodings==0.5.1
     # via bleach
-websocket-client==1.3.1
+websocket-client==1.5.2
     # via docker
-zipp==3.6.0
+zipp==3.15.0
     # via importlib-metadata
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools

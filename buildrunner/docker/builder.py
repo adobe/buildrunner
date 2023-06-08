@@ -43,6 +43,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             if os.path.exists(dockerfile):
                 self.dockerfile = dockerfile
             else:
+                # pylint: disable=consider-using-with
                 df_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir)
                 try:
                     df_file.write(dockerfile.encode('utf-8'))
@@ -88,16 +89,16 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         if buildargs is None:
             buildargs = {}
         # create our own tar file, injecting the appropriate paths
+        # pylint: disable=consider-using-with
         _fileobj = tempfile.NamedTemporaryFile(dir=self.temp_dir)
-        tfile = tarfile.open(mode='w', fileobj=_fileobj)
-        if self.path:
-            tfile.add(self.path, arcname='.')
-        if self.inject:
-            for to_inject, dest in self.inject.items():
-                tfile.add(to_inject, arcname=dest)
-        if self.dockerfile:
-            tfile.add(self.dockerfile, arcname='./Dockerfile')
-        tfile.close()
+        with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
+            if self.path:
+                tfile.add(self.path, arcname='.')
+            if self.inject:
+                for to_inject, dest in self.inject.items():
+                    tfile.add(to_inject, arcname=dest)
+            if self.dockerfile:
+                tfile.add(self.dockerfile, arcname='./Dockerfile')
         _fileobj.seek(0)
 
         # Always add default registry to build args

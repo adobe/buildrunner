@@ -24,7 +24,8 @@ from paramiko import (
     SSHException,
 )
 from paramiko.agent import AgentSSH
-from paramiko.common import asbytes, io_sleep
+from paramiko.common import io_sleep
+from paramiko.util import asbytes
 from paramiko.message import Message
 
 from buildrunner.errors import (
@@ -224,6 +225,7 @@ class DockerSSHAgentProxy:
             time.sleep(backoff)
         else:
             self.log.write(f'Unable to successfully connect to {ssh_host}')
+            # pylint: disable=broad-exception-raised
             raise Exception(f'Unable to successfully connect to {ssh_host}')
 
     def stop(self):

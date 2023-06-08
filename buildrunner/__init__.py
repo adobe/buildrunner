@@ -219,7 +219,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         # print out env vars
         # pylint: disable=consider-iterating-dictionary
-        key_len = max([len(key) for key in self.env.keys()])
+        key_len = max(len(key) for key in self.env.keys())
         for key in sorted(self.env.keys()):
             val = self.env[key]
             LOGGER.debug(f'Environment: {key!s:>{key_len}}: {val}')
@@ -274,7 +274,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
             try:
                 log_file_path = os.path.join(self.build_results_dir, 'build.log')
-                self._log_file = open(log_file_path, 'w')
+                # pylint: disable=consider-using-with
+                self._log_file = open(log_file_path, 'w', encoding='utf8')
                 self._log = ConsoleLogger(self.colorize_log, self._log_file)
 
                 self.add_artifact(
@@ -385,6 +386,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                     return local_path
 
                 # need to put the contents in a tmp file and return the path
+                # pylint: disable=consider-using-with
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
                     dir=self.global_config.get_temp_dir(),
@@ -470,6 +472,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             self.log.write('Creating source archive\n')
             _fileobj = None
             try:
+                # pylint: disable=consider-using-with
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
                     dir=self.global_config.get_temp_dir(),

@@ -35,7 +35,7 @@ def v3_fetch_file(parsed_url, config):
         'users',
         username,
     ))
-    resp = requests.get(url, auth=auth)
+    resp = requests.get(url, auth=auth, timeout=180)
     if resp.status_code != 200:
         raise BuildRunnerProtocolError(f'Failed authenticating {username} on {endpoint}')
 
@@ -46,7 +46,7 @@ def v3_fetch_file(parsed_url, config):
     ubuild = [endpoint, version, 'repos', fpath[1], fpath[2], 'contents']
     ubuild.extend(fpath[3:])
     url = '/'.join(ubuild)
-    resp = requests.get(url, auth=auth)
+    resp = requests.get(url, auth=auth, timeout=180)
     if resp.status_code != 200:
         raise BuildRunnerProtocolError(f'Failed fetching URL: {url}')
     json_c = resp.json()

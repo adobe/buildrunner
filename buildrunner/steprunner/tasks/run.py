@@ -226,6 +226,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     log=self.step_runner.log,
                 )
                 if exit_code != 0:
+                    # pylint: disable=broad-exception-raised
                     raise Exception(
                         "Error gathering artifacts--unable to change ownership"
                     )
@@ -274,6 +275,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         log=self.step_runner.log,
                     )
                     if exit_code != 0:
+                        # pylint: disable=broad-exception-raised
                         raise Exception(
                             f"Error gathering artifact {artifact_file}",
                         )
@@ -383,6 +385,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             workdir=workdir,
         )
         if exit_code != 0:
+            # pylint: disable=broad-exception-raised
             raise Exception(
                 f"Error gathering artifact {artifact_file}",
             )
