@@ -13,6 +13,21 @@ from buildrunner.utils import ConsoleLogger, ContainerLogger
 import pytest
 
 
+def _tar_is_within_directory(directory, target):
+    abs_directory = os.path.abspath(directory)
+    abs_target = os.path.abspath(target)
+    prefix = os.path.commonprefix([abs_directory, abs_target])
+    return prefix == abs_directory
+
+
+def _tar_safe_extractall(tar, path=".", members=None, *, numeric_owner=False):
+    for member in tar.getmembers():
+        member_path = os.path.join(path, member.name)
+        if not _tar_is_within_directory(path, member_path):
+            raise Exception("Attempted path traversal in tar file")
+    tar.extractall(path, members, numeric_owner=numeric_owner)
+
+
 @pytest.fixture(name="runner")
 def fixture_setup_runner():
     image_config = DockerRunner.ImageConfig(
@@ -276,7 +291,7 @@ def test_save_cache_basic(runner, tmp_dir_name, mock_logger):
     extracted_dir = "extracted_data"
     os.mkdir(extracted_dir)
     with tarfile.open(tarfile_name) as tar:
-        tar.extractall(extracted_dir)
+        _tar_safe_extractall(tar, extracted_dir)
         extracted_files = os.listdir(extracted_dir)
 
         assert len(test_files) == len(extracted_files)
@@ -323,7 +338,7 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     extracted_dir = "extracted_data"
     os.mkdir(extracted_dir)
     with tarfile.open(tarfile_name) as tar:
-        tar.extractall(extracted_dir)
+        _tar_safe_extractall(tar, extracted_dir)
         extracted_files = os.listdir(extracted_dir)
 
         assert len(test_files) == len(extracted_files)
@@ -347,7 +362,7 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     extracted_dir = "extracted_data2"
     os.mkdir(extracted_dir)
     with tarfile.open(tarfile_name) as tar:
-        tar.extractall(extracted_dir)
+        _tar_safe_extractall(tar, extracted_dir)
         extracted_files = os.listdir(extracted_dir)
 
         assert len(test_files) == len(extracted_files)
@@ -386,7 +401,7 @@ def test_save_cache_multiple_caches(runner, tmp_dir_name, mock_logger):
 
     os.mkdir(venv_extracted_dir)
     with tarfile.open(venv_tarfile_name) as tar:
-        tar.extractall(venv_extracted_dir)
+        _tar_safe_extractall(tar, venv_extracted_dir)
         extracted_files = os.listdir(venv_extracted_dir)
 
         assert len(venv_test_files) == len(extracted_files)
@@ -397,7 +412,7 @@ def test_save_cache_multiple_caches(runner, tmp_dir_name, mock_logger):
 
     os.mkdir(maven_extracted_dir)
     with tarfile.open(maven_tarfile_name) as tar:
-        tar.extractall(maven_extracted_dir)
+        _tar_safe_extractall(tar, maven_extracted_dir)
         extracted_files = os.listdir(maven_extracted_dir)
 
         assert len(maven_test_files) == len(extracted_files)
