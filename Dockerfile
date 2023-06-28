@@ -1,4 +1,4 @@
-FROM python:3.7
+FROM python:3.11
 
 COPY . /buildrunner-source
 
@@ -24,11 +24,11 @@ RUN                                                         \
 # Running pip this way is strange, but it allows it to detect the system packages installed
 RUN                                                         \
     cd /buildrunner-source;                                 \
-    python3.9 -m pip install -U pip;                        \
-    python3.9 -m pip install                                \
+    python3 -m pip install -U pip;                        \
+    python3 -m pip install                                \
         -r requirements.txt                                 \
         -r test_requirements.txt;                           \
-    python3.9 setup.py install;                             \
+    python3 setup.py install;                             \
     rm -rf /buildrunner-source;
 
 #RUN \
