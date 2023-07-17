@@ -1011,6 +1011,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
 
             if _cmds:
+                # First ensure that the source directory is marked as safe for newer git versions
+                # Any errors are ignored here
+                self.runner.run("git config --global --add safe.directory /source")
+
                 # run each cmd
                 for _cmd in _cmds:
                     container_meta_logger.write(

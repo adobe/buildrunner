@@ -1,0 +1,14 @@
+steps:
+  test:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+        RUN yum install -y git-core && yum clean all
+        WORKDIR /source
+        RUN useradd -m testuser
+        USER testuser
+    run:
+      cmds:
+      - git --version
+      # This fails if the git dir is "unsafe" and succeeds otherwise
+      - git log -n 1
