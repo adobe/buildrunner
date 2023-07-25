@@ -51,13 +51,13 @@ jobs:
         chmod 600 ~/.ssh/buildrunner-deploy-*
     # - name: Test with pytest
     #   run: pytest -v --junitxml=test-reports/test-results.xml
-    - name: Publish test results
-      uses: EnricoMi/publish-unit-test-result-action/composite@v1
-      # exclude this step for 3.6, since it fails due to a breaking change to EnricoMi/publish-unit-test-result-action
-      if: always() && matrix.python-version != '3.6'
-      with:
-        files: test-reports/test-results.xml
-        check_name: "Test Results ${{ matrix.python-version }}"
+    # - name: Publish test results
+    #   uses: EnricoMi/publish-unit-test-result-action/composite@v1
+    #   # exclude this step for 3.6, since it fails due to a breaking change to EnricoMi/publish-unit-test-result-action
+    #   if: always() && matrix.python-version != '3.6'
+    #   with:
+    #     files: test-reports/test-results.xml
+    #     check_name: "Test Results ${{ matrix.python-version }}"
   publish-pypi:
     if: github.repository == 'shanejbrown/buildrunner'
     runs-on: ubuntu-latest
