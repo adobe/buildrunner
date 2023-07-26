@@ -105,10 +105,9 @@ jobs:
       uses: docker/metadata-action@v3
       with:
         images: ghcr.io/shanejbrown/buildrunner
-        # Always include latest tag
         tags: |
           latest
-          0.0.1
+          ${{ env.CURRENT_VERSION }}
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
       with:
