@@ -96,6 +96,10 @@ jobs:
       with:
         # Fetch all history instead of the latest commit
         fetch-depth: 0
+    - name: Set env
+      run: CURRENT_VERSION=$(python get_version.py)"
+    - name: Test
+      run: echo Current version - $CURRENT_VERSION
     - name: Docker Tags
       id: docker_tags
       uses: docker/metadata-action@v3
