@@ -102,7 +102,7 @@ jobs:
       with:
         images: ghcr.io/shanejbrown/buildrunner
         # Always include latest tag
-        flavor: |
+        tags: |
           latest=true
           run: python get_version.py
     - name: Set up QEMU
