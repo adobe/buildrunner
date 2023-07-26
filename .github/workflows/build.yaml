@@ -97,7 +97,7 @@ jobs:
         # Fetch all history instead of the latest commit
         fetch-depth: 0
     - name: Set env
-      run: echo "CURRENT_VERSION=$(python get_version.py)" >> $GITHUB_ENV
+      run: echo "CURRENT_VERSION=$( python get_version.py )" >> $GITHUB_ENV
     - name: Test
       run: echo ${{ env.CURRENT_VERSION }}
     - name: Docker Tags

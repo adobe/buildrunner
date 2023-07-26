@@ -43,7 +43,8 @@ def get_version(print_output=True):
         output = stdout.strip()
         if cmd.returncode == 0:
             new_version = '{0}.{1}'.format(BASE_VERSION, output)
-            print(f'Setting version to {new_version}')
+            if print_output:
+                print(f'Setting version to {new_version}')
 
             # write the version file
             if os.path.exists(BUILDRUNNER_DIR):
@@ -57,4 +58,4 @@ def get_version(print_output=True):
     return f'{BASE_VERSION}.DEVELOPMENT'
 
 if __name__ == '__main__':
-    print(get_version(False))
+    print(get_version(False), end='')
