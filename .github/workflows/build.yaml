@@ -103,7 +103,8 @@ jobs:
         images: ghcr.io/shanejbrown/buildrunner
         # Always include latest tag
         tags: |
-          run: python get_version.py
+          latest
+          0.0.1
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
       with:
