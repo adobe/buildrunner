@@ -104,6 +104,7 @@ jobs:
         # Always include latest tag
         flavor: |
           latest=true
+          run: python get_version.py
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
       with:
