@@ -96,14 +96,18 @@ jobs:
       with:
         # Fetch all history instead of the latest commit
         fetch-depth: 0
+    - name: Get and set version in env
+      run: echo "CURRENT_VERSION=$( python setup.py --version )" >> $GITHUB_ENV
+    - name: Print current version
+      run: echo CURRENT_VERSION ${{ env.CURRENT_VERSION }}
     - name: Docker Tags
       id: docker_tags
       uses: docker/metadata-action@v3
       with:
         images: ghcr.io/adobe/buildrunner
-        # Always include latest tag
-        flavor: |
-          latest=true
+        tags: |
+          latest
+          ${{ env.CURRENT_VERSION }}
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
       with:
