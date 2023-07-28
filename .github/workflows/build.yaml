@@ -58,6 +58,21 @@ jobs:
       with:
         files: test-reports/test-results.xml
         check_name: "Test Results ${{ matrix.python-version }}"
+  tag-commit:
+    if: github.repository == 'adobe/buildrunner' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # Fetch all history instead of the latest commit
+          fetch-depth: 0
+      - name: Get and set version in env
+        run: echo "CURRENT_VERSION=$( python setup.py --version )" >> $GITHUB_ENV
+      - name: Print current version
+        run: echo CURRENT_VERSION ${{ env.CURRENT_VERSION }}
+      - name: Tag commit
+        run: git tag ${{ env.CURRENT_VERSION }} && git push --tags
   publish-pypi:
     if: github.repository == 'adobe/buildrunner'
     runs-on: ubuntu-latest
