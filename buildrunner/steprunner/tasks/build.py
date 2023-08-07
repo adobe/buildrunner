@@ -17,11 +17,11 @@ from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
-from buildrunner.steprunner.tasks import BuildStepRunnerTask
+from buildrunner.steprunner.tasks import MultiPlatformBuildStepRunnerTask
 from buildrunner.utils import is_dict
 
 
-class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many-instance-attributes
+class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: disable=too-many-instance-attributes
     """
     Class used to manage "build" build tasks.
     """
@@ -210,16 +210,27 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             docker_registry=self.step_runner.build_runner.global_config.get_docker_registry(),
         )
         try:
-            exit_code = builder.build(
-                console=self.step_runner.log,
-                nocache=self.nocache,
-                cache_from=self.cache_from,
-                pull=self.pull,
-                buildargs=self.buildargs,
-                platform=self.platform
-            )
-            if exit_code != 0 or not builder.image:
-                raise BuildRunnerProcessingError('Error building image')
+            if isinstance(self.platform, list):
+                built_images = self.step_runner.multi_platform.build(platforms=self.platform,
+                                                                     path=self.path,
+                                                                     file=self.config.get('dockerfile'),
+                                                                     name=self.get_unique_build_name(),)
+
+                assert len(built_images) == len(self.platform), \
+                    f"Number of built images ({len(built_images)}) does not match " \
+                    "the number of platforms ({len(self.platform)})"
+
+            else:
+                exit_code = builder.build(
+                    console=self.step_runner.log,
+                    nocache=self.nocache,
+                    cache_from=self.cache_from,
+                    pull=self.pull,
+                    buildargs=self.buildargs,
+                    platform=self.platform,
+                )
+                if exit_code != 0 or not builder.image:
+                    raise BuildRunnerProcessingError('Error building image')
         except Exception as exc:
             self.step_runner.log.write(f'ERROR: {exc}\n')
             raise

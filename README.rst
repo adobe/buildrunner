@@ -432,6 +432,13 @@ shows the different configuration options available:
         <or>
         platform: linux/arm64/v8 # an apple m1 architecture
 
+        # Multi-platform images
+        # Specify a list of platforms to build for, and buildrunner will build a manifest
+        # list image with the given platforms
+        platform:
+          - linux/amd64
+          - linux/arm64/v8
+
         # Specify the build args that should be used when building your image,
         # similar to the --build-args option used by Docker
         buildargs:
@@ -719,6 +726,13 @@ the run step:
         platform: linux/amd64
         <or>
         platform: linux/arm64/v8 # an apple m1 architecture
+
+        # Multi-platform images
+        # Specify a list of platforms to build for, and buildrunner will build a manifest
+        # list image with the given platforms
+        platform:
+          - linux/amd64
+          - linux/arm64/v8
 
         # systemd does not play well with docker typically, but you can
         # use this setting to tell buildrunner to set the necessary docker

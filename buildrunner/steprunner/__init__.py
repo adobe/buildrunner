@@ -10,16 +10,15 @@ import os
 import traceback
 import uuid
 
-from buildrunner.errors import (
-    BuildRunnerError,
-    BuildRunnerConfigurationError,
-    BuildRunnerProcessingError,
-)
+from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
+from buildrunner.errors import (BuildRunnerConfigurationError,
+                                BuildRunnerError)
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
-from buildrunner.steprunner.tasks.push import CommitBuildStepRunnerTask, PushBuildStepRunnerTask
+from buildrunner.steprunner.tasks.push import (CommitBuildStepRunnerTask,
+                                               PushBuildStepRunnerTask)
+from buildrunner.steprunner.tasks.pypipush import PypiPushBuildStepRunnerTask
 from buildrunner.steprunner.tasks.remote import RemoteBuildStepRunnerTask
 from buildrunner.steprunner.tasks.run import RunBuildStepRunnerTask
-from buildrunner.steprunner.tasks.pypipush import PypiPushBuildStepRunnerTask
 
 TASK_MAPPINGS = {
     'remote': RemoteBuildStepRunnerTask,
@@ -45,7 +44,12 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
             self.local_images = local_images
             self.platform = platform
 
-    def __init__(self, build_runner, step_name, step_config, image_config):
+    def __init__(self,  # pylint: disable=too-many-arguments
+                 build_runner,
+                 step_name,
+                 step_config,
+                 image_config,
+                 multi_platform: MultiplatformImageBuilder):
         """
         Constructor.
         """
@@ -69,6 +73,7 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
 
         # generate a unique step id
         self.id = str(uuid.uuid4())  # pylint: disable=invalid-name
+        self.multi_platform = multi_platform
 
     def run(self):
         """
