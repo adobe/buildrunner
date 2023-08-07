@@ -23,7 +23,7 @@ class ImageInfo:
         self._repo = repo
 
         if tags is None:
-            self._tags = ['latest']
+            self._tags = ["latest"]
         else:
             self._tags = tags
 
@@ -84,7 +84,7 @@ class MultiplatformImageBuilder:
                 for image in images:
                     for tag in image.tags:
                         LOGGER.debug(f"Removing image {image.repo}:{tag} for {name}")
-                        docker.image.remove(f'{image.repo}:{tag}', force=True)
+                        docker.image.remove(f"{image.repo}:{tag}", force=True)
 
         # Removes all tagged images if keep_images is False
         if self._tagged_images_names and not self._keep_images:
@@ -130,13 +130,13 @@ class MultiplatformImageBuilder:
         # Something changed in the registry image, so we need to update this code
         assert len(ports) == 1, \
             f"Expected 1 port, but got {len(ports)}"
-        assert isinstance(ports.get('5000/tcp')[0], dict), \
+        assert isinstance(ports.get("5000/tcp")[0], dict), \
             f"Expected dict, but got {type(ports.get('5000/tcp')[0])}"
-        assert ports.get('5000/tcp')[0].get('HostIp') == '0.0.0.0', \
+        assert ports.get("5000/tcp")[0].get('HostIp') == "0.0.0.0", \
             f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
 
-        self._reg_ip = 'localhost'
-        self._reg_port = ports.get('5000/tcp')[0].get('HostPort')
+        self._reg_ip = "localhost"
+        self._reg_port = ports.get("5000/tcp")[0].get("HostPort")
         self._reg_name = container.name
         LOGGER.debug(f"Started local registry {self._reg_name} at {self._reg_ip}:{self._reg_port}")
 
@@ -145,36 +145,38 @@ class MultiplatformImageBuilder:
         Stops and removes the local registry along with any images
         """
         LOGGER.debug(f"Stopping and removing local registry {self._reg_name} at {self._reg_ip}:{self._reg_port}")
-        docker.stop(self._reg_name)
-        docker.remove(self._reg_name, volumes=True, force=True)
+        try:
+            docker.remove(self._reg_name, volumes=True, force=True)
+        except python_on_whales.exceptions.NoSuchContainer as err:
+            LOGGER.error(f"Failed to stop and remove local registry {self._reg_name}: {err}")
 
     # pylint: disable=too-many-arguments
-    def build_image(self,
-                    name: str,
-                    platform: str,
-                    push: bool = True,
-                    path: str = '.',
-                    file: str = 'Dockerfile',
-                    tags: List[str] = None,) -> None:
+    def build_single_image(self,
+                           name: str,
+                           platform: str,
+                           push: bool = True,
+                           path: str = ".",
+                           file: str = "Dockerfile",
+                           tags: List[str] = None,) -> None:
         """
-        Builds the image for the given platform
+        Builds a single image for the given platform
 
         Args:
             name (str): The name of the image
             platform (str): The platform to build the image for (e.g. linux/amd64)
             push (bool, optional): Whether to push the image to the registry. Defaults to True.
-            path (str, optional): The path to the Dockerfile. Defaults to '.'.
-            file (str, optional): The path/name of the Dockerfile (ie. <path>/Dockerfile). Defaults to 'Dockerfile'.
+            path (str, optional): The path to the Dockerfile. Defaults to ".".
+            file (str, optional): The path/name of the Dockerfile (ie. <path>/Dockerfile). Defaults to "Dockerfile".
             tags (List[str], optional): The tags to apply to the image. Defaults to None.
         """
         if tags is None:
-            tags = ['latest']
+            tags = ["latest"]
 
-        assert os.path.isdir(path) and os.path.exists(f'{file}'), \
+        assert os.path.isdir(path) and os.path.exists(f"{file}"), \
             f"Either path {path}({os.path.isdir(path)}) or file " \
             "'{file}'({os.path.exists(f'{file}')}) does not exist!"
 
-        tagged_names = [f'{name}:{tag}' for tag in tags]
+        tagged_names = [f"{name}:{tag}" for tag in tags]
         LOGGER.debug(f"Building {tagged_names} for {platform}")
 
         # Build the image with the specified tags
@@ -192,21 +194,21 @@ class MultiplatformImageBuilder:
                 raise err
         return image
 
-    def build(self,
-              platforms: List[str],
-              path: str = '.',
-              file: str = 'Dockerfile',
-              name: str = None,
-              tags: List[str] = None,
-              push=True,
-              do_multiprocessing: bool = False) -> List[ImageInfo]:
+    def build_multiple_images(self,
+                              platforms: List[str],
+                              path: str = ".",
+                              file: str = "Dockerfile",
+                              name: str = None,
+                              tags: List[str] = None,
+                              push=True,
+                              do_multiprocessing: bool = False) -> List[ImageInfo]:
         """
-        Builds the images for the given platforms
+        Builds multiple images for the given platforms. One image will be built for each platform.
 
         Args:
             platforms (List[str]): The platforms to build the image for (e.g. linux/amd64)
-            path (str, optional): The path to the Dockerfile. Defaults to '.'.
-            file (str, optional): The path/name of the Dockerfile (ie. <path>/Dockerfile). Defaults to 'Dockerfile'.
+            path (str, optional): The path to the Dockerfile. Defaults to ".".
+            file (str, optional): The path/name of the Dockerfile (ie. <path>/Dockerfile). Defaults to "Dockerfile".
             name (str, optional): The name of the image. Defaults to None.
             tags (List[str], optional): The tags to apply to the image. Defaults to None.
             push (bool, optional): Whether to push the image to the registry. Defaults to True.
@@ -219,10 +221,10 @@ class MultiplatformImageBuilder:
         LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {file}")
 
         if tags is None:
-            tags = ['latest']
+            tags = ["latest"]
 
         # Updates name to be compatible with docker
-        image_prefix = 'buildrunner-mp'
+        image_prefix = "buildrunner-mp"
         santized_name = f"{image_prefix}-{name.replace('/', '-').replace(':', '-')}"
         base_image_name = f"{self._reg_ip}:{self._reg_port}/{santized_name}"
 
@@ -234,9 +236,10 @@ class MultiplatformImageBuilder:
             curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
             LOGGER.debug(f"Building {curr_name} for {platform}")
             if do_multiprocessing:
-                processes.append(Process(target=self.build_image, args=(curr_name, platform, push, path, file, tags)))
+                processes.append(Process(target=self.build_single_image,
+                                         args=(curr_name, platform, push, path, file, tags)))
             else:
-                self.build_image(curr_name, platform, push, path, file, tags)
+                self.build_single_image(curr_name, platform, push, path, file, tags)
             self._intermediate_built_images[name].append(ImageInfo(curr_name, tags))
 
         for proc in processes:
@@ -275,13 +278,13 @@ class MultiplatformImageBuilder:
         if dest_names is None:
             dest_names = name
             for tag in src_images[0].tags:
-                tagged_names.append(f'{dest_names}:{tag}')
+                tagged_names.append(f"{dest_names}:{tag}")
         else:
             tagged_names = dest_names
 
         for image in src_images:
             for tag in image.tags:
-                src_names.append(f'{image.repo}:{tag}')
+                src_names.append(f"{image.repo}:{tag}")
 
         timeout_seconds = initial_timeout_seconds
         while retries > 0:
@@ -319,7 +322,7 @@ class MultiplatformImageBuilder:
         host_os = system()
         host_arch = machine()
         LOGGER.debug(f"Finding native platform for {name} for {host_os}/{host_arch}")
-        pattern = f'{host_os}-{host_arch}'
+        pattern = f"{host_os}-{host_arch}"
 
         # No images built for this name
         if name not in self._intermediate_built_images.keys() \
@@ -330,8 +333,8 @@ class MultiplatformImageBuilder:
 
         # No matches found, change os
         if match_platform == []:
-            if host_os == 'Darwin':
-                pattern = f'linux-{host_arch}'
+            if host_os == "Darwin":
+                pattern = f"linux-{host_arch}"
             match_platform = [image for image in self._intermediate_built_images[name] if image.repo.endswith(pattern)]
 
         assert len(match_platform) <= 1, f"Found more than one match for {name} and {pattern}: {match_platform}"
@@ -349,13 +352,13 @@ class MultiplatformImageBuilder:
 
         Args:
             name (str): The name of the image to load
-            tags (List[str], optional): The tags to load. Defaults to 'latest'.
-            dest_name (str, optional): The name to load the image as. Defaults to the 'name' arg.
+            tags (List[str], optional): The tags to load. Defaults to "latest".
+            dest_name (str, optional): The name to load the image as. Defaults to the "name" arg.
         """
         # This is to handle pylint's "dangerous-default-value" error
         if tags is None:
-            tags = ['latest']
-        LOGGER.debug(f'Tagging {name} with tags {tags} - Dest name: {dest_name}')
+            tags = ["latest"]
+        LOGGER.debug(f"Tagging {name} with tags {tags} - Dest name: {dest_name}")
         source_image = self._find_native_platform_images(name)
         if dest_name is None:
             dest_name = name
@@ -369,7 +372,7 @@ class MultiplatformImageBuilder:
             try:
                 docker.pull(image)
                 for tag in tags:
-                    dest_tag = f'{dest_name}:{tag}'
+                    dest_tag = f"{dest_name}:{tag}"
                     docker.tag(image, dest_tag)
                     LOGGER.debug(f"Tagged {image} as {dest_tag}")
                     self._tagged_images_names[name].append(dest_tag)

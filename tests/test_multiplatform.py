@@ -11,6 +11,8 @@ from buildrunner.docker.multiplatform_image_builder import (
 
 TEST_DIR = os.path.basename(os.path.dirname(__file__))
 
+# FIXME: These tests can be broken if a custom buildx builder is set as default  # pylint: disable=fixme
+
 def actual_images_match_expected(actual_images, expected_images) -> List[str]:
     missing_images = []
     found = False
@@ -133,7 +135,7 @@ def test_tag_single_platform(name, platforms, expected_image_names):
     tag='latest'
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
-        built_images = mp.build(name=name,
+        built_images = mp.build_multiple_images(name=name,
                                 platforms=platforms,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
@@ -166,7 +168,7 @@ def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names
     tags=['latest', '0.1.0']
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
-        built_images = mp.build(name=name,
+        built_images = mp.build_multiple_images(name=name,
                                 platforms=platforms,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
@@ -201,7 +203,7 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     try:
         with MultiplatformImageBuilder(keep_images=True) as mp:
-            built_images = mp.build(name=name,
+            built_images = mp.build_multiple_images(name=name,
                                     platforms=platforms,
                                     path=test_path,
                                     file=f'{test_path}/Dockerfile',
@@ -241,7 +243,7 @@ def test_push():
 
             test_path = f'{TEST_DIR}/test-files/multiplatform'
             with MultiplatformImageBuilder() as mp:
-                built_images = mp.build(name=build_name,
+                built_images = mp.build_multiple_images(name=build_name,
                                         platforms=platforms,
                                         path=test_path,
                                         file=f'{test_path}/Dockerfile',
@@ -281,7 +283,7 @@ def test_push_with_dest_names():
 
             test_path = f'{TEST_DIR}/test-files/multiplatform'
             with MultiplatformImageBuilder() as mp:
-                built_images = mp.build(name=build_name,
+                built_images = mp.build_multiple_images(name=build_name,
                                         platforms=platforms,
                                         path=test_path,
                                         file=f'{test_path}/Dockerfile',
@@ -319,10 +321,10 @@ def test_push_with_dest_names():
     )
 ])
 def test_build(name, platforms, expected_image_names):
-    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder.build_image'):
+    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder.build_single_image'):
         test_path = f'{TEST_DIR}/test-files/multiplatform'
         with MultiplatformImageBuilder() as mp:
-            built_images = mp.build(name=name,
+            built_images = mp.build_multiple_images(name=name,
                                     platforms=platforms,
                                     path=test_path,
                                     file=f'{test_path}/Dockerfile',
@@ -344,17 +346,17 @@ def test_build_multiple_builds():
     expected_image_names2 = ['test-build-multi-image-2002-linux-amd64', 'test-build-multi-image-2002-linux-arm64']
 
     test_path = f'{TEST_DIR}/test-files/multiplatform'
-    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder.build_image'):
+    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder.build_single_image'):
         with MultiplatformImageBuilder() as mp:
             # Build set 1
-            built_images1 = mp.build(name=name1,
+            built_images1 = mp.build_multiple_images(name=name1,
                                     platforms=platforms1,
                                     path=test_path,
                                     file=f'{test_path}/Dockerfile',
                                     do_multiprocessing=False)
 
             # Build set 2
-            built_images2 = mp.build(name=name2,
+            built_images2 = mp.build_multiple_images(name=name2,
                                     platforms=platforms2,
                                     path=test_path,
                                     file=f'{test_path}/Dockerfile',
@@ -387,7 +389,7 @@ def test_build_multiple_builds():
 def test_build_with_tags(name, tags, platforms, expected_image_names):
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
-        built_images = mp.build(name=name,
+        built_images = mp.build_multiple_images(name=name,
                                 platforms=platforms,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',

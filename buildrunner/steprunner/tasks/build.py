@@ -217,8 +217,8 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                                                                      name=self.get_unique_build_name(),)
 
                 assert len(built_images) == len(self.platform), \
-                    f"Number of built images ({len(built_images)}) does not match " \
-                    "the number of platforms ({len(self.platform)})"
+                    f'Number of built images ({len(built_images)}) does not match ' \
+                    'the number of platforms ({len(self.platform)})'
 
             else:
                 exit_code = builder.build(
