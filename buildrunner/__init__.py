@@ -1,5 +1,5 @@
 """
-Copyright 2021 Adobe
+Copyright 2023 Adobe
 All Rights Reserved.
 
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
@@ -46,6 +46,7 @@ from buildrunner.utils import (
     hash_sha1,
     load_config,
 )
+from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
 
 from . import fetch
 
@@ -573,85 +574,92 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         exit_explanation = None
         try:  # pylint: disable=too-many-nested-blocks
+            with MultiplatformImageBuilder(keep_images=not self.cleanup_images) as multi_platform:
+                if not os.path.exists(self.build_results_dir):
+                    # create a new results dir
+                    os.mkdir(self.build_results_dir)
 
-            if not os.path.exists(self.build_results_dir):
-                # create a new results dir
-                os.mkdir(self.build_results_dir)
+                self.get_source_archive_path()
+                # run each step
+                for step_name, step_config in self.run_config['steps'].items():
+                    if not self.steps_to_run or step_name in self.steps_to_run:
+                        image_config = BuildStepRunner.ImageConfig(
+                            self.local_images,
+                            self.platform
+                        )
+                        build_step_runner = BuildStepRunner(
+                            self,
+                            step_name,
+                            step_config,
+                            image_config,
+                            multi_platform
+                        )
+                        build_step_runner.run()
 
-            self.get_source_archive_path()
-
-            # run each step
-            for step_name, step_config in self.run_config['steps'].items():
-                if not self.steps_to_run or step_name in self.steps_to_run:
-                    image_config = BuildStepRunner.ImageConfig(
-                        self.local_images,
-                        self.platform
-                    )
-                    build_step_runner = BuildStepRunner(
-                        self,
-                        step_name,
-                        step_config,
-                        image_config
-                    )
-                    build_step_runner.run()
-
-            self.log.write(
-                "\nFinalizing build\n________________________________________\n"
-            )
-
-            # see if we should push registered tags to remote registries/repositories
-            if self.push:
                 self.log.write(
-                    'Push requested--pushing generated images/packages to remote registries/repositories\n'
+                    "\nFinalizing build\n________________________________________\n"
                 )
-                _docker_client = docker.new_client(timeout=self.docker_timeout)
-                for _repo_tag, _insecure_registry in self.repo_tags_to_push:
+
+                # see if we should push registered tags to remote registries/repositories
+                if self.push:
+                    # push the multi-platform images
+                    if multi_platform.tagged_images_names:
+                        self.log.write(f"===> multi_platform.tagged_images_names: {multi_platform.tagged_images_names}")
+                        for local_name, dest_name in multi_platform.tagged_images_names.items():
+                            self.log.write(f"\nlocal_name: {local_name} dest_name: {dest_name}\n")
+                            multi_platform.push(name=local_name, dest_names=dest_name)
+
                     self.log.write(
-                        f'\nPushing {_repo_tag}\n'
+                        'Push requested--pushing generated images/packages to remote registries/repositories\n'
                     )
+                    _docker_client = docker.new_client(timeout=self.docker_timeout)
+                    for _repo_tag, _insecure_registry in self.repo_tags_to_push:
+                        self.log.write(
+                            f'\nPushing {_repo_tag}\n'
+                        )
 
-                    # Newer Python Docker bindings drop support for the insecure_registry
-                    # option.  This test will optionally use it when it's available.
-                    push_kwargs = {
-                        'stream': True,
-                    }
-                    if 'insecure_registry' in inspect.getfullargspec(_docker_client.push).args:
-                        push_kwargs['insecure_registry'] = _insecure_registry
+                        # Newer Python Docker bindings drop support for the insecure_registry
+                        # option.  This test will optionally use it when it's available.
+                        push_kwargs = {
+                            'stream': True,
+                        }
+                        if 'insecure_registry' in inspect.getfullargspec(_docker_client.push).args:
+                            push_kwargs['insecure_registry'] = _insecure_registry
 
-                    stream = _docker_client.push(_repo_tag, **push_kwargs)
-                    previous_status = None
-                    for msg_str in stream:
-                        for msg in msg_str.decode('utf-8').split("\n"):
-                            if not msg:
-                                continue
-                            msg = json.loads(msg)
-                            if 'status' in msg:
-                                if msg['status'] == previous_status:
+                        stream = _docker_client.push(_repo_tag, **push_kwargs)
+                        previous_status = None
+                        for msg_str in stream:
+                            for msg in msg_str.decode('utf-8').split("\n"):
+                                if not msg:
                                     continue
-                                self.log.write(msg['status'] + '\n')
-                                previous_status = msg['status']
-                            elif 'errorDetail' in msg:
-                                error_detail = f"Error pushing image: {msg['errorDetail']}\n"
-                                self.log.write("\n" + error_detail)
-                                self.log.write((
-                                    "This could be because you are not "
-                                    "authenticated with the given Docker "
-                                    "registry (try 'docker login "
-                                    "<registry>')\n\n"
-                                ))
-                                raise BuildRunnerProcessingError(error_detail)
-                            else:
-                                self.log.write(str(msg) + '\n')
+                                msg = json.loads(msg)
+                                if 'status' in msg:
+                                    if msg['status'] == previous_status:
+                                        continue
+                                    self.log.write(msg['status'] + '\n')
+                                    previous_status = msg['status']
+                                elif 'errorDetail' in msg:
+                                    error_detail = f"Error pushing image: {msg['errorDetail']}\n"
+                                    self.log.write("\n" + error_detail)
+                                    self.log.write((
+                                        "This could be because you are not "
+                                        "authenticated with the given Docker "
+                                        "registry (try 'docker login "
+                                        "<registry>')\n\n"
+                                    ))
+                                    raise BuildRunnerProcessingError(error_detail)
+                                else:
+                                    self.log.write(str(msg) + '\n')
 
-                # Push to pypi repositories
-                # Placing the import here avoids the dependency when pypi is not needed
-                import twine.commands.upload  # pylint: disable=import-outside-toplevel
-                for _, _items in self.pypi_packages.items():
-                    twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
-            else:
-                self.log.write(
-                    '\nPush not requested\n'
-                )
+                        # Push to pypi repositories
+                        # Placing the import here avoids the dependency when pypi is not needed
+                        import twine.commands.upload  # pylint: disable=import-outside-toplevel
+                        for _, _items in self.pypi_packages.items():
+                            twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
+                else:
+                    self.log.write(
+                        '\nPush not requested\n'
+                    )
 
         except BuildRunnerConfigurationError as brce:
             print('config error')
