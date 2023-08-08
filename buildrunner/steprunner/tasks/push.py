@@ -93,9 +93,10 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
             for repo in self._repos:
                 # Always add default tag
                 repo.tags.append(default_tag)
-                self.step_runner.multi_platform.tag_single_platform(name=self.get_unique_build_name(),
-                                                                    tags=repo.tags,
-                                                                    dest_name=repo.repository)
+                self.step_runner.multi_platform.tag_single_platform(
+                    name=self.get_unique_build_name(),
+                    tags=repo.tags,
+                    dest_name=repo.repository)
 
         # Tag single platform images
         else:

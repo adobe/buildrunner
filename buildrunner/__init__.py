@@ -574,8 +574,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         exit_explanation = None
         try:  # pylint: disable=too-many-nested-blocks
-            with MultiplatformImageBuilder(keep_images=not self.cleanup_images,
-                                           auto_start_local_registry=False) as multi_platform:
+            with MultiplatformImageBuilder(keep_images=not self.cleanup_images) as multi_platform:
                 if not os.path.exists(self.build_results_dir):
                     # create a new results dir
                     os.mkdir(self.build_results_dir)

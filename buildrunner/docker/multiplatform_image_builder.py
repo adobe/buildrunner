@@ -88,11 +88,9 @@ class MultiplatformImageBuilder:
 
     def __init__(self,
                  use_local_registry: bool = True,
-                 keep_images: bool = False,
-                 auto_start_local_registry: bool = True,):
+                 keep_images: bool = False,):
         self._registry_info = None
         self._use_local_registry = use_local_registry
-        self._auto_start_local_registry = auto_start_local_registry
         self._keep_images = keep_images
 
         # key is destination image name, value is list of built images
@@ -101,9 +99,6 @@ class MultiplatformImageBuilder:
         self._local_registry_is_running = False
 
     def __enter__(self):
-        # Starts local registry container to do ephemeral image storage
-        if self._use_local_registry and self._auto_start_local_registry and not self._local_registry_is_running:
-            self._start_local_registry()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -259,6 +254,7 @@ class MultiplatformImageBuilder:
         LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {file}")
 
         if self._use_local_registry and not self._local_registry_is_running:
+            # Starts local registry container to do ephemeral image storage
             self._start_local_registry()
 
         if tags is None:

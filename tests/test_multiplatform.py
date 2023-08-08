@@ -13,6 +13,7 @@ TEST_DIR = os.path.basename(os.path.dirname(__file__))
 
 # FIXME: These tests can be broken if a custom buildx builder is set as default  # pylint: disable=fixme
 
+
 def actual_images_match_expected(actual_images, expected_images) -> List[str]:
     missing_images = []
     found = False
@@ -25,11 +26,13 @@ def actual_images_match_expected(actual_images, expected_images) -> List[str]:
             missing_images.append(expected_image)
     return missing_images
 
-def test_use_local_registry_auto_start():
+
+def test_start_local_registry():
     registry_name = None
     volume_name = None
 
     with MultiplatformImageBuilder() as mp:
+        mp._start_local_registry()
         registry_name = mp._registry_info.name
 
         # Check that the registry is running and only one is found with that name
@@ -54,11 +57,12 @@ def test_use_local_registry_auto_start():
     assert len(registry_container) == 0
     assert not docker.volume.exists(volume_name)
 
-def test_use_local_registry_start_on_build():
+
+def test_start_local_registry_on_build():
     registry_name = None
     volume_name = None
 
-    with MultiplatformImageBuilder(auto_start_local_registry=False) as mp:
+    with MultiplatformImageBuilder() as mp:
         # Check that the registry is NOT running
         assert mp._registry_info is None
         assert mp._local_registry_is_running is False
@@ -106,62 +110,63 @@ def test_use_local_registry_start_on_build():
     assert len(registry_container) == 0
     assert not docker.volume.exists(volume_name)
 
+
 @pytest.mark.parametrize("name, in_mock_os, in_mock_arch, built_images, expected_image",
-                         [
-                            # platform = linux/arm64
-                            (
-                                'test-images-2000',
-                                'linux',
-                                'arm64',
-                                {'test-images-2000': [ImageInfo('localhost:32828/test-images-2000-linux-amd64', ['latest']),
-                                                      ImageInfo('localhost:32828/test-images-2000-linux-arm64', ['latest'])]},
-                                'localhost:32828/test-images-2000-linux-arm64:latest'
-                            ),
-                            # OS does not match for Darwin change to linux
-                            (
-                                'test-images-2000',
-                                'Darwin',
-                                'arm64',
-                                {'test-images-2000': [ImageInfo('localhost:32829/test-images-2000-linux-amd64', ['latest']),
-                                                      ImageInfo('localhost:32829/test-images-2000-linux-arm64', ['latest'])]},
-                                'localhost:32829/test-images-2000-linux-arm64:latest'
-                            ),
-                            # platform = linux/amd64
-                            (
-                                'test-images-2000',
-                                'linux',
-                                'amd64',
-                                {'test-images-2000': [ImageInfo('localhost:32811/test-images-2000-linux-amd64', ['latest']),
-                                                      ImageInfo('localhost:32811/test-images-2000-linux-arm64', ['latest'])]},
-                                'localhost:32811/test-images-2000-linux-amd64:latest'
-                            ),
-                            # No match found, get the first image
-                            (
-                                'test-images-2000',
-                                'linux',
-                                'arm',
-                                {'test-images-2000': [ImageInfo('localhost:32830/test-images-2000-linux-amd64', ['0.1.0']),
-                                                      ImageInfo('localhost:32830/test-images-2000-linux-amd64', ['0.2.0'])]},
-                                'localhost:32830/test-images-2000-linux-amd64:0.1.0'
-                            ),
-                            # Built_images for name does not exist in dictionary
-                            (
-                                'test-images-2001',
-                                'linux',
-                                'arm64',
-                                {'test-images-2000': [ImageInfo('localhost:32831/test-images-2000-linux-amd64', ['latest']),
-                                                      ImageInfo('localhost:32831/test-images-2000-linux-arm64', ['latest'])]},
-                                None
-                            ),
-                            # Built_images for name is empty
-                            (
-                                'test-images-2000',
-                                'linux',
-                                'arm64',
-                                {'test-images-2000': []},
-                                None
-                            ),
-                         ])
+    [
+        # platform = linux/arm64
+        (
+            'test-images-2000',
+            'linux',
+            'arm64',
+            {'test-images-2000': [ImageInfo('localhost:32828/test-images-2000-linux-amd64', ['latest']),
+                                    ImageInfo('localhost:32828/test-images-2000-linux-arm64', ['latest'])]},
+            'localhost:32828/test-images-2000-linux-arm64:latest'
+        ),
+        # OS does not match for Darwin change to linux
+        (
+            'test-images-2000',
+            'Darwin',
+            'arm64',
+            {'test-images-2000': [ImageInfo('localhost:32829/test-images-2000-linux-amd64', ['latest']),
+                                    ImageInfo('localhost:32829/test-images-2000-linux-arm64', ['latest'])]},
+            'localhost:32829/test-images-2000-linux-arm64:latest'
+        ),
+        # platform = linux/amd64
+        (
+            'test-images-2000',
+            'linux',
+            'amd64',
+            {'test-images-2000': [ImageInfo('localhost:32811/test-images-2000-linux-amd64', ['latest']),
+                                    ImageInfo('localhost:32811/test-images-2000-linux-arm64', ['latest'])]},
+            'localhost:32811/test-images-2000-linux-amd64:latest'
+        ),
+        # No match found, get the first image
+        (
+            'test-images-2000',
+            'linux',
+            'arm',
+            {'test-images-2000': [ImageInfo('localhost:32830/test-images-2000-linux-amd64', ['0.1.0']),
+                                    ImageInfo('localhost:32830/test-images-2000-linux-amd64', ['0.2.0'])]},
+            'localhost:32830/test-images-2000-linux-amd64:0.1.0'
+        ),
+        # Built_images for name does not exist in dictionary
+        (
+            'test-images-2001',
+            'linux',
+            'arm64',
+            {'test-images-2000': [ImageInfo('localhost:32831/test-images-2000-linux-amd64', ['latest']),
+                                    ImageInfo('localhost:32831/test-images-2000-linux-arm64', ['latest'])]},
+            None
+        ),
+        # Built_images for name is empty
+        (
+            'test-images-2000',
+            'linux',
+            'arm64',
+            {'test-images-2000': []},
+            None
+        ),
+    ])
 @patch('buildrunner.docker.multiplatform_image_builder.machine')
 @patch('buildrunner.docker.multiplatform_image_builder.system')
 def test_find_native_platform(mock_os,
@@ -173,10 +178,11 @@ def test_find_native_platform(mock_os,
                               expected_image):
     mock_os.return_value = in_mock_os
     mock_arch.return_value = in_mock_arch
-    with MultiplatformImageBuilder(auto_start_local_registry=False) as mp:
+    with MultiplatformImageBuilder() as mp:
         mp._intermediate_built_images = built_images
         found_platform = mp._find_native_platform_images(name)
         assert str(found_platform) == str(expected_image)
+
 
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-image-tag-2000',
@@ -211,6 +217,7 @@ def test_tag_single_platform(name, platforms, expected_image_names):
     found_image = docker.image.list(filters={'reference': f'{name}*'})
     assert len(found_image) == 0
 
+
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-image-tag-2000',
      ['linux/arm64'],
@@ -244,6 +251,7 @@ def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names
     # Check that the tagged image has be removed for host registry
     found_image = docker.image.list(filters={'reference': f'{name}*'})
     assert len(found_image) == 0
+
 
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-image-tag-2000',
@@ -286,6 +294,7 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
 def test_push():
     try:
         with MultiplatformImageBuilder() as remote_mp:
+            remote_mp._start_local_registry()
             reg_add = remote_mp.registry_address()
             assert reg_add is not None
 
@@ -320,11 +329,13 @@ def test_push():
         print(f'Cleaning up {build_name}')
         docker.image.remove(build_name, force=True)
 
+
 def test_push_with_dest_names():
     dest_names = None
     built_images = None
     try:
         with MultiplatformImageBuilder() as remote_mp:
+            remote_mp._start_local_registry()
             reg_add = remote_mp.registry_address()
             assert reg_add is not None
 
@@ -362,6 +373,7 @@ def test_push_with_dest_names():
             print(f'Cleaning up {dest_name}')
             docker.image.remove(dest_name, force=True)
 
+
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-build-image-2000',
      ['linux/arm64'],
@@ -387,6 +399,7 @@ def test_build(name, platforms, expected_image_names):
 
             missing_images = actual_images_match_expected(built_images, expected_image_names)
             assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images]}'
+
 
 def test_build_multiple_builds():
     name1 = 'test-build-multi-image-2001'
@@ -426,6 +439,7 @@ def test_build_multiple_builds():
             missing_images = actual_images_match_expected(built_images2, expected_image_names2)
             assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images2]}'
 
+
 @pytest.mark.parametrize("name, tags, platforms, expected_image_names",[
     ('test-build-tag-image-2000',
      ['latest', '0.1.0'],
@@ -452,6 +466,7 @@ def test_build_with_tags(name, tags, platforms, expected_image_names):
         assert len(built_images) ==  len(expected_image_names)
         missing_images = actual_images_match_expected(built_images, expected_image_names)
         assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images]}'
+
 
 def test_no_images_built():
     """

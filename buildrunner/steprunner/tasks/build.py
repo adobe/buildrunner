@@ -210,7 +210,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
             docker_registry=self.step_runner.build_runner.global_config.get_docker_registry(),
         )
         try:
-            if isinstance(self.platform, list):
+            if isinstance(self.platform, list) and len(self.platform) > 1:
                 built_images = self.step_runner.multi_platform.build_multiple_images(
                     platforms=self.platform,
                     path=self.path,
@@ -220,7 +220,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
 
                 assert len(built_images) == len(self.platform), \
                     f'Number of built images ({len(built_images)}) does not match ' \
-                    'the number of platforms ({len(self.platform)})'
+                    f'the number of platforms ({len(self.platform)})'
 
             else:
                 exit_code = builder.build(
