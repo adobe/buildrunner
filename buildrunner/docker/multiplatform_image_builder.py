@@ -52,30 +52,62 @@ class ImageInfo:
         return self.__str__()
 
 
+class RegistryInfo:
+    """Registry information"""
+    def __init__(self, name: str, ip_addr: str, port: int):
+        self._name = name
+        self._ip_addr = ip_addr
+        self._port = port
+
+    @property
+    def name(self) -> str:
+        """The registry name"""
+        return self._name
+
+    @property
+    def ip_addr(self) -> str:
+        """The registry ip address"""
+        return self._ip_addr
+
+    @property
+    def port(self) -> int:
+        """The registry port"""
+        return self._port
+
+    def __str__(self):
+        """Returns a string representation of the registry info"""
+        return f"{self._name} {self._ip_addr}:{self._port}"
+
+    def __repr__(self):
+        """Returns a string representation of the registry info"""
+        return self.__str__()
+
+
 class MultiplatformImageBuilder:
     """Multiple platform image builder"""
 
     def __init__(self,
                  use_local_registry: bool = True,
-                 keep_images: bool = False,):
-        self._reg_name = None
-        self._reg_ip = None
-        self._reg_port = None
+                 keep_images: bool = False,
+                 auto_start_local_registry: bool = True,):
+        self._registry_info = None
         self._use_local_registry = use_local_registry
+        self._auto_start_local_registry = auto_start_local_registry
         self._keep_images = keep_images
 
         # key is destination image name, value is list of built images
         self._intermediate_built_images = {}
         self._tagged_images_names = {}
+        self._local_registry_is_running = False
 
     def __enter__(self):
         # Starts local registry container to do ephemeral image storage
-        if self._use_local_registry:
+        if self._use_local_registry and self._auto_start_local_registry and not self._local_registry_is_running:
             self._start_local_registry()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self._use_local_registry:
+        if self._local_registry_is_running:
             self._stop_local_registry()
 
         # Removes all intermediate built images
@@ -96,12 +128,12 @@ class MultiplatformImageBuilder:
     @property
     def registry_ip(self) -> int:
         """Returns the ip address of the local registry"""
-        return self._reg_ip
+        return self._registry_info.ip_addr
 
     @property
     def registry_port(self) -> int:
         """Returns the port of the local registry"""
-        return self._reg_port
+        return self._registry_info.port
 
     @property
     def tagged_images_names(self) -> List[str]:
@@ -114,7 +146,7 @@ class MultiplatformImageBuilder:
 
     def registry_address(self) -> str:
         """Returns the address of the local registry"""
-        return f"{self._reg_ip}:{self._reg_port}"
+        return f"{self._registry_info.ip_addr}:{self._registry_info.port}"
 
     def _start_local_registry(self):
         """
@@ -123,41 +155,47 @@ class MultiplatformImageBuilder:
         Returns:
             str: The name of the registry container
         """
-        LOGGER.debug("Starting local docker registry")
-        container = docker.run("registry", detach=True, publish_all=True)
-        ports = container.network_settings.ports
+        if not self._local_registry_is_running:
+            LOGGER.debug("Starting local docker registry")
+            container = docker.run("registry", detach=True, publish_all=True)
+            ports = container.network_settings.ports
 
-        # Something changed in the registry image, so we need to update this code
-        assert len(ports) == 1, \
-            f"Expected 1 port, but got {len(ports)}"
-        assert isinstance(ports.get("5000/tcp")[0], dict), \
-            f"Expected dict, but got {type(ports.get('5000/tcp')[0])}"
-        assert ports.get("5000/tcp")[0].get('HostIp') == "0.0.0.0", \
-            f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
+            # If any assert fails something changed in the registry image and we need to update this code
+            assert len(ports) == 1, \
+                f"Expected 1 port, but got {len(ports)}"
+            assert isinstance(ports.get("5000/tcp")[0], dict), \
+                f"Expected dict, but got {type(ports.get('5000/tcp')[0])}"
+            assert ports.get("5000/tcp")[0].get('HostIp') == "0.0.0.0", \
+                f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
 
-        self._reg_ip = "localhost"
-        self._reg_port = ports.get("5000/tcp")[0].get("HostPort")
-        self._reg_name = container.name
-        LOGGER.debug(f"Started local registry {self._reg_name} at {self._reg_ip}:{self._reg_port}")
+            self._registry_info = RegistryInfo(container.name, "localhost", ports.get("5000/tcp")[0].get("HostPort"))
+            self._local_registry_is_running = True
+            LOGGER.debug(f"Started local registry {self._registry_info}")
+        else:
+            LOGGER.warning("Local registry is already running")
 
     def _stop_local_registry(self):
         """
         Stops and removes the local registry along with any images
         """
-        LOGGER.debug(f"Stopping and removing local registry {self._reg_name} at {self._reg_ip}:{self._reg_port}")
-        try:
-            docker.remove(self._reg_name, volumes=True, force=True)
-        except python_on_whales.exceptions.NoSuchContainer as err:
-            LOGGER.error(f"Failed to stop and remove local registry {self._reg_name}: {err}")
+        if self._local_registry_is_running:
+            LOGGER.debug(f"Stopping and removing local registry {self._registry_info}")
+            try:
+                docker.remove(self._registry_info.name, volumes=True, force=True)
+            except python_on_whales.exceptions.NoSuchContainer as err:
+                LOGGER.error(f"Failed to stop and remove local registry {self._registry_info.name}: {err}")
+            self._local_registry_is_running = False
+        else:
+            LOGGER.warning("Local registry is not running when attempting to stop it")
 
     # pylint: disable=too-many-arguments
-    def build_single_image(self,
-                           name: str,
-                           platform: str,
-                           push: bool = True,
-                           path: str = ".",
-                           file: str = "Dockerfile",
-                           tags: List[str] = None,) -> None:
+    def _build_single_image(self,
+                            name: str,
+                            platform: str,
+                            push: bool = True,
+                            path: str = ".",
+                            file: str = "Dockerfile",
+                            tags: List[str] = None,) -> None:
         """
         Builds a single image for the given platform
 
@@ -220,13 +258,16 @@ class MultiplatformImageBuilder:
         """
         LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {file}")
 
+        if self._use_local_registry and not self._local_registry_is_running:
+            self._start_local_registry()
+
         if tags is None:
             tags = ["latest"]
 
         # Updates name to be compatible with docker
         image_prefix = "buildrunner-mp"
         santized_name = f"{image_prefix}-{name.replace('/', '-').replace(':', '-')}"
-        base_image_name = f"{self._reg_ip}:{self._reg_port}/{santized_name}"
+        base_image_name = f"{self._registry_info.ip_addr}:{self._registry_info.port}/{santized_name}"
 
         # Keeps track of the built images {name: [ImageInfo(image_names)]]}
         self._intermediate_built_images[name] = []
@@ -236,10 +277,10 @@ class MultiplatformImageBuilder:
             curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
             LOGGER.debug(f"Building {curr_name} for {platform}")
             if do_multiprocessing:
-                processes.append(Process(target=self.build_single_image,
+                processes.append(Process(target=self._build_single_image,
                                          args=(curr_name, platform, push, path, file, tags)))
             else:
-                self.build_single_image(curr_name, platform, push, path, file, tags)
+                self._build_single_image(curr_name, platform, push, path, file, tags)
             self._intermediate_built_images[name].append(ImageInfo(curr_name, tags))
 
         for proc in processes:

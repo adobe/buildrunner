@@ -211,10 +211,12 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
         )
         try:
             if isinstance(self.platform, list):
-                built_images = self.step_runner.multi_platform.build(platforms=self.platform,
-                                                                     path=self.path,
-                                                                     file=self.config.get('dockerfile'),
-                                                                     name=self.get_unique_build_name(),)
+                built_images = self.step_runner.multi_platform.build_multiple_images(
+                    platforms=self.platform,
+                    path=self.path,
+                    file=self.config.get('dockerfile'),
+                    name=self.get_unique_build_name(),
+                    )
 
                 assert len(built_images) == len(self.platform), \
                     f'Number of built images ({len(built_images)}) does not match ' \

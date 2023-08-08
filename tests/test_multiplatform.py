@@ -25,12 +25,12 @@ def actual_images_match_expected(actual_images, expected_images) -> List[str]:
             missing_images.append(expected_image)
     return missing_images
 
-def test_use_local_registry():
+def test_use_local_registry_auto_start():
     registry_name = None
     volume_name = None
 
-    with MultiplatformImageBuilder(use_local_registry=True) as mp:
-        registry_name = mp._reg_name
+    with MultiplatformImageBuilder() as mp:
+        registry_name = mp._registry_info.name
 
         # Check that the registry is running and only one is found with that name
         registry_container = docker.ps(filters={"name": registry_name})
@@ -48,6 +48,58 @@ def test_use_local_registry():
         # Check that the running container is the registry
         assert registry_container.config.image == 'registry'
         assert registry_container.state.running
+
+    # Check that the registry is stopped and cleaned up
+    registry_container = docker.ps(filters={"name": registry_name})
+    assert len(registry_container) == 0
+    assert not docker.volume.exists(volume_name)
+
+def test_use_local_registry_start_on_build():
+    registry_name = None
+    volume_name = None
+
+    with MultiplatformImageBuilder(auto_start_local_registry=False) as mp:
+        # Check that the registry is NOT running
+        assert mp._registry_info is None
+        assert mp._local_registry_is_running is False
+
+        # Building should start the registry
+        test_path = f'{TEST_DIR}/test-files/multiplatform'
+        mp.build_multiple_images(name='test-images-2000-start-on-build',
+                                 platforms=['linux/arm64', 'linux/amd64'],
+                                 path=test_path,
+                                 file=f'{test_path}/Dockerfile',
+                                 do_multiprocessing=False)
+
+
+        # Check that the registry is running and only one is found with that name
+        registry_name = mp._registry_info.name
+        first_registry_name = registry_name
+        registry_container = docker.ps(filters={"name": registry_name})
+        assert len(registry_container) == 1
+        registry_container = registry_container[0]
+
+        # Check that the registry only has one mount
+        mounts = registry_container.mounts
+        assert len(mounts) == 1
+        mount = mounts[0]
+        assert mount.type == 'volume'
+        volume_name = mount.name
+        assert docker.volume.exists(volume_name)
+
+        # Check that the running container is the registry
+        assert registry_container.config.image == 'registry'
+        assert registry_container.state.running
+
+        # Building again should not start a new registry
+        mp.build_multiple_images(name='test-images-2000-start-on-build2',
+                                 platforms=['linux/arm64', 'linux/amd64'],
+                                 path=test_path,
+                                 file=f'{test_path}/Dockerfile',
+                                 do_multiprocessing=True)
+
+        registry_name = mp._registry_info.name
+        assert first_registry_name == registry_name
 
     # Check that the registry is stopped and cleaned up
     registry_container = docker.ps(filters={"name": registry_name})
@@ -121,7 +173,7 @@ def test_find_native_platform(mock_os,
                               expected_image):
     mock_os.return_value = in_mock_os
     mock_arch.return_value = in_mock_arch
-    with MultiplatformImageBuilder(use_local_registry=False) as mp:
+    with MultiplatformImageBuilder(auto_start_local_registry=False) as mp:
         mp._intermediate_built_images = built_images
         found_platform = mp._find_native_platform_images(name)
         assert str(found_platform) == str(expected_image)
@@ -321,7 +373,7 @@ def test_push_with_dest_names():
     )
 ])
 def test_build(name, platforms, expected_image_names):
-    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder.build_single_image'):
+    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder._build_single_image'):
         test_path = f'{TEST_DIR}/test-files/multiplatform'
         with MultiplatformImageBuilder() as mp:
             built_images = mp.build_multiple_images(name=name,
@@ -346,7 +398,7 @@ def test_build_multiple_builds():
     expected_image_names2 = ['test-build-multi-image-2002-linux-amd64', 'test-build-multi-image-2002-linux-arm64']
 
     test_path = f'{TEST_DIR}/test-files/multiplatform'
-    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder.build_single_image'):
+    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder._build_single_image'):
         with MultiplatformImageBuilder() as mp:
             # Build set 1
             built_images1 = mp.build_multiple_images(name=name1,
