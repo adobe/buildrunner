@@ -432,10 +432,10 @@ shows the different configuration options available:
         <or>
         platform: linux/arm64/v8 # an apple m1 architecture
 
-        # For Multi-platform images please specify a list of platforms to build for
-        # and buildrunner will build images with the given platforms.
-        # Please note that these may be built using emulated architectures which
-        # will be slower than native builds.
+        # To build multi-platform images, add each platform to be built to this list and buildrunner
+        # will use docker buildx to build and provide a single tag containing all architectures specified.
+        # Note that buildx may be configured to build some platforms with emulation and therefore builds
+        # may take longer with this option specified.
         platform:
           - linux/amd64
           - linux/arm64/v8
