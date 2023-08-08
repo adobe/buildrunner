@@ -102,7 +102,7 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                     _artifact.startswith(self.step_runner.name + "/")
                     and _attributes
                     and 'type' in _attributes
-                    and _attributes['type'] == "python-sdist"
+                    and _attributes['type'] in ("python-wheel", "python-sdist")
             ):
                 self.step_runner.build_runner.pypi_packages[self._repository]['packages'].append(
                     f"{self.step_runner.build_runner.build_results_dir}/{_artifact}"
