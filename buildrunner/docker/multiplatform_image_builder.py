@@ -190,7 +190,8 @@ class MultiplatformImageBuilder:
                             push: bool = True,
                             path: str = ".",
                             file: str = "Dockerfile",
-                            tags: List[str] = None,) -> None:
+                            tags: List[str] = None,
+                            docker_registry: str = None,) -> None:
         """
         Builds a single image for the given platform
 
@@ -213,7 +214,12 @@ class MultiplatformImageBuilder:
         LOGGER.debug(f"Building {tagged_names} for {platform}")
 
         # Build the image with the specified tags
-        image = docker.buildx.build(path, tags=tagged_names, platforms=[platform], push=push, file=file)
+        image = docker.buildx.build(path,
+                                    tags=tagged_names,
+                                    platforms=[platform],
+                                    push=push,
+                                    file=file,
+                                    build_args={'DOCKER_REGISTRY': docker_registry})
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
@@ -227,6 +233,7 @@ class MultiplatformImageBuilder:
                 raise err
         return image
 
+    # pylint: disable=too-many-locals
     def build_multiple_images(self,
                               platforms: List[str],
                               path: str = ".",
@@ -234,7 +241,8 @@ class MultiplatformImageBuilder:
                               name: str = None,
                               tags: List[str] = None,
                               push=True,
-                              do_multiprocessing: bool = False) -> List[ImageInfo]:
+                              do_multiprocessing: bool = False,
+                              docker_registry: str = None,) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
 
@@ -274,9 +282,9 @@ class MultiplatformImageBuilder:
             LOGGER.debug(f"Building {curr_name} for {platform}")
             if do_multiprocessing:
                 processes.append(Process(target=self._build_single_image,
-                                         args=(curr_name, platform, push, path, file, tags)))
+                                         args=(curr_name, platform, push, path, file, tags, docker_registry)))
             else:
-                self._build_single_image(curr_name, platform, push, path, file, tags)
+                self._build_single_image(curr_name, platform, push, path, file, tags, docker_registry)
             self._intermediate_built_images[name].append(ImageInfo(curr_name, tags))
 
         for proc in processes:

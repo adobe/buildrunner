@@ -202,12 +202,13 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                 'or inject configurations'
             )
 
+        docker_registry = self.step_runner.build_runner.global_config.get_docker_registry()
         self.step_runner.log.write('Running docker build\n')
         builder = DockerBuilder(
             self.path,
             inject=self.to_inject,
             dockerfile=self.dockerfile,
-            docker_registry=self.step_runner.build_runner.global_config.get_docker_registry(),
+            docker_registry=docker_registry,
         )
         try:
             if isinstance(self.platform, list) and len(self.platform) > 1:
@@ -216,6 +217,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     path=self.path,
                     file=self.dockerfile,
                     name=self.get_unique_build_name(),
+                    docker_registry=docker_registry,
                     )
 
                 assert len(built_images) == len(self.platform), \
