@@ -214,7 +214,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                 built_images = self.step_runner.multi_platform.build_multiple_images(
                     platforms=self.platform,
                     path=self.path,
-                    file=self.config.get('dockerfile'),
+                    file=self.dockerfile,
                     name=self.get_unique_build_name(),
                     )
 

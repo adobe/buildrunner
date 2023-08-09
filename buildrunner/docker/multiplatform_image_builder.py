@@ -207,7 +207,7 @@ class MultiplatformImageBuilder:
 
         assert os.path.isdir(path) and os.path.exists(f"{file}"), \
             f"Either path {path}({os.path.isdir(path)}) or file " \
-            "'{file}'({os.path.exists(f'{file}')}) does not exist!"
+            f"'{file}'({os.path.exists(f'{file}')}) does not exist!"
 
         tagged_names = [f"{name}:{tag}" for tag in tags]
         LOGGER.debug(f"Building {tagged_names} for {platform}")
@@ -335,7 +335,7 @@ class MultiplatformImageBuilder:
                 curr_process.kill()
                 if retries == 0:
                     raise TimeoutError(f"Timeout pushing {dest_names} after {retries} retries"
-                                       " and {timeout_seconds} seconds each try")
+                                       f" and {timeout_seconds} seconds each try")
             else:
                 # Process finished within timeout
                 LOGGER.info(f"Successfully created multiplatform images {dest_names}")
