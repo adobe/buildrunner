@@ -435,8 +435,9 @@ shows the different configuration options available:
         # To build multi-platform images, add each platform to be built to this list and buildrunner
         # will use docker buildx to build and provide a single tag containing all architectures specified.
         # Note that buildx may be configured to build some platforms with emulation and therefore builds
-        # may take longer with this option specified.
-        platform:
+        # may take longer with this option specified. Also note that when using the platforms option, it is not
+        # valid to also specify the platform option.
+        platforms:
           - linux/amd64
           - linux/arm64/v8
 

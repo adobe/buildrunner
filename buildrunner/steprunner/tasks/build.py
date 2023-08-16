@@ -47,6 +47,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
         self.buildargs = {}
         self._import = None
         self.platform = None
+        self.platforms = None
 
         pull_from_config = None
         if not is_dict(self.config):
@@ -59,6 +60,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
             self.nocache = self.config.get('no-cache', self.nocache)
             pull_from_config = self.config.get('pull')
             self.platform = self.config.get('platform', self.platform)
+            self.platforms = self.config.get('platforms', self.platforms)
 
             if not is_dict(self.config.get('buildargs', self.buildargs)):
                 raise BuildRunnerConfigurationError(
@@ -211,18 +213,18 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
             docker_registry=docker_registry,
         )
         try:
-            if isinstance(self.platform, list) and len(self.platform) > 1:
+            if self.platforms:
                 built_images = self.step_runner.multi_platform.build_multiple_images(
-                    platforms=self.platform,
+                    platforms=self.platforms,
                     path=self.path,
                     file=self.dockerfile,
                     name=self.get_unique_build_name(),
                     docker_registry=docker_registry,
                     )
 
-                assert len(built_images) == len(self.platform), \
+                assert len(built_images) == len(self.platforms), \
                     f'Number of built images ({len(built_images)}) does not match ' \
-                    f'the number of platforms ({len(self.platform)})'
+                    f'the number of platforms ({len(self.platforms)})'
 
             else:
                 exit_code = builder.build(
