@@ -7,7 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 import logging
 import os
-from multiprocessing import Process
+from multiprocessing import Manager, Process
 from platform import machine, system
 from typing import List
 
@@ -19,13 +19,23 @@ LOGGER = logging.getLogger(__name__)
 
 class ImageInfo:
     """Image information repo with associated tags"""
-    def __init__(self, repo: str, tags: List[str] = None):
+    def __init__(self, repo: str, tags: List[str] = None, platform: str = None, digest: str = None,):
+        """
+        Args:
+            repo (str): The repo name for the image.
+            tags (List[str], optional): The tags for the image. Defaults to None.
+            platform (str, optional): The platform for the image. Defaults to None.
+            digest (str, optional): The digest id for the image. Defaults to None.
+        """
         self._repo = repo
 
         if tags is None:
             self._tags = ["latest"]
         else:
             self._tags = tags
+
+        self._platform = platform
+        self._digest = digest
 
     @property
     def repo(self) -> str:
@@ -36,6 +46,22 @@ class ImageInfo:
     def tags(self) -> List[str]:
         """The tags for the image."""
         return self._tags
+
+    @property
+    def digest(self) -> str:
+        """The digest id for the image."""
+        return self._digest
+
+    def trunc_digest(self) -> str:
+        """The truncated digest id for the image."""
+        if self._digest is None:
+            return "Digest not available"
+        return self._digest.replace("sha256:", "")[:12]
+
+    @property
+    def platform(self) -> str:
+        """The platform for the image."""
+        return self._platform
 
     def formatted_list(self) -> List[str]:
         """Returns a list of formatted image names"""
@@ -191,7 +217,8 @@ class MultiplatformImageBuilder:
                             path: str = ".",
                             file: str = "Dockerfile",
                             tags: List[str] = None,
-                            docker_registry: str = None,) -> None:
+                            docker_registry: str = None,
+                            built_images: list = None) -> None:
         """
         Builds a single image for the given platform
 
@@ -202,9 +229,13 @@ class MultiplatformImageBuilder:
             path (str, optional): The path to the Dockerfile. Defaults to ".".
             file (str, optional): The path/name of the Dockerfile (ie. <path>/Dockerfile). Defaults to "Dockerfile".
             tags (List[str], optional): The tags to apply to the image. Defaults to None.
+            docker_registry (str, optional): The docker registry to push the image to. Defaults to None.
+            built_images (list, optional): A list of built images. Defaults to None.
         """
         if tags is None:
             tags = ["latest"]
+        if built_images is None:
+            built_images = []
 
         assert os.path.isdir(path) and os.path.exists(f"{file}"), \
             f"Either path {path}({os.path.isdir(path)}) or file " \
@@ -223,14 +254,21 @@ class MultiplatformImageBuilder:
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
+        image_id = None
         for tag_name in tagged_names:
             try:
                 images = docker.image.pull(tag_name)
                 assert images, f"Failed to build {tag_name}"
+                image_id = docker.image.inspect(tag_name).id
                 docker.image.remove(images, force=True)
             except python_on_whales.exceptions.DockerException as err:
                 LOGGER.error(f"Failed to build {tag_name}: {err}")
                 raise err
+
+        built_images.append(ImageInfo(repo=name,
+                                      tags=tags,
+                                      platform=platform,
+                                      digest=image_id,))
         return image
 
     # pylint: disable=too-many-locals
@@ -241,7 +279,7 @@ class MultiplatformImageBuilder:
                               name: str = None,
                               tags: List[str] = None,
                               push=True,
-                              do_multiprocessing: bool = False,
+                              do_multiprocessing: bool = True,
                               docker_registry: str = None,) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
@@ -253,7 +291,7 @@ class MultiplatformImageBuilder:
             name (str, optional): The name of the image. Defaults to None.
             tags (List[str], optional): The tags to apply to the image. Defaults to None.
             push (bool, optional): Whether to push the image to the registry. Defaults to True.
-            do_multiprocessing (bool, optional): Whether to use multiprocessing to build the images. Defaults to False.
+            do_multiprocessing (bool, optional): Whether to use multiprocessing to build the images. Defaults to True.
 
         Returns:
             List[ImageInfo]: The list of intermediate built images, these images are ephemeral
@@ -274,18 +312,31 @@ class MultiplatformImageBuilder:
         base_image_name = f"{self._registry_info.ip_addr}:{self._registry_info.port}/{santized_name}"
 
         # Keeps track of the built images {name: [ImageInfo(image_names)]]}
-        self._intermediate_built_images[name] = []
-
+        manager = Manager()
+        self._intermediate_built_images[name] = manager.list()
         processes = []
         for platform in platforms:
             curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
             LOGGER.debug(f"Building {curr_name} for {platform}")
             if do_multiprocessing:
                 processes.append(Process(target=self._build_single_image,
-                                         args=(curr_name, platform, push, path, file, tags, docker_registry)))
+                                         args=(curr_name,
+                                               platform,
+                                               push,
+                                               path,
+                                               file,
+                                               tags,
+                                               docker_registry,
+                                               self._intermediate_built_images[name])))
             else:
-                self._build_single_image(curr_name, platform, push, path, file, tags, docker_registry)
-            self._intermediate_built_images[name].append(ImageInfo(curr_name, tags))
+                self._build_single_image(curr_name,
+                                         platform,
+                                         push,
+                                         path,
+                                         file,
+                                         tags,
+                                         docker_registry,
+                                         self._intermediate_built_images[name])
 
         for proc in processes:
             proc.start()
@@ -425,3 +476,15 @@ class MultiplatformImageBuilder:
             except python_on_whales.exceptions.DockerException as err:
                 LOGGER.error(f"Failed while tagging {dest_name}: {err}")
                 raise err
+
+    def get_built_images(self, name: str) -> List[str]:
+        """
+        Returns the list of tagged images for the given name
+
+        Args:
+            name (str): The name of the image to find
+
+        Returns:
+            List[str]: The list of built images for the given name
+        """
+        return self._intermediate_built_images[name]

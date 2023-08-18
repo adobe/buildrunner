@@ -98,6 +98,22 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
                     tags=repo.tags,
                     dest_name=repo.repository)
 
+                # add image as artifact
+                if not self._commit_only:
+                    images = self.step_runner.multi_platform.get_built_images(self.get_unique_build_name())
+                    image_ids = ",".join([image.trunc_digest() for image in images])
+                    platforms = [image.platform for image in images]
+                    self.step_runner.build_runner.add_artifact(
+                        os.path.join(self.step_runner.name, image_ids.replace(",", "/")),
+                        {
+                            'type': 'docker-image',
+                            'docker:image': image_ids,
+                            'docker:repository': repo.repository,
+                            'docker:tags': repo.tags,
+                            'docker:platforms': platforms,
+                        },
+                    )
+
         # Tag single platform images
         else:
             # first see if a run task produced an image (via a post-build config)
