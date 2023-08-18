@@ -1,9 +1,9 @@
 import os
 from typing import List
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from python_on_whales import docker
+from python_on_whales import Image, docker
 from python_on_whales.exceptions import DockerException
 
 from buildrunner.docker.multiplatform_image_builder import (
@@ -384,24 +384,35 @@ def test_push_with_dest_names():
      ['test-build-image-2001-linux-amd64', 'test-build-image-2001-linux-arm64']
     )
 ])
-def test_build(name, platforms, expected_image_names):
-    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder._build_single_image'):
-        test_path = f'{TEST_DIR}/test-files/multiplatform'
-        with MultiplatformImageBuilder() as mp:
-            built_images = mp.build_multiple_images(name=name,
-                                    platforms=platforms,
-                                    path=test_path,
-                                    file=f'{test_path}/Dockerfile',
-                                    do_multiprocessing=False)
+@patch('buildrunner.docker.multiplatform_image_builder.docker.image.remove')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.image.inspect')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.image.pull')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.buildx.build')
+def test_build(mock_build, mock_pull, mock_inspect, mock_remove, name, platforms, expected_image_names):
+    mock_inspect.return_value = MagicMock()
+    mock_inspect.return_value.id = 'myfakeimageid'
+    test_path = f'{TEST_DIR}/test-files/multiplatform'
+    with MultiplatformImageBuilder() as mp:
+        built_images = mp.build_multiple_images(name=name,
+                                platforms=platforms,
+                                path=test_path,
+                                file=f'{test_path}/Dockerfile',
+                                do_multiprocessing=False)
 
-            assert len(built_images) ==  len(platforms)
-            assert len(built_images) ==  len(expected_image_names)
+        assert len(built_images) ==  len(platforms)
+        assert len(built_images) ==  len(expected_image_names)
 
-            missing_images = actual_images_match_expected(built_images, expected_image_names)
-            assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images]}'
+        missing_images = actual_images_match_expected(built_images, expected_image_names)
+        assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images]}'
 
 
-def test_build_multiple_builds():
+@patch('buildrunner.docker.multiplatform_image_builder.docker.image.remove')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.image.inspect')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.image.pull')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.buildx.build')
+def test_build_multiple_builds(mock_build, mock_pull, mock_inspect, mock_remove):
+    mock_inspect.return_value = MagicMock()
+    mock_inspect.return_value.id = 'myfakeimageid'
     name1 = 'test-build-multi-image-2001'
     platforms1 = ['linux/amd64', 'linux/arm64']
     expected_image_names1 = ['test-build-multi-image-2001-linux-amd64', 'test-build-multi-image-2001-linux-arm64']
@@ -411,33 +422,32 @@ def test_build_multiple_builds():
     expected_image_names2 = ['test-build-multi-image-2002-linux-amd64', 'test-build-multi-image-2002-linux-arm64']
 
     test_path = f'{TEST_DIR}/test-files/multiplatform'
-    with patch('buildrunner.docker.multiplatform_image_builder.MultiplatformImageBuilder._build_single_image'):
-        with MultiplatformImageBuilder() as mp:
-            # Build set 1
-            built_images1 = mp.build_multiple_images(name=name1,
-                                    platforms=platforms1,
-                                    path=test_path,
-                                    file=f'{test_path}/Dockerfile',
-                                    do_multiprocessing=False)
+    with MultiplatformImageBuilder() as mp:
+        # Build set 1
+        built_images1 = mp.build_multiple_images(name=name1,
+                                platforms=platforms1,
+                                path=test_path,
+                                file=f'{test_path}/Dockerfile',
+                                do_multiprocessing=False)
 
-            # Build set 2
-            built_images2 = mp.build_multiple_images(name=name2,
-                                    platforms=platforms2,
-                                    path=test_path,
-                                    file=f'{test_path}/Dockerfile',
-                                    do_multiprocessing=False)
+        # Build set 2
+        built_images2 = mp.build_multiple_images(name=name2,
+                                platforms=platforms2,
+                                path=test_path,
+                                file=f'{test_path}/Dockerfile',
+                                do_multiprocessing=False)
 
-            # Check set 1
-            assert len(built_images1) ==  len(platforms1)
-            assert len(built_images1) ==  len(expected_image_names1)
-            missing_images = actual_images_match_expected(built_images1, expected_image_names1)
-            assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images1]}'
+        # Check set 1
+        assert len(built_images1) ==  len(platforms1)
+        assert len(built_images1) ==  len(expected_image_names1)
+        missing_images = actual_images_match_expected(built_images1, expected_image_names1)
+        assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images1]}'
 
-            # Check set 2
-            assert len(built_images2) ==  len(platforms2)
-            assert len(built_images2) ==  len(expected_image_names2)
-            missing_images = actual_images_match_expected(built_images2, expected_image_names2)
-            assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images2]}'
+        # Check set 2
+        assert len(built_images2) ==  len(platforms2)
+        assert len(built_images2) ==  len(expected_image_names2)
+        missing_images = actual_images_match_expected(built_images2, expected_image_names2)
+        assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images2]}'
 
 
 @pytest.mark.parametrize("name, tags, platforms, expected_image_names",[
