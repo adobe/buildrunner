@@ -651,11 +651,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                                 else:
                                     self.log.write(str(msg) + '\n')
 
-                        # Push to pypi repositories
-                        # Placing the import here avoids the dependency when pypi is not needed
-                        import twine.commands.upload  # pylint: disable=import-outside-toplevel
-                        for _, _items in self.pypi_packages.items():
-                            twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
+                    # Push to pypi repositories
+                    # Placing the import here avoids the dependency when pypi is not needed
+                    import twine.commands.upload  # pylint: disable=import-outside-toplevel
+                    for _, _items in self.pypi_packages.items():
+                        twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
                 else:
                     self.log.write(
                         '\nPush not requested\n'
