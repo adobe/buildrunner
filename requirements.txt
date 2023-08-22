@@ -73,7 +73,9 @@ pkginfo==1.9.6
 pycparser==2.21
     # via cffi
 pydantic==1.10.11
-    # via python-on-whales
+    # via
+    #   -r requirements.in
+    #   python-on-whales
 pygments==2.15.1
     # via
     #   readme-renderer
