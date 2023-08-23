@@ -1,5 +1,6 @@
 
-import buildrunner.config_model as config_model
+# import buildrunner.validation.config_model as config_model
+from buildrunner.validation.config_model import validate_config
 from pydantic import ValidationError
 import pytest
 
@@ -9,8 +10,9 @@ def test_valid_version_config():
     config = {
         'version': 'string'
     }
-    with pytest.raises(ValidationError):
-        config_model.Config(**config)
+    result = validate_config(**config)
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 0
 
     #  Valid version
     config = {
@@ -18,20 +20,19 @@ def test_valid_version_config():
         'steps': {
         }
     }
-    try:
-        config_model.Config(**config)
-    except ValidationError as err:
-        pytest.fail(f'Config should be valid {err}')
+    result = validate_config(**config)
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 0
 
     # Optional version
     config = {
         'steps': {
         }
     }
-    try:
-        config_model.Config(**config)
-    except ValidationError as err:
-        pytest.fail(f'Config should be valid {err}')
+    result = validate_config(**config)
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 0
+
 
 def test_platform_and_platforms_invalid():
     # Invalid to have platform and platforms
@@ -55,8 +56,9 @@ def test_platform_and_platforms_invalid():
             },
         }
     }
-    with pytest.raises(ValueError):
-        config_model.Config(**config)
+    result = validate_config(**config)
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 0
 
 
 def test_platforms_invalid():
@@ -77,8 +79,9 @@ def test_platforms_invalid():
             },
         }
     }
-    with pytest.raises(ValueError):
-        config_model.Config(**config)
+    result = validate_config(**config)
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 0
 
 def test_valid_platforms():
     config = {
@@ -100,11 +103,9 @@ def test_valid_platforms():
             },
         }
     }
-    model = config_model.Config(**config)
-    assert model.steps['build-container-multi-platform']
-    assert model.steps['build-container-multi-platform'].build
-    assert model.steps['build-container-multi-platform'].build.platforms == ['linux/amd64', 'linux/arm64']
-    assert model.steps['build-container-multi-platform'].build.platform is None
+    result = validate_config(**config)
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 0
 
 
 def test_duplicate_mp_tags_dictionary_invalid():
@@ -138,8 +139,9 @@ def test_duplicate_mp_tags_dictionary_invalid():
             },
         }
     }
-    with pytest.raises(ValueError):
-        config_model.Config(**config)
+    result = validate_config(**config)
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 0
 
 def test_duplicate_mp_tags_strings_invalid():
     # Invalid to have duplicate multi-platform tag
@@ -167,8 +169,9 @@ def test_duplicate_mp_tags_strings_invalid():
             },
         }
     }
-    with pytest.raises(ValueError):
-        config_model.Config(**config)
+    result = validate_config(**config)
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 0
 
     # Indentical tags in same string format
     config = {
@@ -193,8 +196,9 @@ def test_duplicate_mp_tags_strings_invalid():
             },
         }
     }
-    with pytest.raises(ValueError):
-        config_model.Config(**config)
+    result = validate_config(**config)
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 0
 
 def test_duplicate_mp_tags_strings_valid():
     #  Same string format but different MP tags
@@ -220,18 +224,9 @@ def test_duplicate_mp_tags_strings_valid():
             },
         }
     }
-    model = config_model.Config(**config)
-    assert model.steps['build-container-multi-platform1']
-    assert model.steps['build-container-multi-platform1'].build
-    assert model.steps['build-container-multi-platform1'].build.platforms == ['linux/amd64', 'linux/arm64']
-    assert model.steps['build-container-multi-platform1'].build.platform is None
-    assert model.steps['build-container-multi-platform1'].push == 'mytest-reg/buildrunner-test-multi-platform:latest'
-
-    assert model.steps['build-container-multi-platform2']
-    assert model.steps['build-container-multi-platform2'].build
-    assert model.steps['build-container-multi-platform2'].build.platforms == ['linux/amd64', 'linux/arm64']
-    assert model.steps['build-container-multi-platform2'].build.platform is None
-    assert model.steps['build-container-multi-platform2'].push == 'mytest-reg/buildrunner-test-multi-platform:not-latest'
+    result = validate_config(**config)
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 0
 
 def test_duplicate_mp_tags_platform_platforms_invalid():
     # Invalid to have duplicate multi-platform tag and single platform tag
@@ -254,8 +249,9 @@ def test_duplicate_mp_tags_platform_platforms_invalid():
             },
         }
     }
-    with pytest.raises(ValueError):
-        config_model.Config(**config)
+    result = validate_config(**config)
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 0
 
 def test_valid_config():
     # Sample valid config, but not exhaustive
@@ -310,10 +306,35 @@ def test_valid_config():
         }
     }
 
-    try:
-        model = config_model.Config(**config)
-        assert model.steps
-        assert model.version
+    result = validate_config(**config)
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 0
 
-    except ValidationError as err:
-        pytest.fail(f'Config should be valid {err}')
+def test_multiple_errors():
+    # Multiple errors
+    # Invalid to have version as a string
+    # Invalid to have platforms and platform
+    config = {
+        'version': 'string',
+        'steps': {
+            'build-container-multi-platform': {
+                'build': {
+                    'path': '.',
+                    'dockerfile': 'Dockerfile',
+                    'pull': False,
+                    'platform': 'linux/amd64',
+                    'platforms': [
+                        'linux/amd64',
+                        'linux/arm64',
+                    ],
+                },
+                'push': {
+                    'repository': 'mytest-reg/buildrunner-test-multi-platform',
+                    'tags': [ 'latest' ],
+                },
+            },
+        }
+    }
+    result = validate_config(**config)
+    assert len(result.errors) == 2
+    assert len(result.warnings) == 0

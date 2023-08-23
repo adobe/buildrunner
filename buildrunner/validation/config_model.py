@@ -8,7 +8,10 @@ with the terms of the Adobe license agreement accompanying it.
 
 from typing import Dict, List, Optional, Set, Union
 
-from pydantic import BaseModel, validator  # pylint: disable=no-name-in-module
+# pylint: disable=no-name-in-module
+from pydantic import BaseModel, validator, ValidationError
+
+from buildrunner.validation.data import ValidationItem, ValidationResult
 
 
 class StepBuild(BaseModel):
@@ -37,21 +40,6 @@ class Step(BaseModel):
         """
         return self.build is not None and \
             self.build.platforms is not None
-
-    # def has_multi_platform_build(self):
-    #     """
-    #     Check if the config file has multi-platform build steps
-
-    #     Returns:
-    #         bool: True if the config file has multi-platform build steps, False otherwise
-    #     """
-    #     if self.steps is None:
-    #         return False
-
-    #     for step in self.steps.values():
-    #         if step.is_multi_platform():
-    #             return True
-    #     return False
 
 
 class Config(BaseModel):
@@ -156,3 +144,27 @@ class Config(BaseModel):
                                       step_name=step_name,
                                       update_mp_push_tags=False)
         return values
+
+
+def _add_validation_errors(result: ValidationResult, exc: ValidationError) -> None:
+    for error in exc.errors():
+        loc = [str(item) for item in error["loc"]]
+        result.add_error(ValidationItem(
+            message=f'Invalid configuration: {error["msg"]} ({error["type"]})',
+            field=".".join(loc),
+        ))
+
+
+def validate_config(**kwargs) -> ValidationResult:
+    """
+    Check if the config file is valid
+
+    Raises:
+        ValueError | pydantic.ValidationError : If the config file is invalid
+    """
+    result = ValidationResult()
+    try:
+        Config(**kwargs)
+    except ValidationError as exc:
+        _add_validation_errors(result, exc)
+    return result

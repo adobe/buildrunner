@@ -21,8 +21,6 @@ import tempfile
 
 import jinja2
 
-from pydantic import ValidationError
-
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerVersionError,
@@ -36,7 +34,7 @@ from buildrunner.utils import (
     load_config,
 )
 
-from buildrunner import config_model
+from buildrunner.validation.config_model import validate_config
 
 from . import fetch
 
@@ -374,11 +372,10 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         config = self._reorder_dependency_steps(config)
 
-        # Validate the config
-        try:
-            config_model.Config(**config)
-        except (ValidationError, ValueError) as err:
-            raise BuildRunnerConfigurationError(f"Invalid configuration: {err}")    # pylint: disable=raise-missing-from
+        config_result = validate_config(**config)
+        if config_result.errors:
+            raise BuildRunnerConfigurationError('Please fix the following configuration errors:'
+                                                f'\n{config_result}')
 
         return config
 
