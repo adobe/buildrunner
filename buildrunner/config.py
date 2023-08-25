@@ -34,6 +34,8 @@ from buildrunner.utils import (
     load_config,
 )
 
+from buildrunner.validation.config_model import validate_config
+
 from . import fetch
 
 MASTER_GLOBAL_CONFIG_FILE = '/etc/buildrunner/buildrunner.yaml'
@@ -369,6 +371,11 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
                                version_file_path=f"{os.path.dirname(os.path.realpath(__file__))}/version.py")
 
         config = self._reorder_dependency_steps(config)
+
+        config_result = validate_config(**config)
+        if config_result.errors:
+            raise BuildRunnerConfigurationError('Please fix the following configuration errors:'
+                                                f'\n{config_result}')
 
         return config
 
