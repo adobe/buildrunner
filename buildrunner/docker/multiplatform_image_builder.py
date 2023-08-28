@@ -260,7 +260,11 @@ class MultiplatformImageBuilder:
                 images = docker.image.pull(tag_name)
                 assert images, f"Failed to build {tag_name}"
                 image_id = docker.image.inspect(tag_name).id
-                docker.image.remove(images, force=True)
+                # Removes the image from host, if this fails it is considered a warning
+                try:
+                    docker.image.remove(images, force=True)
+                except python_on_whales.exceptions.DockerException as err:
+                    LOGGER.warning(f"Failed to remove {images}: {err}")
             except python_on_whales.exceptions.DockerException as err:
                 LOGGER.error(f"Failed to build {tag_name}: {err}")
                 raise err
