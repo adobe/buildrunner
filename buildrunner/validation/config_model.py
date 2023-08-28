@@ -45,7 +45,7 @@ class Step(BaseModel):
 class Config(BaseModel):
     """ Top level config model """
     version: Optional[float]
-    steps: Optional[Dict[str, Step]]
+    steps: Optional[Dict[str, Optional[Step]]]
 
     # Note this is pydantic version 1.10 syntax
     @validator('steps')
@@ -127,6 +127,8 @@ class Config(BaseModel):
 
         has_multi_platform_build = False
         for step in values.values():
+            if not step:
+                continue
             has_multi_platform_build = has_multi_platform_build or step.is_multi_platform()
 
         if has_multi_platform_build:
@@ -135,6 +137,8 @@ class Config(BaseModel):
 
             # Validate that all tags are unique across all multi-platform step
             for step_name, step in values.items():
+                if not step:
+                    continue
 
                 # Check that there are no single platform tags that match multi-platform tags
                 if not step.is_multi_platform():
