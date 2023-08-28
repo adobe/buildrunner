@@ -83,6 +83,20 @@ def test_platforms_invalid():
     assert len(result.errors) == 1
     assert len(result.warnings) == 0
 
+
+def test_build_is_path():
+    config = {
+        'steps': {
+            'build-is-path': {
+                'build': '.',
+            },
+        }
+    }
+    result = validate_config(**config)
+    assert len(result.errors) == 0
+    assert len(result.warnings) == 0
+
+
 def test_valid_platforms():
     config = {
         'steps': {
@@ -143,6 +157,7 @@ def test_duplicate_mp_tags_dictionary_invalid():
     assert len(result.errors) == 1
     assert len(result.warnings) == 0
 
+
 def test_duplicate_mp_tags_strings_invalid():
     # Invalid to have duplicate multi-platform tag
     # Testing with both string format, one inferred 'latest' the other explicit 'latest'
@@ -200,6 +215,7 @@ def test_duplicate_mp_tags_strings_invalid():
     assert len(result.errors) == 1
     assert len(result.warnings) == 0
 
+
 def test_duplicate_mp_tags_strings_valid():
     #  Same string format but different MP tags
     config = {
@@ -228,6 +244,7 @@ def test_duplicate_mp_tags_strings_valid():
     assert len(result.errors) == 0
     assert len(result.warnings) == 0
 
+
 def test_duplicate_mp_tags_platform_platforms_invalid():
     # Invalid to have duplicate multi-platform tag and single platform tag
     config = {
@@ -252,6 +269,7 @@ def test_duplicate_mp_tags_platform_platforms_invalid():
     result = validate_config(**config)
     assert len(result.errors) == 1
     assert len(result.warnings) == 0
+
 
 def test_valid_config():
     # Sample valid config, but not exhaustive
@@ -309,6 +327,7 @@ def test_valid_config():
     result = validate_config(**config)
     assert len(result.errors) == 0
     assert len(result.warnings) == 0
+
 
 def test_multiple_errors():
     # Multiple errors
