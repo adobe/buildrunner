@@ -31,7 +31,7 @@ class StepPushDict(BaseModel):
 
 class Step(BaseModel):
     """ Step model """
-    build: Optional[StepBuild]
+    build: Optional[Union[StepBuild, str]]
     push: Optional[Union[StepPushDict, List[Union[str, StepPushDict]], str]]
 
     def is_multi_platform(self):
