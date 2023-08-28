@@ -80,7 +80,7 @@ def test_platforms_invalid():
         }
     }
     result = validate_config(**config)
-    assert len(result.errors) == 1
+    assert len(result.errors) == 2
     assert len(result.warnings) == 0
 
 

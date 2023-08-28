@@ -38,7 +38,7 @@ class Step(BaseModel):
         """
         Check if the step is a multi-platform build step
         """
-        return self.build is not None and \
+        return isinstance(self.build, StepBuild) and \
             self.build.platforms is not None
 
 
