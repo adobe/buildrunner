@@ -217,7 +217,7 @@ class MultiplatformImageBuilder:
                             path: str = ".",
                             file: str = "Dockerfile",
                             tags: List[str] = None,
-                            docker_registry: str = None,
+                            build_args: dict = None,
                             built_images: list = None) -> None:
         """
         Builds a single image for the given platform
@@ -236,6 +236,8 @@ class MultiplatformImageBuilder:
             tags = ["latest"]
         if built_images is None:
             built_images = []
+        if build_args is None:
+            build_args = {}
 
         assert os.path.isdir(path) and os.path.exists(f"{file}"), \
             f"Either path {path}({os.path.isdir(path)}) or file " \
@@ -250,7 +252,7 @@ class MultiplatformImageBuilder:
                                     platforms=[platform],
                                     push=push,
                                     file=file,
-                                    build_args={'DOCKER_REGISTRY': docker_registry})
+                                    build_args=build_args)
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
@@ -284,7 +286,8 @@ class MultiplatformImageBuilder:
                               tags: List[str] = None,
                               push=True,
                               do_multiprocessing: bool = True,
-                              docker_registry: str = None,) -> List[ImageInfo]:
+                              docker_registry: str = None,
+                              build_args: dict = None) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
 
@@ -301,6 +304,10 @@ class MultiplatformImageBuilder:
             List[ImageInfo]: The list of intermediate built images, these images are ephemeral
             and will be removed when the builder is garbage collected
         """
+        if build_args is None:
+            build_args = {}
+        build_args['DOCKER_REGISTRY'] = docker_registry
+
         LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {file}")
 
         if self._use_local_registry and not self._local_registry_is_running:
@@ -330,7 +337,7 @@ class MultiplatformImageBuilder:
                                                path,
                                                file,
                                                tags,
-                                               docker_registry,
+                                               build_args,
                                                self._intermediate_built_images[name])))
             else:
                 self._build_single_image(curr_name,
@@ -339,7 +346,7 @@ class MultiplatformImageBuilder:
                                          path,
                                          file,
                                          tags,
-                                         docker_registry,
+                                         build_args,
                                          self._intermediate_built_images[name])
 
         for proc in processes:
