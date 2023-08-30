@@ -8,6 +8,8 @@ with the terms of the Adobe license agreement accompanying it.
 
 import os
 import ssl
+import tempfile
+from typing import Tuple
 import urllib.parse
 import docker
 
@@ -105,3 +107,28 @@ def force_remove_container(docker_client, container):
         force=True,
         v=True,
     )
+
+
+def get_dockerfile(dockerfile: str, temp_dir: str = None) -> Tuple[str, bool]:
+    """
+    Check if the dockerfile exists, if not create a temporary file and write the dockerfile to it.
+    :param dockerfile: the dockerfile
+    :param temp_dir: the temporary directory
+    :return: the dockerfile and a boolean indicating if the dockerfile was created
+    """
+    cleanup_dockerfile = False
+    curr_dockerfile = None
+
+    if dockerfile:
+        if os.path.exists(dockerfile):
+            curr_dockerfile = dockerfile
+        else:
+            # pylint: disable=consider-using-with
+            df_file = tempfile.NamedTemporaryFile(delete=False, dir=temp_dir)
+            try:
+                df_file.write(dockerfile.encode('utf-8'))
+                cleanup_dockerfile = True
+                curr_dockerfile = df_file.name
+            finally:
+                df_file.close()
+    return curr_dockerfile, cleanup_dockerfile

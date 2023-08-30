@@ -15,7 +15,7 @@ import tempfile
 import docker
 import docker.errors
 
-from buildrunner.docker import new_client, force_remove_container
+from buildrunner.docker import get_dockerfile, new_client, force_remove_container
 
 
 class DockerBuilder:  # pylint: disable=too-many-instance-attributes
@@ -39,18 +39,8 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         self.temp_dir = temp_dir
         self.dockerfile = None
         self.cleanup_dockerfile = False
-        if dockerfile:
-            if os.path.exists(dockerfile):
-                self.dockerfile = dockerfile
-            else:
-                # pylint: disable=consider-using-with
-                df_file = tempfile.NamedTemporaryFile(delete=False, dir=self.temp_dir)
-                try:
-                    df_file.write(dockerfile.encode('utf-8'))
-                    self.cleanup_dockerfile = True
-                    self.dockerfile = df_file.name
-                finally:
-                    df_file.close()
+
+        self.dockerfile, self.cleanup_dockerfile = get_dockerfile(dockerfile, self.temp_dir)
 
         self.docker_client = new_client(
             dockerd_url=dockerd_url,

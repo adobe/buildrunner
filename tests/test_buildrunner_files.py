@@ -35,6 +35,9 @@ def _get_exit_code(file_name: str) -> int:
     if file_name.startswith('test-inject-nonexistent-dir'):
         return os.EX_CONFIG
 
+    if file_name.startswith('test-docker-pull-failure'):
+        return os.EX_CONFIG
+
     return os.EX_OK
 
 

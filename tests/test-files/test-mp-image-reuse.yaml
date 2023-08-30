@@ -1,0 +1,20 @@
+# Test to ensure that subsequent steps can use the recently built image
+steps:
+  build-container-multi-platform:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox
+      platforms:
+        - linux/amd64
+        - linux/arm64/v8
+    push:
+      repository: user1/buildrunner-test-multi-platform
+      tags: [ 'latest', '0.0.1' ]
+    run:
+      image: user1/buildrunner-test-multi-platform:0.0.1
+      cmd: echo "Hello World"
+
+  use-built-image:
+    run:
+      image: user1/buildrunner-test-multi-platform:0.0.1
+      cmd: echo "Hello World"

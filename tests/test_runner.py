@@ -1,5 +1,6 @@
 import os
 import sys
+import docker
 
 sys.path.insert(
     0,
@@ -57,6 +58,9 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
             return build_runner.exit_code
     except BuildRunnerConfigurationError as brce:
         print(str(brce))
+        return os.EX_CONFIG
+    except docker.errors.ImageNotFound as inf:
+        print(str(inf))
         return os.EX_CONFIG
     return os.EX_OK
 

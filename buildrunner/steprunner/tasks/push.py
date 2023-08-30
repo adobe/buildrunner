@@ -98,6 +98,9 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
                     tags=repo.tags,
                     dest_name=repo.repository)
 
+                for tag in repo.tags:
+                    self.step_runner.build_runner.committed_images.add(f'{repo.repository}:{tag}')
+
                 # add image as artifact
                 if not self._commit_only:
                     images = self.step_runner.multi_platform.get_built_images(self.get_unique_build_name())
