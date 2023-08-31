@@ -14,6 +14,8 @@ from typing import List
 import python_on_whales
 from python_on_whales import docker
 
+from buildrunner.docker import get_dockerfile
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -308,7 +310,9 @@ class MultiplatformImageBuilder:
             build_args = {}
         build_args['DOCKER_REGISTRY'] = docker_registry
 
-        LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {file}")
+        dockerfile, cleanup_dockerfile = get_dockerfile(file)
+
+        LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {dockerfile}")
 
         if self._use_local_registry and not self._local_registry_is_running:
             # Starts local registry container to do ephemeral image storage
@@ -335,7 +339,7 @@ class MultiplatformImageBuilder:
                                                platform,
                                                push,
                                                path,
-                                               file,
+                                               dockerfile,
                                                tags,
                                                build_args,
                                                self._intermediate_built_images[name])))
@@ -344,7 +348,7 @@ class MultiplatformImageBuilder:
                                          platform,
                                          push,
                                          path,
-                                         file,
+                                         dockerfile,
                                          tags,
                                          build_args,
                                          self._intermediate_built_images[name])
@@ -354,6 +358,10 @@ class MultiplatformImageBuilder:
 
         for proc in processes:
             proc.join()
+
+        if cleanup_dockerfile:
+            if dockerfile and os.path.exists(dockerfile):
+                os.remove(dockerfile)
 
         return self._intermediate_built_images[name]
 

@@ -1,0 +1,6 @@
+# Tests that a failure to pull an image results in a failure.
+steps:
+  use-bogus-image:
+    run:
+      image: user1/buildrunner-test-multi-platform:bogus
+      cmd: echo "Hello World"
