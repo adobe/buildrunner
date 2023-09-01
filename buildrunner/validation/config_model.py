@@ -11,7 +11,31 @@ from typing import Dict, List, Optional, Set, Union
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel, validator, ValidationError
 
-from buildrunner.validation.data import ValidationItem, ValidationResult
+
+class Errors:
+    """ Error class for storing validation errors """
+    class Error:
+        """ Error class for storing validation error """
+        def __init__(self, field: str, message: str):
+            self.field: str = field
+            self.message: Union[str, None] = message
+
+    def __init__(self):
+        self.errors = []
+
+    def add(self, field: str, message: str):
+        """ Add an error """
+        self.errors.append(self.Error(field, message))
+
+    def count(self):
+        """ Return the number of errors """
+        return len(self.errors)
+
+    def __str__(self):
+        return '\n'.join([f'  {error.field}:  {error.message}' for error in self.errors])
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class StepBuild(BaseModel):
@@ -145,25 +169,24 @@ class Config(BaseModel):
         return values
 
 
-def _add_validation_errors(result: ValidationResult, exc: ValidationError) -> None:
+def _add_validation_errors(exc: ValidationError) -> Errors:
+    errors = Errors()
     for error in exc.errors():
         loc = [str(item) for item in error["loc"]]
-        result.add_error(ValidationItem(
-            message=f'Invalid configuration: {error["msg"]} ({error["type"]})',
-            field=".".join(loc),
-        ))
+        errors.add(field='.'.join(loc), message=f'{error["msg"]} ({error["type"]})')
+    return errors
 
 
-def validate_config(**kwargs) -> ValidationResult:
+def validate_config(**kwargs) -> Errors:
     """
     Check if the config file is valid
 
     Raises:
         ValueError | pydantic.ValidationError : If the config file is invalid
     """
-    result = ValidationResult()
+    errors = None
     try:
         Config(**kwargs)
     except ValidationError as exc:
-        _add_validation_errors(result, exc)
-    return result
+        errors = _add_validation_errors(exc)
+    return errors

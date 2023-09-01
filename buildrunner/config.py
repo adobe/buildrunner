@@ -372,10 +372,10 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         config = self._reorder_dependency_steps(config)
 
-        config_result = validate_config(**config)
-        if config_result.errors:
-            raise BuildRunnerConfigurationError('Please fix the following configuration errors:'
-                                                f'\n{config_result}')
+        errors = validate_config(**config)
+        if errors:
+            raise BuildRunnerConfigurationError(f'Invalid configuration - {errors.count()} errors found:'
+                                                f'\n{errors}')
 
         return config
 
