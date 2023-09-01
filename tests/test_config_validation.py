@@ -1,8 +1,5 @@
 
-# import buildrunner.validation.config_model as config_model
-from buildrunner.validation.config_model import validate_config
-from pydantic import ValidationError
-import pytest
+from buildrunner.validation.config_model import validate_config, Errors
 
 
 def test_valid_version_config():
@@ -10,9 +7,9 @@ def test_valid_version_config():
     config = {
         'version': 'string'
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 1
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
 
     #  Valid version
     config = {
@@ -20,18 +17,16 @@ def test_valid_version_config():
         'steps': {
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 0
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert errors is None
 
     # Optional version
     config = {
         'steps': {
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 0
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert errors is None
 
 
 def test_platform_and_platforms_invalid():
@@ -56,9 +51,9 @@ def test_platform_and_platforms_invalid():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 1
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
 
 
 def test_platforms_invalid():
@@ -79,9 +74,9 @@ def test_platforms_invalid():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 2
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 2
 
 
 def test_build_is_path():
@@ -92,9 +87,8 @@ def test_build_is_path():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 0
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert errors is None
 
 
 def test_valid_platforms():
@@ -117,9 +111,8 @@ def test_valid_platforms():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 0
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert errors is None
 
 
 def test_duplicate_mp_tags_dictionary_invalid():
@@ -153,9 +146,9 @@ def test_duplicate_mp_tags_dictionary_invalid():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 1
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
 
 
 def test_duplicate_mp_tags_strings_invalid():
@@ -184,9 +177,9 @@ def test_duplicate_mp_tags_strings_invalid():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 1
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
 
     # Indentical tags in same string format
     config = {
@@ -211,9 +204,9 @@ def test_duplicate_mp_tags_strings_invalid():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 1
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
 
 
 def test_duplicate_mp_tags_strings_valid():
@@ -240,9 +233,8 @@ def test_duplicate_mp_tags_strings_valid():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 0
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert errors is None
 
 
 def test_duplicate_mp_tags_platform_platforms_invalid():
@@ -266,9 +258,9 @@ def test_duplicate_mp_tags_platform_platforms_invalid():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 1
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
 
 
 def test_valid_config():
@@ -324,9 +316,8 @@ def test_valid_config():
         }
     }
 
-    result = validate_config(**config)
-    assert len(result.errors) == 0
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert errors is None
 
 
 def test_multiple_errors():
@@ -354,6 +345,6 @@ def test_multiple_errors():
             },
         }
     }
-    result = validate_config(**config)
-    assert len(result.errors) == 2
-    assert len(result.warnings) == 0
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 2
