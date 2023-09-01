@@ -6,9 +6,9 @@ ENV PIP_DEFAULT_TIMEOUT 60
 
 # Some of these packages are to have native installs so that arm packages will not be built
 RUN                                                         \
-    set -ex;                                                \
-    useradd -m buildrunner;                                 \
-    apt update;                                             \
+    set -x &&                                              \
+    useradd -m buildrunner &&                               \
+    apt update &&                                           \
     apt -y install                                          \
         libffi-dev                                          \
         libssl-dev                                          \
@@ -18,8 +18,8 @@ RUN                                                         \
         python3-cryptography                                \
         python3-paramiko                                    \
         python3-wrapt                                       \
-        python3-dev;                                        \
-    apt clean all;
+        python3-dev &&                                      \
+    apt clean all
 
 # Running pip this way is strange, but it allows it to detect the system packages installed
 # HACK - For some reason, 'python3 setup.py install' produces an error with 'jaraco-classes' package
