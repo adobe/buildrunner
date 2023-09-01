@@ -6,7 +6,7 @@ ENV PIP_DEFAULT_TIMEOUT 60
 
 # Some of these packages are to have native installs so that arm packages will not be built
 RUN                                                         \
-    set -ex &&                                              \
+    set -x &&                                              \
     useradd -m buildrunner &&                               \
     apt update &&                                           \
     apt -y install                                          \
