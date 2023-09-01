@@ -22,14 +22,17 @@ RUN                                                         \
     apt clean all;
 
 # Running pip this way is strange, but it allows it to detect the system packages installed
-RUN                                                         \
-    cd /buildrunner-source;                                 \
-    python3 -m pip install -U pip;                        \
-    python3 -m pip install                                \
-        -r requirements.txt                                 \
-        -r test_requirements.txt;                           \
-    python3 setup.py install;                             \
-    rm -rf /buildrunner-source;
+# HACK - For some reason, 'python3 setup.py install' produces an error with 'jaraco-classes' package
+# but replacing it with 'jaraco.classes' in the requirements.txt works. ¯\_(ツ)_/¯
+RUN                                                              \
+    cd /buildrunner-source &&                                    \
+    python3 -m pip install -U pip &&                             \
+    sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
+    python3 -m pip install                                       \
+        -r requirements.txt                                      \
+        -r test_requirements.txt &&                              \
+    python3 setup.py install &&                                  \
+    rm -rf /buildrunner-source
 
 #RUN \
 #    set -ex; \
