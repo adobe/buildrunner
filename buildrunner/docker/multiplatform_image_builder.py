@@ -17,7 +17,7 @@ from retry import retry
 
 from buildrunner.docker import get_dockerfile
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ImageInfo:
@@ -139,14 +139,14 @@ class MultiplatformImageBuilder:
             for name, images in self._intermediate_built_images.items():
                 for image in images:
                     for tag in image.tags:
-                        LOGGER.debug(f"Removing image {image.repo}:{tag} for {name}")
+                        logger.debug(f"Removing image {image.repo}:{tag} for {name}")
                         docker.image.remove(f"{image.repo}:{tag}", force=True)
 
         # Removes all tagged images if keep_images is False
         if self._tagged_images_names and not self._keep_images:
             for name, images in self._tagged_images_names.items():
                 for image in images:
-                    LOGGER.debug(f"Removing tagged image {image} for {name}")
+                    logger.debug(f"Removing tagged image {image} for {name}")
                     docker.image.remove(image, force=True)
 
     @property
@@ -180,7 +180,7 @@ class MultiplatformImageBuilder:
             str: The name of the registry container
         """
         if not self._local_registry_is_running:
-            LOGGER.debug("Starting local docker registry")
+            logger.debug("Starting local docker registry")
             container = docker.run("registry", detach=True, publish_all=True)
             ports = container.network_settings.ports
 
@@ -194,23 +194,23 @@ class MultiplatformImageBuilder:
 
             self._registry_info = RegistryInfo(container.name, "localhost", ports.get("5000/tcp")[0].get("HostPort"))
             self._local_registry_is_running = True
-            LOGGER.debug(f"Started local registry {self._registry_info}")
+            logger.debug(f"Started local registry {self._registry_info}")
         else:
-            LOGGER.warning("Local registry is already running")
+            logger.warning("Local registry is already running")
 
     def _stop_local_registry(self):
         """
         Stops and removes the local registry along with any images
         """
         if self._local_registry_is_running:
-            LOGGER.debug(f"Stopping and removing local registry {self._registry_info}")
+            logger.debug(f"Stopping and removing local registry {self._registry_info}")
             try:
                 docker.remove(self._registry_info.name, volumes=True, force=True)
             except python_on_whales.exceptions.NoSuchContainer as err:
-                LOGGER.error(f"Failed to stop and remove local registry {self._registry_info.name}: {err}")
+                logger.error(f"Failed to stop and remove local registry {self._registry_info.name}: {err}")
             self._local_registry_is_running = False
         else:
-            LOGGER.warning("Local registry is not running when attempting to stop it")
+            logger.warning("Local registry is not running when attempting to stop it")
 
     # pylint: disable=too-many-arguments
     @retry(python_on_whales.exceptions.DockerException, tries=5, delay=1)
@@ -248,7 +248,7 @@ class MultiplatformImageBuilder:
             f"'{file}'({os.path.exists(f'{file}')}) does not exist!"
 
         tagged_names = [f"{name}:{tag}" for tag in tags]
-        LOGGER.debug(f"Building {tagged_names} for {platform}")
+        logger.debug(f"Building {tagged_names} for {platform}")
 
         # Build the image with the specified tags
         image = docker.buildx.build(path,
@@ -270,9 +270,9 @@ class MultiplatformImageBuilder:
                 try:
                     docker.image.remove(images, force=True)
                 except python_on_whales.exceptions.DockerException as err:
-                    LOGGER.warning(f"Failed to remove {images}: {err}")
+                    logger.warning(f"Failed to remove {images}: {err}")
             except python_on_whales.exceptions.DockerException as err:
-                LOGGER.error(f"Failed to build {tag_name}: {err}")
+                logger.error(f"Failed to build {tag_name}: {err}")
                 raise err
 
         built_images.append(ImageInfo(repo=name,
@@ -321,7 +321,7 @@ class MultiplatformImageBuilder:
 
         dockerfile, cleanup_dockerfile = get_dockerfile(file)
 
-        LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {dockerfile}")
+        logger.debug(f"Building {name}:{tags} for platforms {platforms} from {dockerfile}")
 
         if self._use_local_registry and not self._local_registry_is_running:
             # Starts local registry container to do ephemeral image storage
@@ -341,7 +341,7 @@ class MultiplatformImageBuilder:
         processes = []
         for platform in platforms:
             curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
-            LOGGER.debug(f"Building {curr_name} for {platform}")
+            logger.debug(f"Building {curr_name} for {platform}")
             if do_multiprocessing:
                 processes.append(Process(target=self._build_single_image,
                                          args=(curr_name,
@@ -412,7 +412,7 @@ class MultiplatformImageBuilder:
         timeout_seconds = initial_timeout_seconds
         while retries > 0:
             retries -= 1
-            LOGGER.debug(f"Creating manifest list {name} with timeout {timeout_seconds} seconds")
+            logger.debug(f"Creating manifest list {name} with timeout {timeout_seconds} seconds")
             curr_process = Process(target=docker.buildx.imagetools.create,
                                    kwargs={"sources": src_names, "tags": tagged_names})
             curr_process.start()
@@ -424,7 +424,7 @@ class MultiplatformImageBuilder:
                                        f" and {timeout_seconds} seconds each try")
             else:
                 # Process finished within timeout
-                LOGGER.info(f"Successfully created multiplatform images {dest_names}")
+                logger.info(f"Successfully created multiplatform images {dest_names}")
                 break
             timeout_seconds += timeout_step_seconds
 
@@ -444,7 +444,7 @@ class MultiplatformImageBuilder:
         """
         host_os = system()
         host_arch = machine()
-        LOGGER.debug(f"Finding native platform for {name} for {host_os}/{host_arch}")
+        logger.debug(f"Finding native platform for {name} for {host_os}/{host_arch}")
         pattern = f"{host_os}-{host_arch}"
 
         # No images built for this name
@@ -481,7 +481,7 @@ class MultiplatformImageBuilder:
         # This is to handle pylint's "dangerous-default-value" error
         if tags is None:
             tags = ["latest"]
-        LOGGER.debug(f"Tagging {name} with tags {tags} - Dest name: {dest_name}")
+        logger.debug(f"Tagging {name} with tags {tags} - Dest name: {dest_name}")
         source_image = self._find_native_platform_images(name)
         if dest_name is None:
             dest_name = name
@@ -497,11 +497,11 @@ class MultiplatformImageBuilder:
                 for tag in tags:
                     dest_tag = f"{dest_name}:{tag}"
                     docker.tag(image, dest_tag)
-                    LOGGER.debug(f"Tagged {image} as {dest_tag}")
+                    logger.debug(f"Tagged {image} as {dest_tag}")
                     self._tagged_images_names[name].append(dest_tag)
                 docker.image.remove(image, force=True)
             except python_on_whales.exceptions.DockerException as err:
-                LOGGER.error(f"Failed while tagging {dest_name}: {err}")
+                logger.error(f"Failed while tagging {dest_name}: {err}")
                 raise err
 
     def get_built_images(self, name: str) -> List[str]:

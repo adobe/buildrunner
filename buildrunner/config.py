@@ -34,7 +34,7 @@ from buildrunner.utils import (
     load_config,
 )
 
-from buildrunner.validation.config_model import validate_config
+from buildrunner.validation.config import validate_config
 
 from . import fetch
 
