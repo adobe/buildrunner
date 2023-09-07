@@ -13,6 +13,7 @@ from typing import List
 
 import python_on_whales
 from python_on_whales import docker
+from retry import retry
 
 from buildrunner.docker import get_dockerfile
 
@@ -212,6 +213,7 @@ class MultiplatformImageBuilder:
             LOGGER.warning("Local registry is not running when attempting to stop it")
 
     # pylint: disable=too-many-arguments
+    @retry(python_on_whales.exceptions.DockerException, tries=5, delay=1)
     def _build_single_image(self,
                             name: str,
                             platform: str,

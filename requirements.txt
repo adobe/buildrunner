@@ -26,6 +26,7 @@ decorator==5.1.1
     # via
     #   -r requirements.in
     #   fabric
+    #   retry2
 docker==6.1.3
     # via -r requirements.in
 docutils==0.20.1
@@ -97,6 +98,8 @@ requests==2.31.0
     #   twine
 requests-toolbelt==1.0.0
     # via twine
+retry2==0.9.5
+    # via -r requirements.in
 rfc3986==2.0.0
     # via twine
 rich==13.4.1
