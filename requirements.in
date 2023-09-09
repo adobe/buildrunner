@@ -13,3 +13,4 @@ timeout-decorator>=0.5.0
 python-on-whales>=0.61.0
 # python-on-whales requires pydantic 1.10.11 08/2023
 pydantic>=1.10.11
+retry2>=0.9.5
