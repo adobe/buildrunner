@@ -312,6 +312,13 @@ class MultiplatformImageBuilder:
             build_args = {}
         build_args['DOCKER_REGISTRY'] = docker_registry
 
+        # It is not valid to pass None for the path when building multi-platform images
+        if not path:
+            if os.path.exists(file):
+                path = os.path.dirname(file)
+            else:
+                path = "."
+
         dockerfile, cleanup_dockerfile = get_dockerfile(file)
 
         LOGGER.debug(f"Building {name}:{tags} for platforms {platforms} from {dockerfile}")
@@ -361,9 +368,8 @@ class MultiplatformImageBuilder:
         for proc in processes:
             proc.join()
 
-        if cleanup_dockerfile:
-            if dockerfile and os.path.exists(dockerfile):
-                os.remove(dockerfile)
+        if cleanup_dockerfile and dockerfile and os.path.exists(dockerfile):
+            os.remove(dockerfile)
 
         return self._intermediate_built_images[name]
 

@@ -1,0 +1,27 @@
+steps:
+  # Test to make sure MP builds work without specifying a path
+  # Injected dockerfile text
+  build-container-single-platform-embedded-dockerfile:
+    build:
+      dockerfile: |
+        FROM alpine:latest
+        LABEL name="buildrunner-tester"
+        LABEL version=1.0.0
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    push:
+      repository: adobe/buildrunner-mp-path-test
+      tags: [ 'latest' ]
+
+  # Test to may sure MP builds work without specifying a path
+  # Path is derived from the dockerfile path
+  build-container-single-platform-dockerfile:
+    build:
+      dockerfile: tests/test-files/multiplatform/Dockerfile.none.path
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    push:
+      repository: adobe/buildrunner-mp-path-test-dockerfile
+      tags: [ 'latest' ]
