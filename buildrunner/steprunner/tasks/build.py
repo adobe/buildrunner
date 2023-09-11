@@ -38,7 +38,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
-        self.path = '.'
+        self.path = None
         self.dockerfile = None
         self.to_inject = {}
         self.image_to_prepend_to_dockerfile = image_to_prepend_to_dockerfile

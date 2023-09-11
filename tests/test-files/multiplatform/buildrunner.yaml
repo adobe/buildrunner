@@ -7,27 +7,27 @@ steps:
       pull: false
       platform: linux/amd64
     push:
-      repository: shanejbrown/buildrunner-test
+      repository: adobe/buildrunner-test
       tags: [ 'latest' ]
   build-container-multi-platform:
     build:
       path: .
       dockerfile: Dockerfile
       pull: false
-      platform:
+      platforms:
         - linux/amd64
         - linux/arm64
     push:
-      repository: shanejbrown/buildrunner-test-multi-platform
+      repository: adobe/buildrunner-test-multi-platform
       tags: [ 'latest' ]
   build-container-multi-platform2:
     build:
       path: .
       dockerfile: Dockerfile
       pull: false
-      platform:
+      platforms:
         - linux/amd64
         - linux/arm64
     push:
-      repository: shanejbrown/buildrunner-test-multi-platform2
+      repository: adobe/buildrunner-test-multi-platform2
       tags: [ 'latest', '0.1.0' ]
