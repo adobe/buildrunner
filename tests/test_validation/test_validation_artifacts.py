@@ -53,24 +53,6 @@ def test_step_artifacts_valid_compression():
     assert errors is None
 
 
-def test_step_artifacts_invalid_compression():
-    config_yaml = """
-    steps:
-      build-remote:
-        remote:
-          host: myserver.ut1
-          cmd: docker build -t mytest-reg/buildrunner-test .
-          artifacts:
-            bogus/path/to/artifacts/*:
-              type: tar
-              compression: bogus
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
 def test_step_run_format_valid():
     config_yaml = """
     steps:
@@ -83,21 +65,6 @@ def test_step_run_format_valid():
     config = yaml.load(config_yaml, Loader=yaml.Loader)
     errors = validate_config(**config)
     assert errors is None
-
-
-def test_step_run_format_invalid():
-    config_yaml = """
-    steps:
-      build-run:
-        run:
-          artifacts:
-            bogus/path/to/artifacts/*:
-              format: 134
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
 
 
 def test_step_type_valid():

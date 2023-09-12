@@ -6,7 +6,6 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 # pylint: disable=no-name-in-module
@@ -22,45 +21,23 @@ class StepPypiPush(BaseModel):
 
 class Artifact(BaseModel):
     """ Artifact model """
-
-    class FormatTypes(Enum):
-        """ Format types """
-        #  pylint: disable=invalid-name
-        uncompressed = 'uncompressed'
-
-    class CompressionTypes(Enum):
-        """ Compression types """
-        # [compression: gz|bz2|xz|lzma|lzip|lzop|z]
-        #  pylint: disable=invalid-name
-        gz = 'gz'
-        bz2 = 'bz2'
-        xz = 'xz'
-        lzma = 'lzma'
-        lzip = 'lzip'
-        lzop = 'lzop'
-        z = 'z'
-
-    format: Optional[FormatTypes]
+    # Intentionally loose restrictions
+    format: Optional[str]
     type: Optional[Any]
-    compression: Optional[CompressionTypes]
+    compression: Optional[str]
     push: Optional[bool]
 
 
 class StepRun(BaseModel, extra='forbid'):
     """ Run model within a step """
 
-    class ProvisionerTypes(Enum):
-        """ Provisioner types """
-        #  pylint: disable=invalid-name
-        shell: str = 'shell'
-        salt: str = 'salt'
-
     xfail: Optional[bool]
-    services: Optional[Dict[str, str]]
+    services: Optional[Dict[str, Any]]
     image: Optional[str]
     cmd: Optional[str]
     cmds: Optional[List[str]]
-    provisioners: Optional[Dict[ProvisionerTypes, str]]
+    # Intentionally loose restrictions
+    provisioners: Optional[Dict[str, str]]
     shell: Optional[str]
     cwd: Optional[str]
     user: Optional[str]
@@ -80,8 +57,9 @@ class StepRun(BaseModel, extra='forbid'):
     systemd: Optional[bool]
     cap_add: Optional[Union[str, List[str]]]
     privileged: Optional[bool]
-    post_build: Optional[Union[str, Dict[str, str]]] = Field(alias='post-build')
+    post_build: Optional[Union[str, Dict[str, Any]]] = Field(alias='post-build')
     containers: Optional[List[str]]
+    no_cache: Optional[bool] = Field(alias='no-cache')
 
 
 class StepRemote(BaseModel, extra='forbid'):
@@ -100,6 +78,8 @@ class StepBuild(BaseModel, extra='forbid'):
     platform: Optional[str]
     platforms: Optional[List[str]]
     inject: Optional[Dict[str, str]]
+    no_cache: Optional[bool] = Field(alias='no-cache')
+    buildargs: Optional[Dict[str, Any]]
 
 
 class StepPushCommitDict(BaseModel, extra='forbid'):

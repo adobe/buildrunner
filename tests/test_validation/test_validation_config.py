@@ -376,22 +376,21 @@ def test_doc_confg():
     assert errors is None
 
 
-def test_full_real_confg():
+def test_full_confg():
     # Minus template areas
-    # Taken from https://git.corp.company.com/analytics-platform/scds/blob/a627732f894537fbcdb66cf1d311d7ff657eb3b4/buildrunner.yaml
     config_yaml = """
     steps:
       generate_files:
         run:
           image: docker.company.com/abc-xdm-proto-build:latest
-          ssh-keys: ["adobe-github"]
+          ssh-keys: ["company-github"]
           env:
             GIT_TOKEN: 'blahblahblahblahblahblah'
-          cmd: sbt clean generateContentAwareJsonFiles combineXDM generateProtobufFiles
+          cmd: sbt clean generateAwareJsonFiles combineXDM generateProtobufFiles
           artifacts:
-            'target/protobufFiles/Analytics*.proto':
-            'target/rawJson/Analytics*.json':
-            'target/contentAwareJson/ContentAware.json':
+            'target/protobufFiles/Database*.proto':
+            'target/rawJson/Database*.json':
+            'target/AwareJson/Aware.json':
             'target/combinedXDM/complete-schema-template.schema.json':
       build-dev-rpm:
         build:
@@ -400,7 +399,7 @@ def test_full_real_confg():
             "buildrunner.results/generate_files/A*.json": "json/"
             "db_build/dms.repo.centos7": db_build/dms.repo
           dockerfile: |
-            FROM docker-xeng-release.dr.corp.company.com/xeng/centos-7-x86_64-obuild:latest
+            FROM docker-release.dr.corp.company.com/centos-7-x86_64-obuild:latest
             ADD db_build/dms.repo /etc/yum.repos.d/dms.repo
             RUN rpm --rebuilddb; yum clean all; yum install -y db-omniture-libs-protobuf-2.6.1 db-scds-proto-1.0 db-scds-json-1.0
             ADD proto/*.proto /tmp/proto/
@@ -411,14 +410,6 @@ def test_full_real_confg():
             - "echo ~ Compiling previous proto version..."
             - "mkdir -p /tmp/existingscds && for f in `ls -d /home/omniture/protobuf/scds/*.proto`; do protoc -I=/home/omniture/protobuf --cpp_out /tmp/existingscds $f; done"
             - "echo ~ Compiling current proto version..."
-            - "mkdir -p /tmp/currentstaging/scds && cp /tmp/proto/* /tmp/currentstaging/scds"
-            - "mkdir -p /tmp/currentscds && for f in `ls -d /tmp/currentstaging/scds/*.proto`; do protoc -I=/tmp/currentstaging --cpp_out /tmp/currentscds $f; done"
-            - "echo ~ Comparing code versions..."
-            - "rm -f /tmp/doredeploy"
-            - "for f in `ls /tmp/currentscds/scds/* | xargs -n1 basename`; do if ! diff /tmp/currentscds/scds/$f /tmp/existingscds/scds/$f ; then echo ======== $f: Protobuf versions DO NOT match: Generating RPM...; rm -f /tmp/doredeploy; break; else echo ======== $f: Protobuf versions match...; touch /tmp/doredeploy; fi; done"
-            - "for f in `ls /tmp/json/A*.json | xargs -n1 basename`; do if ! diff /home/omniture/json/scds/$f /tmp/json/$f ; then echo ======== $f: JSON versions DO NOT match: Generating RPM...; rm -f /tmp/doredeploy; break; else echo ======== $f: JSON version match...; touch /tmp/doredeploy; fi; done"
-            - "if [[ -f /tmp/doredeploy ]]; then echo Redeploying existing RPM...; mkdir -p /source/db_tmp/rpm/RPMS/noarch; chmod -R 777 db_tmp; yum remove -y db-scds-proto-1.0 db-scds-json-1.0; yum install -y --downloadonly --downloaddir=/source/db_tmp/rpm/RPMS/noarch db-scds-proto-1.0 db-scds-json-1.0 || true; ls -al /source/db_tmp/rpm/RPMS/noarch; fi"
-            - "if [[ ! -f /tmp/doredeploy ]]; then echo Building new RPM due to Protobuf or JSON mismatch...; su -l httpd -c 'cd /source && obuild'; fi"
           artifacts:
             # pull the log if rpmbuild fails
             "db_tmp/rpm/TMPDIR/*.log": {type: 'log'}
@@ -444,7 +435,7 @@ def test_full_real_confg():
           inject:
             "db_build/bin/*": "db_build/bin/"
           dockerfile: |
-            FROM docker-xeng-release.dr.corp.company.com/xeng/centos-7-x86_64-obuild
+            FROM docker-release.dr.corp.company.com/centos-7-x86_64-obuild
             ADD db_build/bin/* /tmp/
         run:
           cmds:
@@ -462,15 +453,10 @@ def test_full_real_confg():
           inject:
             "buildrunner.results/generate_files/*.proto": "proto"
             "buildrunner.results/generate_files/*.json": "json"
-            "buildrunner.results/generate_files/complete-schema-template.schema.json": "xdmschema/complete-schema-template.schema.json"
-            "buildrunner.results/download-country/country_code_map.csv": "csv/country_code_map.csv"
           dockerfile: |
             FROM docker.company.com/abc-base-containers/protobuf-builder:java8-2.5.0
             RUN apt-get update && apt-get -y install openssh-client
             ADD proto/*.proto /tmp/proto/scds/
-            ADD json/ContentAware.json /tmp/json/contentAware/
-            ADD xdmschema/complete-schema-template.schema.json /tmp/xdmschema/
-            ADD csv/country_code_map.csv /tmp/csv/
         run:
           env:
             ARTIFACTORY_USER: 'cool_user'
@@ -492,7 +478,7 @@ def test_full_real_confg():
       generate_docs:
         run:
           image: docker.company.com/abc-xdm-proto-build:latest
-          ssh-keys: ["adobe-github"]
+          ssh-keys: ["company-github"]
           env:
             GIT_TOKEN: 'blahblahblahblahblahblahblah'
           cmd: "sbt clean generateDocs ${BUILDRUNNER_DO_PUSH+publishGHPages}"

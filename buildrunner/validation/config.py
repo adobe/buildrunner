@@ -6,7 +6,6 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-import logging
 from typing import Dict, List, Optional, Set, Union
 
 # pylint: disable=no-name-in-module
@@ -14,8 +13,6 @@ from pydantic import BaseModel, Field, validator, ValidationError
 
 from buildrunner.validation.errors import Errors, add_validation_errors
 from buildrunner.validation.step import Step, StepPushCommitDict
-
-logger = logging.getLogger(__name__)
 
 
 class Config(BaseModel):
@@ -44,7 +41,7 @@ class Config(BaseModel):
     # Global config attributes
     env: Optional[Dict[str, str]]
     build_servers: Optional[Dict[str, Union[str, List[str]]]] = Field(alias='build-servers')
-    #  Intentionally loose restrictions on ssh-keys since documentation isn't clear
+    #  Intentionally has loose restrictions on ssh-keys since documentation isn't clear
     ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(alias='ssh-keys')
     local_files: Optional[Dict[str, str]] = Field(alias='local-files')
     caches_root: Optional[str] = Field(alias='caches-root')
@@ -62,7 +59,7 @@ class Config(BaseModel):
             ValueError | pydantic.ValidationError : If the config file is invalid
         """
 
-        def validate_push(push: Union[StepPushCommitDict, List[Union[str, StepPushCommitDict]], str],
+        def validate_push(push: Union[StepPushCommitDict, str, List[Union[str, StepPushCommitDict]]],
                           mp_push_tags: Set[str],
                           step_name: str,
                           update_mp_push_tags: bool = True):
