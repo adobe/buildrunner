@@ -127,8 +127,10 @@ def test_doc_confg():
           # (such as databases) that are required to run the step. More details
           # on services below.
           services:
-            service-name-1: <service config>
-            service-name-2: <service config>
+            service-name-1:
+              image: <the Docker image to run>
+            service-name-2:
+              cmd: <a command to run>
 
           # The Docker image to run. If empty the image created with the 'build'
           # attribute will be used.

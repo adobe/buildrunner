@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
 
-class StepPypiPush(BaseModel):
+class StepPypiPush(BaseModel, extra='forbid'):
     """ Step pypi push model"""
     repository: str
     username: str
@@ -28,14 +28,25 @@ class Artifact(BaseModel):
     push: Optional[bool]
 
 
-class StepRun(BaseModel, extra='forbid'):
-    """ Run model within a step """
+class StepBuild(BaseModel, extra='forbid'):
+    """ Build model within a step """
+    path: Optional[str]
+    dockerfile: Optional[str]
+    pull: Optional[bool]
+    platform: Optional[str]
+    platforms: Optional[List[str]]
+    inject: Optional[Dict[str, Optional[str]]]
+    no_cache: Optional[bool] = Field(alias='no-cache')
+    buildargs: Optional[Dict[str, Any]]
 
-    xfail: Optional[bool]
-    services: Optional[Dict[str, Any]]
+
+class RunAndServicesBase(BaseModel):
+    """
+    Base model for Run and Service
+    which has several common fields
+    """
     image: Optional[str]
     cmd: Optional[str]
-    cmds: Optional[List[str]]
     # Intentionally loose restrictions
     provisioners: Optional[Dict[str, str]]
     shell: Optional[str]
@@ -47,18 +58,36 @@ class StepRun(BaseModel, extra='forbid'):
     extra_hosts: Optional[Dict[str, str]]
     env: Optional[Dict[str, str]]
     files: Optional[Dict[str, str]]
-    caches: Optional[Dict[str, Union[str, List[str]]]]
-    ports: Optional[Dict[str, str]]
     volumes_from: Optional[List[str]]
-    ssh_keys: Optional[List[str]] = Field(alias='ssh-keys')
-    artifacts: Optional[Dict[str, Union[Artifact, None]]]
+    ports: Optional[Dict[str, str]]
     pull: Optional[bool]
-    platform: Optional[str]
     systemd: Optional[bool]
+    containers: Optional[List[str]]
+
+
+class Service(RunAndServicesBase, extra='forbid'):
+    """ Service model """
+    build: Optional[Union[StepBuild, str]]
+    dns_search: Optional[str] = Field(alias='dns-search')
+    wait_for: Optional[List[Any]]
+    inject_ssh_agent: Optional[bool] = Field(alias='inject-ssh-agent')
+    # Not sure if this is valid, but it is in a test file
+    # Didn't use StepRun because of the potential to have a infinitely nested model
+    run: Optional[Any]
+
+
+class StepRun(RunAndServicesBase, extra='forbid'):
+    """ Run model within a step """
+    xfail: Optional[bool]
+    services: Optional[Dict[str, Service]]
+    cmds: Optional[List[str]]
+    caches: Optional[Dict[str, Union[str, List[str]]]]
+    ssh_keys: Optional[List[str]] = Field(alias='ssh-keys')
+    artifacts: Optional[Dict[str, Optional[Artifact]]]
+    platform: Optional[str]
     cap_add: Optional[Union[str, List[str]]]
     privileged: Optional[bool]
     post_build: Optional[Union[str, Dict[str, Any]]] = Field(alias='post-build')
-    containers: Optional[List[str]]
     no_cache: Optional[bool] = Field(alias='no-cache')
 
 
@@ -68,18 +97,6 @@ class StepRemote(BaseModel, extra='forbid'):
     host: Optional[str]
     cmd: str
     artifacts: Optional[Dict[str, Union[Artifact, None]]]
-
-
-class StepBuild(BaseModel, extra='forbid'):
-    """ Build model within a step """
-    path: Optional[str]
-    dockerfile: Optional[str]
-    pull: Optional[bool]
-    platform: Optional[str]
-    platforms: Optional[List[str]]
-    inject: Optional[Dict[str, str]]
-    no_cache: Optional[bool] = Field(alias='no-cache')
-    buildargs: Optional[Dict[str, Any]]
 
 
 class StepPushCommitDict(BaseModel, extra='forbid'):

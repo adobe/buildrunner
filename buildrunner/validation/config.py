@@ -11,11 +11,11 @@ from typing import Dict, List, Optional, Set, Union
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel, Field, validator, ValidationError
 
-from buildrunner.validation.errors import Errors, add_validation_errors
+from buildrunner.validation.errors import Errors, get_validation_errors
 from buildrunner.validation.step import Step, StepPushCommitDict
 
 
-class Config(BaseModel):
+class Config(BaseModel, extra='forbid'):
     """ Top level config model """
 
     # Unclear if this is actively used
@@ -157,5 +157,5 @@ def validate_config(**kwargs) -> Errors:
     try:
         Config(**kwargs)
     except ValidationError as exc:
-        errors = add_validation_errors(exc)
+        errors = get_validation_errors(exc)
     return errors

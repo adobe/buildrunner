@@ -36,8 +36,8 @@ class Errors:
         return self.__str__()
 
 
-def add_validation_errors(exc: ValidationError) -> Errors:
-    """ Add validation errors to an Errors object """
+def get_validation_errors(exc: ValidationError) -> Errors:
+    """ Get validation errors to an Errors object """
     errors = Errors()
     for error in exc.errors():
         loc = [str(item) for item in error["loc"]]

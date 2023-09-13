@@ -1,5 +1,3 @@
-tags: &tags ['tag1', 'tag2']
-
 steps:
 
   test:
@@ -49,7 +47,7 @@ steps:
         rabbitmq:
           image: {{ DOCKER_REGISTRY }}/rabbitmq:3.4
           hostname: rabbitmq
-          environment:
+          env:
             RABBITMQ_NODENAME: test-rabbitmq
         web:
           build: tests/webservicecontainer
@@ -112,7 +110,7 @@ steps:
           'tests/postbuildpath/Dockerfile': '/'
     push:
       repository: adobe/hello-inline
-      tags: *tags
+      tags: [latest]
 
   archive-container-config:
     run:
