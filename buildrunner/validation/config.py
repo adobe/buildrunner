@@ -9,67 +9,44 @@ with the terms of the Adobe license agreement accompanying it.
 from typing import Dict, List, Optional, Set, Union
 
 # pylint: disable=no-name-in-module
-from pydantic import BaseModel, validator, ValidationError
+from pydantic import BaseModel, Field, validator, ValidationError
+
+from buildrunner.validation.errors import Errors, get_validation_errors
+from buildrunner.validation.step import Step, StepPushCommitDict
 
 
-class Errors:
-    """ Error class for storing validation errors """
-    class Error:
-        """ Error class for storing validation error """
-        def __init__(self, field: str, message: str):
-            self.field: str = field
-            self.message: Union[str, None] = message
-
-    def __init__(self):
-        self.errors = []
-
-    def add(self, field: str, message: str):
-        """ Add an error """
-        self.errors.append(self.Error(field, message))
-
-    def count(self):
-        """ Return the number of errors """
-        return len(self.errors)
-
-    def __str__(self):
-        return '\n'.join([f'  {error.field}:  {error.message}' for error in self.errors])
-
-    def __repr__(self):
-        return self.__str__()
-
-
-class StepBuild(BaseModel):
-    """ Build model within a step """
-    path: Optional[str]
-    dockerfile: Optional[str]
-    pull: Optional[bool]
-    platform: Optional[str]
-    platforms: Optional[List[str]]
-
-
-class StepPushDict(BaseModel):
-    """ Push model within a step """
-    repository: str
-    tags: Optional[List[str]]
-
-
-class Step(BaseModel):
-    """ Step model """
-    build: Optional[Union[StepBuild, str]]
-    push: Optional[Union[StepPushDict, List[Union[str, StepPushDict]], str]]
-
-    def is_multi_platform(self):
-        """
-        Check if the step is a multi-platform build step
-        """
-        return isinstance(self.build, StepBuild) and \
-            self.build.platforms is not None
-
-
-class Config(BaseModel):
+class Config(BaseModel, extra='forbid'):
     """ Top level config model """
+
+    # Unclear if this is actively used
+    class GithubModel(BaseModel, extra='forbid'):
+        """ Github model """
+        endpoint: str
+        version: str
+        username: str
+        app_token: str
+
+    class SSHKey(BaseModel, extra='forbid'):
+        """ SSH key model """
+        file: Optional[str]
+        key: Optional[str]
+        password: Optional[str]
+        prompt_password: Optional[bool] = Field(alias='prompt-password')
+        aliases: Optional[List[str]]
+
     version: Optional[float]
     steps: Optional[Dict[str, Step]]
+
+    github: Optional[Dict[str, GithubModel]]
+    # Global config attributes
+    env: Optional[Dict[str, str]]
+    build_servers: Optional[Dict[str, Union[str, List[str]]]] = Field(alias='build-servers')
+    #  Intentionally has loose restrictions on ssh-keys since documentation isn't clear
+    ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(alias='ssh-keys')
+    local_files: Optional[Dict[str, str]] = Field(alias='local-files')
+    caches_root: Optional[str] = Field(alias='caches-root')
+    docker_registry: Optional[str] = Field(alias='docker-registry')
+    temp_dir: Optional[str] = Field(alias='temp-dir')
 
     # Note this is pydantic version 1.10 syntax
     @validator('steps')
@@ -82,7 +59,7 @@ class Config(BaseModel):
             ValueError | pydantic.ValidationError : If the config file is invalid
         """
 
-        def validate_push(push: Union[StepPushDict, List[Union[str, StepPushDict]], str],
+        def validate_push(push: Union[StepPushCommitDict, str, List[Union[str, StepPushCommitDict]]],
                           mp_push_tags: Set[str],
                           step_name: str,
                           update_mp_push_tags: bool = True):
@@ -107,7 +84,7 @@ class Config(BaseModel):
                     if ":" not in name:
                         name = f'{name}:latest'
 
-                if isinstance(push, StepPushDict):
+                if isinstance(push, StepPushCommitDict):
                     names = [f"{push.repository}:{tag}" for tag in push.tags]
 
                 if names is not None:
@@ -169,14 +146,6 @@ class Config(BaseModel):
         return values
 
 
-def _add_validation_errors(exc: ValidationError) -> Errors:
-    errors = Errors()
-    for error in exc.errors():
-        loc = [str(item) for item in error["loc"]]
-        errors.add(field='.'.join(loc), message=f'{error["msg"]} ({error["type"]})')
-    return errors
-
-
 def validate_config(**kwargs) -> Errors:
     """
     Check if the config file is valid
@@ -188,5 +157,5 @@ def validate_config(**kwargs) -> Errors:
     try:
         Config(**kwargs)
     except ValidationError as exc:
-        errors = _add_validation_errors(exc)
+        errors = get_validation_errors(exc)
     return errors
