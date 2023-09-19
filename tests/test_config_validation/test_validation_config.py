@@ -103,7 +103,7 @@ def test_multiple_errors():
     assert errors.count() == 2
 
 
-def test_doc_confg():
+def test_doc_config():
     # Tests the documentation example with minimal changes to make valid yaml
     config_yaml = """
     version: 2.0
@@ -258,7 +258,7 @@ def test_doc_confg():
           # A map specifying ports to expose, this is only used when the
           # --publish-ports parameter is passed to buildrunner
           ports:
-            <container port>: <host port>
+            5458: 8080
 
           # A list specifying service containers (see below) whose exposed
           # volumes should be mapped into the run container's file system.

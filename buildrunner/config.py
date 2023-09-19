@@ -374,7 +374,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         errors = validate_config(**config)
         if errors:
-            raise BuildRunnerConfigurationError(f'Invalid configuration - {errors.count()} errors found:'
+            raise BuildRunnerConfigurationError(f'Invalid configuration: {errors.count()} errors found:'
                                                 f'\n{errors}')
 
         return config

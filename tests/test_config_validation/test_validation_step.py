@@ -334,7 +334,7 @@ def test_services():
                 - 8.8.4.4
 
               # A custom dns search path to use in the service container.
-              dns-search: mydomain.com
+              dns_search: mydomain.com
 
               # Add entries to the hosts file
               # The keys are the hostnames.  The values can be either
@@ -372,7 +372,7 @@ def test_services():
               # A map specifying ports to expose and link within other containers
               # within the step.
               ports:
-                <container port>: <host port>
+                8081: 8080
 
               # Whether or not to pull the image from upstream prior to running
               # the step.  This is almost always desirable, as it ensures the
