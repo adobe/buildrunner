@@ -848,7 +848,7 @@ within service container configuration:
               - 8.8.4.4
 
             # A custom dns search path to use in the service container.
-            dns-search: mydomain.com
+            dns_search: mydomain.com
 
             # Add entries to the hosts file
             # The keys are the hostnames.  The values can be either

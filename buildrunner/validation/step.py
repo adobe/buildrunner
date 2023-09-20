@@ -56,10 +56,10 @@ class RunAndServicesBase(BaseModel):
     dns: Optional[List[str]]
     dns_search: Optional[str]
     extra_hosts: Optional[Dict[str, str]]
-    env: Optional[Dict[str, str]]
+    env: Optional[Dict[str, Optional[str]]]
     files: Optional[Dict[str, str]]
     volumes_from: Optional[List[str]]
-    ports: Optional[Dict[str, str]]
+    ports: Optional[Dict[int, Optional[Union[int, None]]]]
     pull: Optional[bool]
     systemd: Optional[bool]
     containers: Optional[List[str]]
@@ -68,7 +68,6 @@ class RunAndServicesBase(BaseModel):
 class Service(RunAndServicesBase, extra='forbid'):
     """ Service model """
     build: Optional[Union[StepBuild, str]]
-    dns_search: Optional[str] = Field(alias='dns-search')
     wait_for: Optional[List[Any]]
     inject_ssh_agent: Optional[bool] = Field(alias='inject-ssh-agent')
     # Not sure if this is valid, but it is in a test file
