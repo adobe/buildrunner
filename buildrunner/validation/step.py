@@ -63,6 +63,7 @@ class RunAndServicesBase(BaseModel):
     pull: Optional[bool]
     systemd: Optional[bool]
     containers: Optional[List[str]]
+    caches: Optional[Dict[str, Union[str, List[str]]]]
 
 
 class Service(RunAndServicesBase, extra='forbid'):
@@ -80,7 +81,6 @@ class StepRun(RunAndServicesBase, extra='forbid'):
     xfail: Optional[bool]
     services: Optional[Dict[str, Service]]
     cmds: Optional[List[str]]
-    caches: Optional[Dict[str, Union[str, List[str]]]]
     ssh_keys: Optional[List[str]] = Field(alias='ssh-keys')
     artifacts: Optional[Dict[str, Optional[Artifact]]]
     platform: Optional[str]
