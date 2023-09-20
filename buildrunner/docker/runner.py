@@ -36,7 +36,7 @@ from buildrunner.utils import (
     ContainerLogger,
 )
 
-CACHE_TIMEOUT_SECONDS = 180
+CACHE_TIMEOUT_SECONDS = 240
 
 
 class BuildRunnerCacheTimeout(Exception):
