@@ -213,7 +213,12 @@ class MultiplatformImageBuilder:
             logger.warning("Local registry is not running when attempting to stop it")
 
     # pylint: disable=too-many-arguments
-    @retry(python_on_whales.exceptions.DockerException, tries=3, delay=10, logger=logger)
+    @retry(python_on_whales.exceptions.DockerException,
+           tries=5,
+           delay=1,
+           backoff=3,
+           max_delay=30,
+           logger=logger)
     def _build_single_image(self,
                             name: str,
                             platform: str,
