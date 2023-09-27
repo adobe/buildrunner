@@ -1,6 +1,7 @@
 import os
 import sys
 import docker
+import python_on_whales
 
 sys.path.insert(
     0,
@@ -61,6 +62,9 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
         return os.EX_CONFIG
     except docker.errors.ImageNotFound as inf:
         print(str(inf))
+        return os.EX_CONFIG
+    except python_on_whales.exceptions.DockerException as de:
+        print(str(de))
         return os.EX_CONFIG
     return os.EX_OK
 

@@ -1,0 +1,69 @@
+version: 2.0
+  # snippet from documentation (README.md)
+  # inject:
+  #   # Each entry in the map has a glob pattern key that resolves relative
+  #   # to the source tree root with the value being the directory within
+  #   # the build context that the file(s) should be copied to. These files
+  #   # will be available to the Dockerfile at the given location during
+  #   # the Docker build.  Destination directories must have a trailing
+  #   # slash (``/``).
+  #   glob/to/files.*: dest/dir/
+  #   path/to/file1.txt: dest/dir/
+  #   path/to/file2.txt: .
+  #   path/to/file3.txt: dest/filename.txt
+steps:
+  build-mp-wildcard-inject:
+    build:
+      dockerfile: |
+        FROM bash
+        ADD files/file1.txt /file-1.txt
+        ADD files/file2.txt /file-2.txt
+        ADD files/file3.txt /file-3.txt
+        RUN cat /file-1.txt
+        RUN cat /file-2.txt
+        RUN cat /file-3.txt
+      inject:
+        tests/test-files/inject/file*.txt: files/
+      platforms:
+        - linux/amd64
+        - linux/arm64
+  build-mp-file-to-dir-inject:
+    build:
+      dockerfile: |
+        FROM bash
+        ADD files/file1.txt /file-1.txt
+        Run cat /file-1.txt
+        ADD files/file2.txt /file-2.txt
+        Run cat /file-2.txt
+      inject:
+        tests/test-files/inject/file1.txt: files/
+        tests/test-files/inject/file2.txt: files/
+      platforms:
+        - linux/amd64
+        - linux/arm64
+  build-mp-file-to-period-inject:
+    build:
+      dockerfile: |
+        FROM bash
+        ADD ./file1.txt /file.txt
+        ADD file1.txt /file-other.txt
+        RUN cat /file.txt
+        RUN cat /file-other.txt
+      inject:
+        tests/test-files/inject/file1.txt: .
+      platforms:
+        - linux/amd64
+        - linux/arm64
+  build-mp-file-inject:
+    build:
+      path: .
+      dockerfile: |
+        FROM bash
+        ADD files/file.txt /file.txt
+        RUN cat /file.txt
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      inject:
+        tests/test-files/inject/file1.txt: files/file.txt
+      no-cache: true

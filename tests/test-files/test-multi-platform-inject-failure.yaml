@@ -1,0 +1,25 @@
+version: 2.0
+  # snippet from documentation (README.md)
+  # inject:
+  #   # Each entry in the map has a glob pattern key that resolves relative
+  #   # to the source tree root with the value being the directory within
+  #   # the build context that the file(s) should be copied to. These files
+  #   # will be available to the Dockerfile at the given location during
+  #   # the Docker build.  Destination directories must have a trailing
+  #   # slash (``/``).
+  #   glob/to/files.*: dest/dir/
+  #   path/to/file1.txt: dest/dir/
+  #   path/to/file2.txt: .
+  #   path/to/file3.txt: dest/filename.txt
+steps:
+  build-mp-wildcard-inject:
+    build:
+      dockerfile: |
+        FROM bash
+        ADD files/do_not_find_this_file.txt /file.txt
+        RUN cat /file.txt
+      inject:
+        tests/test-files/inject/file*.txt: files/
+      platforms:
+        - linux/amd64
+        - linux/arm64
