@@ -50,7 +50,7 @@ jobs:
         chmod 700 ~/.ssh
         chmod 600 ~/.ssh/buildrunner-deploy-*
     - name: Test with pytest
-      run: pytest -v --junitxml=test-reports/test-results.xml
+      run: pytest -n 10 -v --junitxml=test-reports/test-results.xml
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action/composite@v1
       # exclude this step for 3.6, since it fails due to a breaking change to EnricoMi/publish-unit-test-result-action
