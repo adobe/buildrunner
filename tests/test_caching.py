@@ -41,7 +41,7 @@ def fixture_setup_runner():
 
     yield runner
 
-    runner.stop()
+    runner.cleanup()
 
 
 @pytest.fixture(name="tmp_dir_name")
