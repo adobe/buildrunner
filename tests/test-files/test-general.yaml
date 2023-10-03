@@ -76,8 +76,8 @@ steps:
         'env',
         'systemctl enable docker',
         'docker info',
-        'docker run rockylinux:8.5 hostname',
-        'docker run --volumes-from $BUILDRUNNER_BUILD_CONTAINER rockylinux:8.5 touch /bob/test2',
+        'docker run --rm rockylinux:8.5 hostname',
+        'docker run --rm --volumes-from $BUILDRUNNER_BUILD_CONTAINER rockylinux:8.5 touch /bob/test2',
         'ls -al /bob',
       ]
 

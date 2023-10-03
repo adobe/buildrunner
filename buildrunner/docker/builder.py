@@ -7,6 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import json
+import logging
 import os
 import re
 import tarfile
@@ -16,6 +17,8 @@ import docker
 import docker.errors
 
 from buildrunner.docker import get_dockerfile, new_client, force_remove_container
+
+logger = logging.getLogger(__name__)
 
 
 class DockerBuilder:  # pylint: disable=too-many-instance-attributes
@@ -163,9 +166,9 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             if self.dockerfile and os.path.exists(self.dockerfile):
                 os.remove(self.dockerfile)
 
-        # iterate through and destory intermediate containers
+        # iterate through and destroy intermediate containers
         for container in self.intermediate_containers:
             try:
                 force_remove_container(self.docker_client, container)
-            except docker.errors.APIError:
-                pass
+            except docker.errors.APIError as err:
+                logger.warning(f'Error removing intermediate container {container}: {err}')

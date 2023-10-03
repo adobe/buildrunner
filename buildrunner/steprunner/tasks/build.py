@@ -244,3 +244,4 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
         finally:
             builder.cleanup()
         context['image'] = builder.image
+        self.step_runner.build_runner.generated_images.append(builder.image)
