@@ -16,12 +16,12 @@ steps:
     build:
       dockerfile: |
         FROM bash
-        ADD files/file1.txt /file-1.txt
-        ADD files/file2.txt /file-2.txt
-        ADD files/file3.txt /file-3.txt
-        RUN cat /file-1.txt
-        RUN cat /file-2.txt
-        RUN cat /file-3.txt
+        ADD files/file1.txt /file_1.txt
+        ADD files/file2.txt /file_2.txt
+        ADD files/file3.txt /file_3.txt
+        RUN cat /file_1.txt
+        RUN cat /file_2.txt
+        RUN cat /file_3.txt
       inject:
         tests/test-files/inject/file*.txt: files/
       platforms:
@@ -31,10 +31,10 @@ steps:
     build:
       dockerfile: |
         FROM bash
-        ADD files/file1.txt /file-1.txt
-        Run cat /file-1.txt
-        ADD files/file2.txt /file-2.txt
-        Run cat /file-2.txt
+        ADD files/file1.txt /file_1.txt
+        Run cat /file_1.txt
+        ADD files/file2.txt /file_2.txt
+        Run cat /file_2.txt
       inject:
         tests/test-files/inject/file1.txt: files/
         tests/test-files/inject/file2.txt: files/
@@ -46,9 +46,9 @@ steps:
       dockerfile: |
         FROM bash
         ADD ./file1.txt /file.txt
-        ADD file1.txt /file-other.txt
+        ADD file1.txt /file_other.txt
         RUN cat /file.txt
-        RUN cat /file-other.txt
+        RUN cat /file_other.txt
       inject:
         tests/test-files/inject/file1.txt: .
       platforms:
