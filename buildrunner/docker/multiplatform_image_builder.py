@@ -9,6 +9,8 @@ import logging
 import os
 from multiprocessing import Manager, Process
 from platform import machine, system
+import shutil
+import tempfile
 from typing import List
 
 import python_on_whales
@@ -117,10 +119,12 @@ class MultiplatformImageBuilder:
 
     def __init__(self,
                  use_local_registry: bool = True,
-                 keep_images: bool = False,):
+                 keep_images: bool = False,
+                 temp_dir: str = os.getcwd()):
         self._registry_info = None
         self._use_local_registry = use_local_registry
         self._keep_images = keep_images
+        self._temp_dir = temp_dir
 
         # key is destination image name, value is list of built images
         self._intermediate_built_images = {}
@@ -212,6 +216,46 @@ class MultiplatformImageBuilder:
         else:
             logger.warning("Local registry is not running when attempting to stop it")
 
+    # pylint: disable=too-many-arguments,too-many-locals
+    def _build_with_inject(self,
+                           inject: dict,
+                           tagged_names: List[str],
+                           platform: str,
+                           push: bool,
+                           path: str,
+                           file: str,
+                           build_args: dict,) -> None:
+
+        if not path or not os.path.isdir(path):
+            logger.warning(f"Failed to inject {inject} for {tagged_names} since path {path} isn't a directory.")
+            return
+
+        dir_prefix = 'mp-tmp-dir'
+        with tempfile.TemporaryDirectory(dir=self._temp_dir, prefix=dir_prefix) as tmp_dir:
+
+            context_dir = os.path.join(tmp_dir, f'{dir_prefix}/')
+            shutil.copytree(path, context_dir, ignore=shutil.ignore_patterns(dir_prefix, '.git'))
+
+            for src, dest in inject.items():
+                src_path = os.path.join(path, src)
+                dest_path = os.path.join(context_dir, dest)
+
+                # Check to see if the dest dir exists, if not create it
+                dest_dir = os.path.dirname(dest_path)
+                if not os.path.isdir(dest_dir):
+                    os.mkdir(dest_dir)
+
+                shutil.copy(src_path, dest_path)
+
+            assert os.path.isdir(context_dir), f"Failed to create context dir {context_dir}"
+
+            docker.buildx.build(context_dir,
+                                tags=tagged_names,
+                                platforms=[platform],
+                                push=push,
+                                file=file,
+                                build_args=build_args)
+
     # pylint: disable=too-many-arguments
     @retry(python_on_whales.exceptions.DockerException,
            tries=5,
@@ -227,7 +271,8 @@ class MultiplatformImageBuilder:
                             file: str = "Dockerfile",
                             tags: List[str] = None,
                             build_args: dict = None,
-                            built_images: list = None) -> None:
+                            built_images: list = None,
+                            inject: dict = None,) -> None:
         """
         Builds a single image for the given platform
 
@@ -255,13 +300,21 @@ class MultiplatformImageBuilder:
         tagged_names = [f"{name}:{tag}" for tag in tags]
         logger.debug(f"Building {tagged_names} for {platform}")
 
-        # Build the image with the specified tags
-        image = docker.buildx.build(path,
-                                    tags=tagged_names,
-                                    platforms=[platform],
+        if inject and isinstance(inject, dict):
+            self._build_with_inject(inject=inject,
+                                    tagged_names=tagged_names,
+                                    platform=platform,
                                     push=push,
+                                    path=path,
                                     file=file,
                                     build_args=build_args)
+        else:
+            docker.buildx.build(path,
+                                tags=tagged_names,
+                                platforms=[platform],
+                                push=push,
+                                file=file,
+                                build_args=build_args)
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
@@ -284,7 +337,6 @@ class MultiplatformImageBuilder:
                                       tags=tags,
                                       platform=platform,
                                       digest=image_id,))
-        return image
 
     # pylint: disable=too-many-locals
     def build_multiple_images(self,
@@ -296,7 +348,9 @@ class MultiplatformImageBuilder:
                               push=True,
                               do_multiprocessing: bool = True,
                               docker_registry: str = None,
-                              build_args: dict = None) -> List[ImageInfo]:
+                              build_args: dict = None,
+                              inject: dict = None,
+                              ) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
 
@@ -356,7 +410,8 @@ class MultiplatformImageBuilder:
                                                dockerfile,
                                                tags,
                                                build_args,
-                                               self._intermediate_built_images[name])))
+                                               self._intermediate_built_images[name],
+                                               inject)))
             else:
                 self._build_single_image(curr_name,
                                          platform,
@@ -365,7 +420,8 @@ class MultiplatformImageBuilder:
                                          dockerfile,
                                          tags,
                                          build_args,
-                                         self._intermediate_built_images[name])
+                                         self._intermediate_built_images[name],
+                                         inject)
 
         for proc in processes:
             proc.start()

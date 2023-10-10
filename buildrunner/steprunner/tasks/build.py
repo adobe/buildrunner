@@ -221,6 +221,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     name=self.get_unique_build_name(),
                     docker_registry=docker_registry,
                     build_args=self.buildargs,
+                    inject=self.to_inject,
                     )
 
                 assert len(built_images) == len(self.platforms), \
