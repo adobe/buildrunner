@@ -136,6 +136,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             docker_timeout=None,
             local_images=False,
             platform=None,
+            single_platform=False
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         """
         """
@@ -161,6 +162,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.docker_timeout = docker_timeout
         self.local_images = local_images
         self.platform = platform
+        self.single_platform = single_platform
 
         self.tmp_files = []
         self.artifacts = OrderedDict()
@@ -575,7 +577,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         exit_explanation = None
         try:  # pylint: disable=too-many-nested-blocks
             with MultiplatformImageBuilder(keep_images=not self.cleanup_images,
-                                           temp_dir=self.global_config.get_temp_dir()) as multi_platform:
+                                           temp_dir=self.global_config.get_temp_dir(),
+                                           single_platform=self.single_platform) as multi_platform:
                 if not os.path.exists(self.build_results_dir):
                     # create a new results dir
                     os.mkdir(self.build_results_dir)

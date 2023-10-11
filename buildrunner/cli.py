@@ -227,6 +227,14 @@ def parse_args(argv):
         help='logs the Jinja generated file contents',
     )
 
+    parser.add_argument(
+        '--single-platform',
+        default=False,
+        action='store_true',
+        dest='single_platform',
+        help="overrides the 'platforms' configuration and only builds a single platform image",
+    )
+
     args = parser.parse_args(argv[1:])
 
     # Only absolute directories can do a mount bind
@@ -281,6 +289,7 @@ def main(argv):
             docker_timeout=args.docker_timeout,
             local_images=args.local_images,
             platform=args.platform,
+            single_platform=args.single_platform,
         )
 
         if not args.print_generated_files:
