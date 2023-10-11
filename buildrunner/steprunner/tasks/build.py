@@ -226,7 +226,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
 
                 number_of_images = len(self.platforms)
 
-                if self.step_runner.multi_platform.single_platform:
+                if self.step_runner.multi_platform.disable_multi_platform:
                     number_of_images = 1
 
                 assert len(built_images) == number_of_images, \

@@ -228,11 +228,11 @@ def parse_args(argv):
     )
 
     parser.add_argument(
-        '--single-platform',
-        default=False,
-        action='store_true',
-        dest='single_platform',
-        help="overrides the 'platforms' configuration and only builds a single platform image",
+        '--disable-multi-platform',
+        default=None,
+        choices=['True', 'true', 'False', 'false'],
+        dest='disable_multi_platform',
+        help="overrides the 'platforms' configuration and global config; to disable multi-platform builds",
     )
 
     args = parser.parse_args(argv[1:])
@@ -289,7 +289,7 @@ def main(argv):
             docker_timeout=args.docker_timeout,
             local_images=args.local_images,
             platform=args.platform,
-            single_platform=args.single_platform,
+            disable_multi_platform=args.disable_multi_platform,
         )
 
         if not args.print_generated_files:

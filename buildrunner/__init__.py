@@ -136,7 +136,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             docker_timeout=None,
             local_images=False,
             platform=None,
-            single_platform=False
+            disable_multi_platform=False
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         """
         """
@@ -219,7 +219,12 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # assign back to the global config env for loading files
         self.global_config.env = self.env
 
-        self.single_platform = single_platform or self.global_config.get('single-platform', False)
+        self.disable_multi_platform = self.global_config.get('disable-multi-platform', False)
+        if disable_multi_platform:
+            if disable_multi_platform in ('True', 'true'):
+                self.disable_multi_platform = True
+            elif disable_multi_platform in ('False', 'false'):
+                self.disable_multi_platform = False
 
         # print out env vars
         # pylint: disable=consider-iterating-dictionary
@@ -579,7 +584,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         try:  # pylint: disable=too-many-nested-blocks
             with MultiplatformImageBuilder(keep_images=not self.cleanup_images,
                                            temp_dir=self.global_config.get_temp_dir(),
-                                           single_platform=self.single_platform) as multi_platform:
+                                           disable_multi_platform=self.disable_multi_platform) as multi_platform:
                 if not os.path.exists(self.build_results_dir):
                     # create a new results dir
                     os.mkdir(self.build_results_dir)

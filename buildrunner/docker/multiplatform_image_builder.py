@@ -121,12 +121,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                  use_local_registry: bool = True,
                  keep_images: bool = False,
                  temp_dir: str = os.getcwd(),
-                 single_platform: bool = False,):
+                 disable_multi_platform: bool = False,):
         self._registry_info = None
         self._use_local_registry = use_local_registry
         self._keep_images = keep_images
         self._temp_dir = temp_dir
-        self._single_platform = single_platform
+        self._disable_multi_platform = disable_multi_platform
 
         # key is destination image name, value is list of built images
         self._intermediate_built_images = {}
@@ -156,9 +156,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                     docker.image.remove(image, force=True)
 
     @property
-    def single_platform(self) -> int:
+    def disable_multi_platform(self) -> int:
         """Returns the ip address of the local registry"""
-        return self._single_platform
+        return self._disable_multi_platform
 
     @property
     def registry_ip(self) -> int:
@@ -429,11 +429,11 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._intermediate_built_images[name] = manager.list()
         line = "-----------------------------------------------------------------"
 
-        if self._single_platform:
+        if self._disable_multi_platform:
             platform = self.get_single_platform_to_build(platforms)
             curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
             print(f"{line}\n"
-                  f"Note: Overriding multi-platform build configuration, "
+                  f"Note: Disabling multi-platform build, "
                   "this will only build a single-platform image.\n"
                   f"image: {santized_name} platform:{platform}\n"
                   f"{line}")
@@ -450,8 +450,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             processes = []
             print(f"{line}\n"
                   f"Note: Building multi-platform images can take a long time, please be patient.\n"
-                  "If you are running this locally, you can speed this up by using the '--single-platform' CLI flag "
-                  "or set the 'single-platform' flag in the global config file.\n"
+                  "If you are running this locally, you can speed this up by using the "
+                  "'--disable-multi-platform' CLI flag "
+                  "or set the 'disable-multi-platform' flag in the global config file.\n"
                   f"{line}")
             for platform in platforms:
                 curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
