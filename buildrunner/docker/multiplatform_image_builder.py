@@ -427,10 +427,16 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         # Keeps track of the built images {name: [ImageInfo(image_names)]]}
         manager = Manager()
         self._intermediate_built_images[name] = manager.list()
+        line = "-----------------------------------------------------------------"
 
         if self._single_platform:
             platform = self.get_single_platform_to_build(platforms)
             curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
+            print(f"{line}\n"
+                  f"Note: Overriding multi-platform build configuration, "
+                  "this will only build a single-platform image.\n"
+                  f"image: {santized_name} platform:{platform}\n"
+                  f"{line}")
             self._build_single_image(curr_name,
                                      platform,
                                      push,
@@ -442,7 +448,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                                      inject)
         else:
             processes = []
-            line = "-----------------------------------------------------------------"
             print(f"{line}\n"
                   f"Note: Building multi-platform images can take a long time, please be patient.\n"
                   "If you are running this locally, you can speed this up by using the '--single-platform' CLI flag "
