@@ -442,6 +442,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                                      inject)
         else:
             processes = []
+            line = "-----------------------------------------------------------------"
+            print(f"{line}\n"
+                  f"Note: Building multi-platform images can take a long time, please be patient.\n"
+                  "If you are running this locally, you can speed this up by using the '--single-platform' CLI flag "
+                  "or set the 'single-platform' flag in the global config file.\n"
+                  f"{line}")
             for platform in platforms:
                 curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
                 logger.debug(f"Building {curr_name} for {platform}")

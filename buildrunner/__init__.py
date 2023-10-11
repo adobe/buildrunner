@@ -162,7 +162,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.docker_timeout = docker_timeout
         self.local_images = local_images
         self.platform = platform
-        self.single_platform = single_platform
 
         self.tmp_files = []
         self.artifacts = OrderedDict()
@@ -219,6 +218,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.env = self._get_config_context(base_context, self.global_config.get('env', {}))
         # assign back to the global config env for loading files
         self.global_config.env = self.env
+
+        self.single_platform = single_platform or self.global_config.get('single-platform', False)
 
         # print out env vars
         # pylint: disable=consider-iterating-dictionary
