@@ -47,7 +47,8 @@ steps:
     build:
       dockerfile: |
         FROM bash:5.2.15
-        ADD ./file1.txt /file.txt
+        ADD ./file1.txt /
+        ADD ./file1.txt /file2.txt
         ADD file1.txt /file_other.txt
         # 'RUN cat' fails in github.com, ADD is an sufficient test
         # RUN cat /file.txt

@@ -224,9 +224,14 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     inject=self.to_inject,
                     )
 
-                assert len(built_images) == len(self.platforms), \
+                number_of_images = len(self.platforms)
+
+                if self.step_runner.multi_platform.disable_multi_platform:
+                    number_of_images = 1
+
+                assert len(built_images) == number_of_images, \
                     f'Number of built images ({len(built_images)}) does not match ' \
-                    f'the number of platforms ({len(self.platforms)})'
+                    f'the number of platforms ({number_of_images})'
 
             else:
                 exit_code = builder.build(

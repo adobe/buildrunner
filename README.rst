@@ -183,6 +183,11 @@ they are used when put into the global configuration file:
   # but on some systems it may be necessary to use this instead.
   temp-dir: /my/tmp/dir
 
+  # Overrides the 'platforms' configuration (a.k.a. multi-platform builds)
+  # in order to build only single-platform image builds regardless of
+  # the configuration in the buildrunner.yaml file.
+  disable-multi-platform: true/false (defaults to false)
+
 Configuration Locations
 -----------------------
 

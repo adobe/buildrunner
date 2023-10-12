@@ -114,17 +114,19 @@ class RegistryInfo:
         return self.__str__()
 
 
-class MultiplatformImageBuilder:
+class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     """Multiple platform image builder"""
 
     def __init__(self,
                  use_local_registry: bool = True,
                  keep_images: bool = False,
-                 temp_dir: str = os.getcwd()):
+                 temp_dir: str = os.getcwd(),
+                 disable_multi_platform: bool = False,):
         self._registry_info = None
         self._use_local_registry = use_local_registry
         self._keep_images = keep_images
         self._temp_dir = temp_dir
+        self._disable_multi_platform = disable_multi_platform
 
         # key is destination image name, value is list of built images
         self._intermediate_built_images = {}
@@ -152,6 +154,11 @@ class MultiplatformImageBuilder:
                 for image in images:
                     logger.debug(f"Removing tagged image {image} for {name}")
                     docker.image.remove(image, force=True)
+
+    @property
+    def disable_multi_platform(self) -> int:
+        """Returns the ip address of the local registry"""
+        return self._disable_multi_platform
 
     @property
     def registry_ip(self) -> int:
@@ -338,6 +345,27 @@ class MultiplatformImageBuilder:
                                       platform=platform,
                                       digest=image_id,))
 
+    def get_single_platform_to_build(self, platforms: List[str]) -> str:
+        """ Returns the platform to build for single platform flag """
+
+        assert isinstance(platforms, list), f"Expected list, but got {type(platforms)}"
+        assert len(platforms) > 0, f"Expected at least one platform, but got {len(platforms)}"
+
+        host_system = system()
+        host_machine = machine()
+        native_platform = None
+
+        if host_system in ("Darwin", "linux"):
+            native_platform = f"linux/{host_machine}"
+        else:
+            native_platform = f"{host_system}/{host_machine}"
+
+        for curr_platform in platforms:
+            if native_platform in curr_platform:
+                return curr_platform
+
+        return platforms[0]
+
     # pylint: disable=too-many-locals
     def build_multiple_images(self,
                               platforms: List[str],
@@ -367,16 +395,18 @@ class MultiplatformImageBuilder:
             List[ImageInfo]: The list of intermediate built images, these images are ephemeral
             and will be removed when the builder is garbage collected
         """
+        def get_path(file):
+            if os.path.exists(file):
+                return os.path.dirname(file)
+            return "."
+
         if build_args is None:
             build_args = {}
         build_args['DOCKER_REGISTRY'] = docker_registry
 
         # It is not valid to pass None for the path when building multi-platform images
         if not path:
-            if os.path.exists(file):
-                path = os.path.dirname(file)
-            else:
-                path = "."
+            path = get_path(file)
 
         dockerfile, cleanup_dockerfile = get_dockerfile(file)
 
@@ -397,37 +427,63 @@ class MultiplatformImageBuilder:
         # Keeps track of the built images {name: [ImageInfo(image_names)]]}
         manager = Manager()
         self._intermediate_built_images[name] = manager.list()
-        processes = []
-        for platform in platforms:
+        line = "-----------------------------------------------------------------"
+
+        if self._disable_multi_platform:
+            platform = self.get_single_platform_to_build(platforms)
             curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
-            logger.debug(f"Building {curr_name} for {platform}")
-            if do_multiprocessing:
-                processes.append(Process(target=self._build_single_image,
-                                         args=(curr_name,
-                                               platform,
-                                               push,
-                                               path,
-                                               dockerfile,
-                                               tags,
-                                               build_args,
-                                               self._intermediate_built_images[name],
-                                               inject)))
-            else:
-                self._build_single_image(curr_name,
-                                         platform,
-                                         push,
-                                         path,
-                                         dockerfile,
-                                         tags,
-                                         build_args,
-                                         self._intermediate_built_images[name],
-                                         inject)
+            print(f"{line}\n"
+                  f"Note: Disabling multi-platform build, "
+                  "this will only build a single-platform image.\n"
+                  f"image: {santized_name} platform:{platform}\n"
+                  f"{line}")
+            self._build_single_image(curr_name,
+                                     platform,
+                                     push,
+                                     path,
+                                     dockerfile,
+                                     tags,
+                                     build_args,
+                                     self._intermediate_built_images[name],
+                                     inject)
+        else:
+            processes = []
+            print(f"{line}\n"
+                  f"Note: Building multi-platform images can take a long time, please be patient.\n"
+                  "If you are running this locally, you can speed this up by using the "
+                  "'--disable-multi-platform' CLI flag "
+                  "or set the 'disable-multi-platform' flag in the global config file.\n"
+                  f"{line}")
+            for platform in platforms:
+                curr_name = f"{base_image_name}-{platform.replace('/', '-')}"
+                logger.debug(f"Building {curr_name} for {platform}")
+                if do_multiprocessing:
+                    processes.append(Process(target=self._build_single_image,
+                                     args=(curr_name,
+                                           platform,
+                                           push,
+                                           path,
+                                           dockerfile,
+                                           tags,
+                                           build_args,
+                                           self._intermediate_built_images[name],
+                                           inject)))
+                else:
+                    self._build_single_image(curr_name,
+                                             platform,
+                                             push,
+                                             path,
+                                             dockerfile,
+                                             tags,
+                                             build_args,
+                                             self._intermediate_built_images[name],
+                                             inject)
 
-        for proc in processes:
-            proc.start()
+            for proc in processes:
+                proc.start()
 
-        for proc in processes:
-            proc.join()
+            for proc in processes:
+                proc.join()
 
         if cleanup_dockerfile and dockerfile and os.path.exists(dockerfile):
             os.remove(dockerfile)

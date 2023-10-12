@@ -47,6 +47,7 @@ class Config(BaseModel, extra='forbid'):
     caches_root: Optional[str] = Field(alias='caches-root')
     docker_registry: Optional[str] = Field(alias='docker-registry')
     temp_dir: Optional[str] = Field(alias='temp-dir')
+    disable_multi_platform: Optional[bool] = Field(alias='disable-multi-platform')
 
     # Note this is pydantic version 1.10 syntax
     @validator('steps')
