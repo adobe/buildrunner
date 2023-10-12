@@ -230,7 +230,7 @@ def parse_args(argv):
     parser.add_argument(
         '--disable-multi-platform',
         default=None,
-        choices=['True', 'true', 'False', 'false'],
+        choices=['true', 'false'],
         dest='disable_multi_platform',
         help="overrides the 'platforms' configuration and global config; to disable multi-platform builds",
     )

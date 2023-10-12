@@ -221,9 +221,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         self.disable_multi_platform = self.global_config.get('disable-multi-platform', False)
         if disable_multi_platform:
-            if disable_multi_platform in ('True', 'true'):
+            if disable_multi_platform == 'true':
                 self.disable_multi_platform = True
-            elif disable_multi_platform in ('False', 'false'):
+            elif disable_multi_platform == 'false':
                 self.disable_multi_platform = False
 
         # print out env vars
