@@ -59,7 +59,7 @@ class RunAndServicesBase(BaseModel):
     env: Optional[Dict[str, Optional[str]]]
     files: Optional[Dict[str, str]]
     volumes_from: Optional[List[str]]
-    ports: Optional[Dict[int, Optional[Union[int, None]]]]
+    ports: Optional[Dict[int, Optional[int]]]
     pull: Optional[bool]
     systemd: Optional[bool]
     containers: Optional[List[str]]
@@ -95,7 +95,7 @@ class StepRemote(BaseModel, extra='forbid'):
     # Not sure if host is optional or required
     host: Optional[str]
     cmd: str
-    artifacts: Optional[Dict[str, Union[Artifact, None]]]
+    artifacts: Optional[Dict[str, Optional[Artifact]]]
 
 
 class StepPushCommitDict(BaseModel, extra='forbid'):
