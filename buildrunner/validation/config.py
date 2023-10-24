@@ -9,7 +9,7 @@ with the terms of the Adobe license agreement accompanying it.
 from typing import Dict, List, Optional, Set, Union
 
 # pylint: disable=no-name-in-module
-from pydantic import BaseModel, Field, validator, ValidationError
+from pydantic import BaseModel, Field, field_validator, ValidationError
 
 from buildrunner.validation.errors import Errors, get_validation_errors
 from buildrunner.validation.step import Step, StepPushCommitDict
@@ -28,31 +28,30 @@ class Config(BaseModel, extra='forbid'):
 
     class SSHKey(BaseModel, extra='forbid'):
         """ SSH key model """
-        file: Optional[str]
-        key: Optional[str]
-        password: Optional[str]
-        prompt_password: Optional[bool] = Field(alias='prompt-password')
-        aliases: Optional[List[str]]
+        file: Optional[str] = None
+        key: Optional[str] = None
+        password: Optional[str] = None
+        prompt_password: Optional[bool] = Field(alias='prompt-password', default=None)
+        aliases: Optional[List[str]] = None
 
-    version: Optional[float]
-    steps: Optional[Dict[str, Step]]
+    version: Optional[float] = None
+    steps: Optional[Dict[str, Step]] = None
 
-    github: Optional[Dict[str, GithubModel]]
+    github: Optional[Dict[str, GithubModel]] = None
     # Global config attributes
-    env: Optional[Dict[str, str]]
-    build_servers: Optional[Dict[str, Union[str, List[str]]]] = Field(alias='build-servers')
+    env: Optional[Dict[str, str]] = None
+    build_servers: Optional[Dict[str, Union[str, List[str]]]] = Field(alias='build-servers', default=None)
     #  Intentionally has loose restrictions on ssh-keys since documentation isn't clear
-    ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(alias='ssh-keys')
-    local_files: Optional[Dict[str, str]] = Field(alias='local-files')
-    caches_root: Optional[str] = Field(alias='caches-root')
-    docker_registry: Optional[str] = Field(alias='docker-registry')
-    temp_dir: Optional[str] = Field(alias='temp-dir')
-    disable_multi_platform: Optional[bool] = Field(alias='disable-multi-platform')
+    ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(alias='ssh-keys', default=None)
+    local_files: Optional[Dict[str, str]] = Field(alias='local-files', default=None)
+    caches_root: Optional[str] = Field(alias='caches-root', default=None)
+    docker_registry: Optional[str] = Field(alias='docker-registry', default=None)
+    temp_dir: Optional[str] = Field(alias='temp-dir', default=None)
+    disable_multi_platform: Optional[bool] = Field(alias='disable-multi-platform', default=None)
 
-    # Note this is pydantic version 1.10 syntax
-    @validator('steps')
+    @field_validator('steps')
     @classmethod
-    def validate_steps(cls, values) -> None:
+    def validate_steps(cls, vals) -> None:
         """
         Validate the config file
 
@@ -115,7 +114,7 @@ class Config(BaseModel, extra='forbid'):
                 ValueError | pydantic.ValidationError: If the config file is invalid
             """
             # Iterate through each step
-            for step_name, step in values.items():
+            for step_name, step in vals.items():
                 if step.is_multi_platform():
                     if step.build.platform is not None:
                         raise ValueError(f'Cannot specify both platform ({step.build.platform}) and '
@@ -128,7 +127,7 @@ class Config(BaseModel, extra='forbid'):
                     validate_push(step.push, mp_push_tags, step_name)
 
         has_multi_platform_build = False
-        for step in values.values():
+        for step in vals.values():
             has_multi_platform_build = has_multi_platform_build or step.is_multi_platform()
 
         if has_multi_platform_build:
@@ -136,7 +135,7 @@ class Config(BaseModel, extra='forbid'):
             validate_multi_platform_build(mp_push_tags)
 
             # Validate that all tags are unique across all multi-platform step
-            for step_name, step in values.items():
+            for step_name, step in vals.items():
                 # Check that there are no single platform tags that match multi-platform tags
                 if not step.is_multi_platform():
                     if step.push is not None:
@@ -144,7 +143,7 @@ class Config(BaseModel, extra='forbid'):
                                       mp_push_tags=mp_push_tags,
                                       step_name=step_name,
                                       update_mp_push_tags=False)
-        return values
+        return vals
 
 
 def validate_config(**kwargs) -> Errors:
