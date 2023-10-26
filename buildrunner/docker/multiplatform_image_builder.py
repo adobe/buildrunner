@@ -265,10 +265,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     # pylint: disable=too-many-arguments
     @retry(python_on_whales.exceptions.DockerException,
-           tries=5,
+           tries=3,
            delay=1,
            backoff=3,
-           max_delay=30,
+           max_delay=10,
            logger=logger)
     def _build_single_image(self,
                             name: str,
@@ -333,7 +333,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 image_id = docker.image.inspect(tag_name).id
                 # Removes the image from host, if this fails it is considered a warning
                 try:
-                    docker.image.remove(images, force=True)
+                    logger.debug(f"Removing {tag_name}")
+                    docker.image.remove(tag_name, force=True)
                 except python_on_whales.exceptions.DockerException as err:
                     logger.warning(f"Failed to remove {images}: {err}")
             except python_on_whales.exceptions.DockerException as err:
