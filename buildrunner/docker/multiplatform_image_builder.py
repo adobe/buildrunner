@@ -117,11 +117,12 @@ class RegistryInfo:
 class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     """Multiple platform image builder"""
 
-    def __init__(self,
-                 use_local_registry: bool = True,
-                 keep_images: bool = False,
-                 temp_dir: str = os.getcwd(),
-                 disable_multi_platform: bool = False,):
+    def __init__(
+            self,
+            use_local_registry: bool = True,
+            keep_images: bool = False,
+            temp_dir: str = os.getcwd(),
+            disable_multi_platform: bool = False,):
         self._registry_info = None
         self._use_local_registry = use_local_registry
         self._keep_images = keep_images
@@ -224,14 +225,15 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             logger.warning("Local registry is not running when attempting to stop it")
 
     # pylint: disable=too-many-arguments,too-many-locals
-    def _build_with_inject(self,
-                           inject: dict,
-                           tagged_names: List[str],
-                           platform: str,
-                           push: bool,
-                           path: str,
-                           file: str,
-                           build_args: dict,) -> None:
+    def _build_with_inject(
+            self,
+            inject: dict,
+            tagged_names: List[str],
+            platform: str,
+            push: bool,
+            path: str,
+            file: str,
+            build_args: dict,) -> None:
 
         if not path or not os.path.isdir(path):
             logger.warning(f"Failed to inject {inject} for {tagged_names} since path {path} isn't a directory.")
@@ -256,12 +258,13 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
             assert os.path.isdir(context_dir), f"Failed to create context dir {context_dir}"
 
-            docker.buildx.build(context_dir,
-                                tags=tagged_names,
-                                platforms=[platform],
-                                push=push,
-                                file=file,
-                                build_args=build_args)
+            docker.buildx.build(
+                context_dir,
+                tags=tagged_names,
+                platforms=[platform],
+                push=push,
+                file=file,
+                build_args=build_args)
 
     # pylint: disable=too-many-arguments
     @retry(python_on_whales.exceptions.DockerException,
@@ -270,16 +273,17 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
            backoff=3,
            max_delay=10,
            logger=logger)
-    def _build_single_image(self,
-                            name: str,
-                            platform: str,
-                            push: bool,
-                            path: str,
-                            file: str,
-                            tags: List[str],
-                            build_args: dict,
-                            mp_image_name: str,
-                            inject: dict) -> None:
+    def _build_single_image(
+            self,
+            name: str,
+            platform: str,
+            push: bool,
+            path: str,
+            file: str,
+            tags: List[str],
+            build_args: dict,
+            mp_image_name: str,
+            inject: dict) -> None:
         """
         Builds a single image for the given platform
 
@@ -290,8 +294,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             path (str): The path to the Dockerfile.
             file (str): The path/name of the Dockerfile (ie. <path>/Dockerfile).
             tags (List[str]): The tags to apply to the image.
-            docker_registry (str): The docker registry to push the image to.
-            mp_image_name (str): A list of built images.
+            build_args (dict): The build args to pass to docker.
+            mp_image_name (str): The multi-platform name of the image.
+            inject (dict): The files to inject into the build context.
         """
         assert os.path.isdir(path) and os.path.exists(f"{file}"), \
             f"Either path {path}({os.path.isdir(path)}) or file " \
@@ -301,20 +306,22 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         logger.debug(f"Building {tagged_names} for {platform}")
 
         if inject and isinstance(inject, dict):
-            self._build_with_inject(inject=inject,
-                                    tagged_names=tagged_names,
-                                    platform=platform,
-                                    push=push,
-                                    path=path,
-                                    file=file,
-                                    build_args=build_args)
+            self._build_with_inject(
+                inject=inject,
+                tagged_names=tagged_names,
+                platform=platform,
+                push=push,
+                path=path,
+                file=file,
+                build_args=build_args)
         else:
-            docker.buildx.build(path,
-                                tags=tagged_names,
-                                platforms=[platform],
-                                push=push,
-                                file=file,
-                                build_args=build_args)
+            docker.buildx.build(
+                path,
+                tags=tagged_names,
+                platforms=[platform],
+                push=push,
+                file=file,
+                build_args=build_args)
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
@@ -334,10 +341,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 logger.error(f"Failed to build {tag_name}: {err}")
                 raise err
 
-        self._intermediate_built_images[mp_image_name].append(ImageInfo(repo=name,
-                                                              tags=tags,
-                                                              platform=platform,
-                                                              digest=image_id,))
+        self._intermediate_built_images[mp_image_name].append(ImageInfo(
+            repo=name,
+            tags=tags,
+            platform=platform,
+            digest=image_id,
+        ))
 
     def get_single_platform_to_build(self, platforms: List[str]) -> str:
         """ Returns the platform to build for single platform flag """
@@ -361,18 +370,19 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         return platforms[0]
 
     # pylint: disable=too-many-locals
-    def build_multiple_images(self,
-                              platforms: List[str],
-                              path: str = ".",
-                              file: str = "Dockerfile",
-                              mp_image_name: str = None,
-                              tags: List[str] = None,
-                              push=True,
-                              do_multiprocessing: bool = True,
-                              docker_registry: str = None,
-                              build_args: dict = None,
-                              inject: dict = None,
-                              ) -> List[ImageInfo]:
+    def build_multiple_images(
+            self,
+            platforms: List[str],
+            path: str = ".",
+            file: str = "Dockerfile",
+            mp_image_name: str = None,
+            tags: List[str] = None,
+            push=True,
+            do_multiprocessing: bool = True,
+            docker_registry: str = None,
+            build_args: dict = None,
+            inject: dict = None,
+            ) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
 
@@ -434,15 +444,17 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                   "this will only build a single-platform image.\n"
                   f"image: {santized_name} platform:{platform}\n"
                   f"{line}")
-            self._build_single_image(platform_image_name,
-                                     platform,
-                                     push,
-                                     path,
-                                     dockerfile,
-                                     tags,
-                                     build_args,
-                                     mp_image_name,
-                                     inject)
+            self._build_single_image(
+                platform_image_name,
+                platform,
+                push,
+                path,
+                dockerfile,
+                tags,
+                build_args,
+                mp_image_name,
+                inject
+            )
         else:
             processes = []
             print(f"{line}\n"
@@ -455,26 +467,32 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 platform_image_name = f"{base_image_name}-{platform.replace('/', '-')}"
                 logger.debug(f"Building {platform_image_name} for {platform}")
                 if do_multiprocessing:
-                    processes.append(Process(target=self._build_single_image,
-                                     args=(platform_image_name,
-                                           platform,
-                                           push,
-                                           path,
-                                           dockerfile,
-                                           tags,
-                                           build_args,
-                                           mp_image_name,
-                                           inject)))
+                    processes.append(Process(
+                        target=self._build_single_image,
+                        args=(
+                            platform_image_name,
+                            platform,
+                            push,
+                            path,
+                            dockerfile,
+                            tags,
+                            build_args,
+                            mp_image_name,
+                            inject
+                        )
+                    ))
                 else:
-                    self._build_single_image(platform_image_name,
-                                             platform,
-                                             push,
-                                             path,
-                                             dockerfile,
-                                             tags,
-                                             build_args,
-                                             mp_image_name,
-                                             inject)
+                    self._build_single_image(
+                        platform_image_name,
+                        platform,
+                        push,
+                        path,
+                        dockerfile,
+                        tags,
+                        build_args,
+                        mp_image_name,
+                        inject
+                    )
 
             for proc in processes:
                 proc.start()
