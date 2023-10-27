@@ -214,11 +214,11 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
         )
         try:
             if self.platforms:
-                built_images = self.step_runner.multi_platform.build_multiple_images(
+                built_platform_images = self.step_runner.multi_platform.build_multiple_images(
                     platforms=self.platforms,
                     path=self.path,
                     file=self.dockerfile,
-                    name=self.get_unique_build_name(),
+                    mp_image_name=self.get_unique_build_name(),
                     docker_registry=docker_registry,
                     build_args=self.buildargs,
                     inject=self.to_inject,
@@ -229,8 +229,8 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                 if self.step_runner.multi_platform.disable_multi_platform:
                     number_of_images = 1
 
-                assert len(built_images) == number_of_images, \
-                    f'Number of built images ({len(built_images)}) does not match ' \
+                assert len(built_platform_images) == number_of_images, \
+                    f'Number of built images ({len(built_platform_images)}) does not match ' \
                     f'the number of platforms ({number_of_images})'
 
             else:

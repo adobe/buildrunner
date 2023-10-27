@@ -69,7 +69,7 @@ def test_start_local_registry_on_build():
 
         # Building should start the registry
         test_path = f'{TEST_DIR}/test-files/multiplatform'
-        mp.build_multiple_images(name='test-images-2000-start-on-build',
+        mp.build_multiple_images(mp_image_name='test-images-2000-start-on-build',
                                  platforms=['linux/arm64', 'linux/amd64'],
                                  path=test_path,
                                  file=f'{test_path}/Dockerfile',
@@ -96,7 +96,7 @@ def test_start_local_registry_on_build():
         assert registry_container.state.running
 
         # Building again should not start a new registry
-        mp.build_multiple_images(name='test-images-2000-start-on-build2',
+        mp.build_multiple_images(mp_image_name='test-images-2000-start-on-build2',
                                  platforms=['linux/arm64', 'linux/amd64'],
                                  path=test_path,
                                  file=f'{test_path}/Dockerfile',
@@ -193,7 +193,7 @@ def test_tag_single_platform(name, platforms, expected_image_names):
     tag='latest'
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
-        built_images = mp.build_multiple_images(name=name,
+        built_images = mp.build_multiple_images(mp_image_name=name,
                                 platforms=platforms,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
@@ -227,7 +227,7 @@ def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names
     tags=['latest', '0.1.0']
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
-        built_images = mp.build_multiple_images(name=name,
+        built_images = mp.build_multiple_images(mp_image_name=name,
                                 platforms=platforms,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
@@ -263,7 +263,7 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     try:
         with MultiplatformImageBuilder(keep_images=True) as mp:
-            built_images = mp.build_multiple_images(name=name,
+            built_images = mp.build_multiple_images(mp_image_name=name,
                                     platforms=platforms,
                                     path=test_path,
                                     file=f'{test_path}/Dockerfile',
@@ -304,7 +304,7 @@ def test_push():
 
             test_path = f'{TEST_DIR}/test-files/multiplatform'
             with MultiplatformImageBuilder() as mp:
-                built_images = mp.build_multiple_images(name=build_name,
+                built_images = mp.build_multiple_images(mp_image_name=build_name,
                                         platforms=platforms,
                                         path=test_path,
                                         file=f'{test_path}/Dockerfile',
@@ -346,7 +346,7 @@ def test_push_with_dest_names():
 
             test_path = f'{TEST_DIR}/test-files/multiplatform'
             with MultiplatformImageBuilder() as mp:
-                built_images = mp.build_multiple_images(name=build_name,
+                built_images = mp.build_multiple_images(mp_image_name=build_name,
                                         platforms=platforms,
                                         path=test_path,
                                         file=f'{test_path}/Dockerfile',
@@ -393,7 +393,7 @@ def test_build(mock_build, mock_pull, mock_inspect, mock_remove, name, platforms
     mock_inspect.return_value.id = 'myfakeimageid'
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
-        built_images = mp.build_multiple_images(name=name,
+        built_images = mp.build_multiple_images(mp_image_name=name,
                                 platforms=platforms,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
@@ -424,14 +424,14 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_inspect, mock_remove)
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
         # Build set 1
-        built_images1 = mp.build_multiple_images(name=name1,
+        built_images1 = mp.build_multiple_images(mp_image_name=name1,
                                 platforms=platforms1,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
                                 do_multiprocessing=False)
 
         # Build set 2
-        built_images2 = mp.build_multiple_images(name=name2,
+        built_images2 = mp.build_multiple_images(mp_image_name=name2,
                                 platforms=platforms2,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
@@ -465,7 +465,7 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_inspect, mock_remove)
 def test_build_with_tags(name, tags, platforms, expected_image_names):
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
-        built_images = mp.build_multiple_images(name=name,
+        built_images = mp.build_multiple_images(mp_image_name=name,
                                 platforms=platforms,
                                 path=test_path,
                                 file=f'{test_path}/Dockerfile',
