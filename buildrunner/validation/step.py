@@ -56,7 +56,7 @@ class RunAndServicesBase(BaseModel):
     dns: Optional[List[str]] = None
     dns_search: Optional[str] = None
     extra_hosts: Optional[Dict[str, str]] = None
-    env: Optional[Dict[str, Optional[str]]] = None
+    env: Optional[Dict[str, Optional[Any]]] = None
     files: Optional[Dict[str, str]] = None
     volumes_from: Optional[List[str]] = None
     ports:  Optional[Dict[int, Optional[int]]] = None
