@@ -6,7 +6,7 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-from typing import Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel, Field, field_validator, ValidationError
@@ -39,7 +39,7 @@ class Config(BaseModel, extra='forbid'):
 
     github: Optional[Dict[str, GithubModel]] = None
     # Global config attributes
-    env: Optional[Dict[str, str]] = None
+    env: Optional[Dict[str, Any]] = None
     build_servers: Optional[Dict[str, Union[str, List[str]]]] = Field(alias='build-servers', default=None)
     #  Intentionally has loose restrictions on ssh-keys since documentation isn't clear
     ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(alias='ssh-keys', default=None)
