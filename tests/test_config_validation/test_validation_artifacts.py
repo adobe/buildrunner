@@ -107,7 +107,7 @@ def test_push_invalid():
     config = yaml.load(config_yaml, Loader=yaml.Loader)
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
-    assert errors.count() == 1
+    assert errors.count() == 2
 
 
 def test_push_valid():
