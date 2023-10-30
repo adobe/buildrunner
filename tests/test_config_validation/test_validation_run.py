@@ -36,6 +36,7 @@ def test_push_valid():
 
 
 def test_push_invalid():
+    # Push must be a boolean
     config_yaml = """
     steps:
       build-run:
