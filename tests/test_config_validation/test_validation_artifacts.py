@@ -96,6 +96,7 @@ def test_step_type_valid():
 
 
 def test_push_invalid():
+    #  Push must be a boolean
     config_yaml = """
     steps:
       build-run:
@@ -107,7 +108,21 @@ def test_push_invalid():
     config = yaml.load(config_yaml, Loader=yaml.Loader)
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
-    assert errors.count() == 2
+    assert errors.count() == 1
+
+
+def test_valid_artifacts_blank_string():
+    config_yaml = """
+    steps:
+      build-run:
+        run:
+          artifacts:
+            bogus/path/to/artifacts/*: ''
+            bogus/path/to/this_thing: ''
+    """
+    config = yaml.load(config_yaml, Loader=yaml.Loader)
+    errors = validate_config(**config)
+    assert errors is None
 
 
 def test_push_valid():

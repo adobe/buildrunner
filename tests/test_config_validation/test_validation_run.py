@@ -36,6 +36,7 @@ def test_push_valid():
 
 
 def test_push_invalid():
+    # Push must be a boolean
     config_yaml = """
     steps:
       build-run:
@@ -49,4 +50,4 @@ def test_push_invalid():
     config = yaml.load(config_yaml, Loader=yaml.Loader)
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
-    assert errors.count() == 2
+    assert errors.count() == 1
