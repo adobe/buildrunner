@@ -268,10 +268,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     # pylint: disable=too-many-arguments
     @retry(python_on_whales.exceptions.DockerException,
-           tries=3,
+           tries=5,
            delay=1,
            backoff=3,
-           max_delay=10,
+           max_delay=30,
            logger=logger)
     def _build_single_image(
             self,
