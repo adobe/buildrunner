@@ -8,8 +8,17 @@ with the terms of the Adobe license agreement accompanying it.
 
 from typing import Any, Dict, List, Optional, Union
 
-# pylint: disable=no-name-in-module
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
+from typing_extensions import Annotated
+
+
+def _validate_artifact_type(value) -> Any:
+    if value and not Artifact.model_validate(value):
+        raise ValueError(f'Invalid artifact type: {value}')
+    return value
+
+
+AnnotatedArtifact = Annotated[Any, BeforeValidator(_validate_artifact_type)]
 
 
 class StepPypiPush(BaseModel, extra='forbid'):
@@ -82,7 +91,7 @@ class StepRun(RunAndServicesBase, extra='forbid'):
     services: Optional[Dict[str, Service]] = None
     cmds: Optional[List[str]] = None
     ssh_keys: Optional[List[str]] = Field(alias='ssh-keys', default=None)
-    artifacts: Optional[Dict[str, Union[Artifact, None]]] = None
+    artifacts: Optional[Dict[str, Optional[AnnotatedArtifact]]] = None
     platform: Optional[str] = None
     cap_add: Optional[Union[str, List[str]]] = None
     privileged: Optional[bool] = None
@@ -95,7 +104,7 @@ class StepRemote(BaseModel, extra='forbid'):
     # Not sure if host is optional or required
     host: Optional[str] = None
     cmd: str
-    artifacts: Optional[Dict[str, Optional[Artifact]]] = None
+    artifacts: Optional[Dict[str, Optional[AnnotatedArtifact]]] = None
 
 
 class StepPushCommitDict(BaseModel, extra='forbid'):

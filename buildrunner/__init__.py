@@ -694,6 +694,18 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             self._write_artifact_manifest()
 
             _docker_client = docker.new_client(timeout=self.docker_timeout)
+
+            # cleanup the source image
+            if self._source_image:
+                self.log.write(
+                    f"Destroying source image {self._source_image}\n"
+                )
+                _docker_client.remove_image(
+                    self._source_image,
+                    noprune=False,
+                    force=True,
+                )
+
             if self.cleanup_images:
                 self.log.write(
                     'Removing local copy of generated images\n'
@@ -714,17 +726,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             else:
                 self.log.write(
                     'Keeping generated images\n'
-                )
-
-            # cleanup the source image
-            if self._source_image:
-                self.log.write(
-                    f"Destroying source image {self._source_image}\n"
-                )
-                _docker_client.remove_image(
-                    self._source_image,
-                    noprune=False,
-                    force=True,
                 )
             if self._source_archive:
                 self.log.write(
