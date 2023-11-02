@@ -6,7 +6,9 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-from typing import Any, Annotated, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
+
+from typing_extensions import Annotated
 
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel, BeforeValidator, Field
