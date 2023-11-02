@@ -6,23 +6,19 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, Union
 
+from pydantic import BaseModel, BeforeValidator, Field
 from typing_extensions import Annotated
 
-# pylint: disable=no-name-in-module
-from pydantic import BaseModel, BeforeValidator, Field
 
-T = TypeVar('T')
-
-
-def _validate_artifact_type(value) -> T:
+def _validate_artifact_type(value) -> Any:
     if value and not Artifact.model_validate(value):
         raise ValueError(f'Invalid artifact type: {value}')
     return value
 
 
-AnnotatedArtifact = Annotated[T, BeforeValidator(_validate_artifact_type)]
+AnnotatedArtifact = Annotated[Any, BeforeValidator(_validate_artifact_type)]
 
 
 class StepPypiPush(BaseModel, extra='forbid'):
