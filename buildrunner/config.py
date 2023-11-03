@@ -367,15 +367,17 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
                     f"Redirect loop visiting previously visited file: {fetch_file}"
                 )
 
-        self._validate_version(config=config,
-                               version_file_path=f"{os.path.dirname(os.path.realpath(__file__))}/version.py")
+        if config:
+            self._validate_version(
+                config=config,
+                version_file_path=f"{os.path.dirname(os.path.realpath(__file__))}/version.py")
 
-        config = self._reorder_dependency_steps(config)
+            config = self._reorder_dependency_steps(config)
 
-        errors = validate_config(**config)
-        if errors:
-            raise BuildRunnerConfigurationError(f'Invalid configuration, {errors.count()} error(s) found:'
-                                                f'\n{errors}')
+            errors = validate_config(**config)
+            if errors:
+                raise BuildRunnerConfigurationError(f'Invalid configuration, {errors.count()} error(s) found:'
+                                                    f'\n{errors}')
 
         return config
 
