@@ -11,7 +11,7 @@ from multiprocessing import Manager, Process
 from platform import machine, system
 import shutil
 import tempfile
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import python_on_whales
 from python_on_whales import docker
@@ -125,6 +125,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             keep_images: bool = False,
             temp_dir: str = os.getcwd(),
             disable_multi_platform: bool = False,
+            platform_builders: Optional[Dict[str, str]] = None,
     ):
         self._docker_registry = docker_registry
         self._mp_registry_info = None
@@ -132,6 +133,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._keep_images = keep_images
         self._temp_dir = temp_dir
         self._disable_multi_platform = disable_multi_platform
+        self._platform_builders = platform_builders
 
         # key is destination image name, value is list of built images
         self._intermediate_built_images = {}
@@ -240,7 +242,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             push: bool,
             path: str,
             file: str,
-            build_args: dict,) -> None:
+            build_args: dict,
+            builder: Optional[str],
+    ) -> None:
 
         if not path or not os.path.isdir(path):
             logger.warning(f"Failed to inject {inject} for {tagged_names} since path {path} isn't a directory.")
@@ -271,7 +275,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 platforms=[platform],
                 push=push,
                 file=file,
-                build_args=build_args)
+                builder=builder,
+                build_args=build_args
+            )
 
     # pylint: disable=too-many-arguments
     @retry(python_on_whales.exceptions.DockerException,
@@ -310,7 +316,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             f"'{file}'({os.path.exists(f'{file}')}) does not exist!"
 
         tagged_names = [f"{name}:{tag}" for tag in tags]
-        logger.debug(f"Building {tagged_names} for {platform}")
+        builder = self._platform_builders.get(platform) if self._platform_builders else None
+        logger.debug(f"Building {tagged_names} for {platform} with {builder or 'default'} builder")
 
         if inject and isinstance(inject, dict):
             self._build_with_inject(
@@ -320,7 +327,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 push=push,
                 path=path,
                 file=file,
-                build_args=build_args)
+                build_args=build_args,
+                builder=builder,
+            )
         else:
             docker.buildx.build(
                 path,
@@ -328,7 +337,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 platforms=[platform],
                 push=push,
                 file=file,
-                build_args=build_args)
+                build_args=build_args,
+                builder=builder,
+            )
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
@@ -433,8 +444,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         # Updates name to be compatible with docker
         image_prefix = "buildrunner-mp"
-        santized_name = f"{image_prefix}-{mp_image_name.replace('/', '-').replace(':', '-')}"
-        base_image_name = f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}/{santized_name}"
+        sanitized_name = f"{image_prefix}-{mp_image_name.replace('/', '-').replace(':', '-')}"
+        base_image_name = f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}/{sanitized_name}"
 
         # Keeps track of the built images {name: [ImageInfo(image_names)]]}
         manager = Manager()
@@ -442,68 +453,49 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         line = "-----------------------------------------------------------------"
 
         if self._disable_multi_platform:
-            platform = self.get_single_platform_to_build(platforms)
-            platform_image_name = f"{base_image_name}-{platform.replace('/', '-')}"
+            platforms = [self.get_single_platform_to_build(platforms)]
             print(f"{line}\n"
                   f"Note: Disabling multi-platform build, "
                   "this will only build a single-platform image.\n"
-                  f"image: {santized_name} platform:{platform}\n"
+                  f"image: {sanitized_name} platform:{platforms[0]}\n"
                   f"{line}")
-            self._build_single_image(
-                platform_image_name,
-                platform,
-                push,
-                path,
-                dockerfile,
-                tags,
-                build_args,
-                mp_image_name,
-                inject
-            )
         else:
-            processes = []
             print(f"{line}\n"
                   f"Note: Building multi-platform images can take a long time, please be patient.\n"
                   "If you are running this locally, you can speed this up by using the "
                   "'--disable-multi-platform' CLI flag "
                   "or set the 'disable-multi-platform' flag in the global config file.\n"
                   f"{line}")
-            for platform in platforms:
-                platform_image_name = f"{base_image_name}-{platform.replace('/', '-')}"
-                logger.debug(f"Building {platform_image_name} for {platform}")
-                if do_multiprocessing:
-                    processes.append(Process(
-                        target=self._build_single_image,
-                        args=(
-                            platform_image_name,
-                            platform,
-                            push,
-                            path,
-                            dockerfile,
-                            tags,
-                            build_args,
-                            mp_image_name,
-                            inject
-                        )
-                    ))
-                else:
-                    self._build_single_image(
-                        platform_image_name,
-                        platform,
-                        push,
-                        path,
-                        dockerfile,
-                        tags,
-                        build_args,
-                        mp_image_name,
-                        inject
-                    )
 
-            for proc in processes:
-                proc.start()
+        processes = []
+        for platform in platforms:
+            platform_image_name = f"{base_image_name}-{platform.replace('/', '-')}"
+            logger.debug(f"Building {platform_image_name} for {platform}")
+            process = Process(
+                target=self._build_single_image,
+                args=(
+                    platform_image_name,
+                    platform,
+                    push,
+                    path,
+                    dockerfile,
+                    tags,
+                    build_args,
+                    mp_image_name,
+                    inject
+                )
+            )
+            if do_multiprocessing:
+                processes.append(process)
+            else:
+                process.start()
+                process.join()
 
-            for proc in processes:
-                proc.join()
+        # Start and join processes in parallel (if not already done)
+        for proc in processes:
+            proc.start()
+        for proc in processes:
+            proc.join()
 
         if cleanup_dockerfile and dockerfile and os.path.exists(dockerfile):
             os.remove(dockerfile)

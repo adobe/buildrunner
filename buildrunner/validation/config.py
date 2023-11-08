@@ -48,6 +48,7 @@ class Config(BaseModel, extra='forbid'):
     docker_registry: Optional[str] = Field(alias='docker-registry', default=None)
     temp_dir: Optional[str] = Field(alias='temp-dir', default=None)
     disable_multi_platform: Optional[bool] = Field(alias='disable-multi-platform', default=None)
+    platform_builders: Optional[Dict[str, str]] = Field(alias='platform-builders', default=None)
 
     @field_validator('steps')
     @classmethod
