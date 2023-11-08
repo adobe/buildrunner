@@ -219,10 +219,9 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     path=self.path,
                     file=self.dockerfile,
                     mp_image_name=self.get_unique_build_name(),
-                    docker_registry=docker_registry,
                     build_args=self.buildargs,
                     inject=self.to_inject,
-                    )
+                )
 
                 number_of_images = len(self.platforms)
 

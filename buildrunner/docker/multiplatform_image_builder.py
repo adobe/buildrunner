@@ -11,7 +11,7 @@ from multiprocessing import Manager, Process
 from platform import machine, system
 import shutil
 import tempfile
-from typing import List
+from typing import List, Optional
 
 import python_on_whales
 from python_on_whales import docker
@@ -117,12 +117,16 @@ class RegistryInfo:
 class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     """Multiple platform image builder"""
 
+    # pylint: disable=too-many-arguments
     def __init__(
             self,
+            docker_registry: Optional[str] = None,
             use_local_registry: bool = True,
             keep_images: bool = False,
             temp_dir: str = os.getcwd(),
-            disable_multi_platform: bool = False,):
+            disable_multi_platform: bool = False,
+    ):
+        self._docker_registry = docker_registry
         self._registry_info = None
         self._use_local_registry = use_local_registry
         self._keep_images = keep_images
@@ -193,7 +197,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         """
         if not self._local_registry_is_running:
             logger.debug("Starting local docker registry")
-            container = docker.run("registry", detach=True, publish_all=True)
+            image = 'registry'
+            if self._docker_registry:
+                image = f'{self._docker_registry}/{image}'
+            container = docker.run(image, detach=True, publish_all=True)
             ports = container.network_settings.ports
 
             # If any assert fails something changed in the registry image and we need to update this code
@@ -379,7 +386,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             tags: List[str] = None,
             push=True,
             do_multiprocessing: bool = True,
-            docker_registry: str = None,
             build_args: dict = None,
             inject: dict = None,
             ) -> List[ImageInfo]:
@@ -394,7 +400,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             tags (List[str], optional): The tags to apply to the image. Defaults to None.
             push (bool, optional): Whether to push the image to the registry. Defaults to True.
             do_multiprocessing (bool, optional): Whether to use multiprocessing to build the images. Defaults to True.
-            docker_registry (str, optional): The docker registry to push the image to. Defaults to None.
             build_args (dict, optional): The build args to pass to docker. Defaults to None.
             inject (dict, optional): The files to inject into the build context. Defaults to None.
 
@@ -409,7 +414,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         if build_args is None:
             build_args = {}
-        build_args['DOCKER_REGISTRY'] = docker_registry
+        build_args['DOCKER_REGISTRY'] = self._docker_registry
 
         # It is not valid to pass None for the path when building multi-platform images
         if not path:
