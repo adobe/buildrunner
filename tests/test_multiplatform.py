@@ -14,6 +14,19 @@ TEST_DIR = os.path.basename(os.path.dirname(__file__))
 # FIXME: These tests can be broken if a custom buildx builder is set as default  # pylint: disable=fixme
 
 
+@pytest.fixture(autouse=True)
+def fixture_uuid_mock():
+    with patch('buildrunner.docker.multiplatform_image_builder.uuid') as uuid_mock:
+        counter = 0
+        def _get_uuid():
+            nonlocal counter
+            counter += 1
+            return f'uuid{counter}'
+
+        uuid_mock.uuid4.side_effect = _get_uuid
+        yield uuid_mock
+
+
 def actual_images_match_expected(actual_images, expected_images) -> List[str]:
     missing_images = []
     found = False
@@ -187,7 +200,7 @@ def test_find_native_platform(mock_os,
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-image-tag-2000',
      ['linux/arm64'],
-     ['test-image-tag-2000-linux-arm64']
+     ['buildrunner-mp-uuid1-linux-arm64']
     )])
 def test_tag_single_platform(name, platforms, expected_image_names):
     tag='latest'
@@ -221,7 +234,7 @@ def test_tag_single_platform(name, platforms, expected_image_names):
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-image-tag-2000',
      ['linux/arm64'],
-     ['test-image-tag-2000-linux-arm64']
+     ['buildrunner-mp-uuid1-linux-arm64']
     )])
 def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names):
     tags=['latest', '0.1.0']
@@ -256,7 +269,7 @@ def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-image-tag-2000',
      ['linux/arm64'],
-     ['test-image-tag-2000-linux-arm64']
+     ['buildrunner-mp-uuid1-linux-arm64']
     )])
 def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
     tag='latest'
@@ -377,11 +390,11 @@ def test_push_with_dest_names():
 @pytest.mark.parametrize("name, platforms, expected_image_names",[
     ('test-build-image-2000',
      ['linux/arm64'],
-     ['test-build-image-2000-linux-arm64']
+     ['buildrunner-mp-uuid1-linux-arm64']
     ),
     ('test-build-image-2001',
      ['linux/amd64', 'linux/arm64'],
-     ['test-build-image-2001-linux-amd64', 'test-build-image-2001-linux-arm64']
+     ['buildrunner-mp-uuid1-linux-amd64', 'buildrunner-mp-uuid1-linux-arm64']
     )
 ])
 @patch('buildrunner.docker.multiplatform_image_builder.docker.image.remove')
@@ -415,11 +428,11 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_inspect, mock_remove)
     mock_inspect.return_value.id = 'myfakeimageid'
     name1 = 'test-build-multi-image-2001'
     platforms1 = ['linux/amd64', 'linux/arm64']
-    expected_image_names1 = ['test-build-multi-image-2001-linux-amd64', 'test-build-multi-image-2001-linux-arm64']
+    expected_image_names1 = ['buildrunner-mp-uuid1-linux-amd64', 'buildrunner-mp-uuid1-linux-arm64']
 
     name2 = 'test-build-multi-image-2002'
     platforms2 = ['linux/amd64', 'linux/arm64']
-    expected_image_names2 = ['test-build-multi-image-2002-linux-amd64', 'test-build-multi-image-2002-linux-arm64']
+    expected_image_names2 = ['buildrunner-mp-uuid2-linux-amd64', 'buildrunner-mp-uuid2-linux-arm64']
 
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     with MultiplatformImageBuilder() as mp:
@@ -454,12 +467,12 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_inspect, mock_remove)
     ('test-build-tag-image-2000',
      ['latest', '0.1.0'],
      ['linux/arm64'],
-     ['test-build-tag-image-2000-linux-arm64']
+     ['buildrunner-mp-uuid1-linux-arm64']
     ),
     ('test-build-tag-image-2001',
      ['latest', '0.2.0'],
      ['linux/amd64', 'linux/arm64'],
-     ['test-build-tag-image-2001-linux-amd64', 'test-build-tag-image-2001-linux-arm64']
+     ['buildrunner-mp-uuid1-linux-amd64', 'buildrunner-mp-uuid1-linux-arm64']
     )
 ])
 def test_build_with_tags(name, tags, platforms, expected_image_names):
