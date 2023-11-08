@@ -91,6 +91,8 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                 )
 
             for src_glob, dest_path in self.config.get('inject', {}).items():
+                if not dest_path:
+                    dest_path = ''
                 _src_glob = self.step_runner.build_runner.global_config.to_abs_path(src_glob)
                 xsglob = glob.glob(_src_glob)
                 if not xsglob:
@@ -102,7 +104,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     # Only one source - destination may be directory or filename - check for a trailing
                     # '/' and treat it accordingly.
                     source_file = xsglob[0]
-                    if dest_path[-1] == '/' or os.path.split(dest_path)[-1] in ('.', '..'):
+                    if dest_path and (dest_path[-1] == '/' or os.path.split(dest_path)[-1] in ('.', '..')):
                         self.to_inject[source_file] = os.path.normpath(
                             os.path.join(
                                 '.',
@@ -219,10 +221,9 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     path=self.path,
                     file=self.dockerfile,
                     mp_image_name=self.get_unique_build_name(),
-                    docker_registry=docker_registry,
                     build_args=self.buildargs,
                     inject=self.to_inject,
-                    )
+                )
 
                 number_of_images = len(self.platforms)
 
