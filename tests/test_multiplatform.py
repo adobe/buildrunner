@@ -33,7 +33,7 @@ def test_start_local_registry():
 
     with MultiplatformImageBuilder() as mp:
         mp._start_local_registry()
-        registry_name = mp._registry_info.name
+        registry_name = mp._mp_registry_info.name
 
         # Check that the registry is running and only one is found with that name
         registry_container = docker.ps(filters={"name": registry_name})
@@ -64,7 +64,7 @@ def test_start_local_registry_on_build():
 
     with MultiplatformImageBuilder() as mp:
         # Check that the registry is NOT running
-        assert mp._registry_info is None
+        assert mp._mp_registry_info is None
         assert mp._local_registry_is_running is False
 
         # Building should start the registry
@@ -77,7 +77,7 @@ def test_start_local_registry_on_build():
 
 
         # Check that the registry is running and only one is found with that name
-        registry_name = mp._registry_info.name
+        registry_name = mp._mp_registry_info.name
         first_registry_name = registry_name
         registry_container = docker.ps(filters={"name": registry_name})
         assert len(registry_container) == 1
@@ -102,7 +102,7 @@ def test_start_local_registry_on_build():
                                  file=f'{test_path}/Dockerfile',
                                  do_multiprocessing=True)
 
-        registry_name = mp._registry_info.name
+        registry_name = mp._mp_registry_info.name
         assert first_registry_name == registry_name
 
     # Check that the registry is stopped and cleaned up

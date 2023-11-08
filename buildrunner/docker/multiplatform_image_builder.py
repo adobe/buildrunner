@@ -127,7 +127,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             disable_multi_platform: bool = False,
     ):
         self._docker_registry = docker_registry
-        self._registry_info = None
+        self._mp_registry_info = None
         self._use_local_registry = use_local_registry
         self._keep_images = keep_images
         self._temp_dir = temp_dir
@@ -168,12 +168,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     @property
     def registry_ip(self) -> int:
         """Returns the ip address of the local registry"""
-        return self._registry_info.ip_addr
+        return self._mp_registry_info.ip_addr
 
     @property
     def registry_port(self) -> int:
         """Returns the port of the local registry"""
-        return self._registry_info.port
+        return self._mp_registry_info.port
 
     @property
     def tagged_images_names(self) -> List[str]:
@@ -186,7 +186,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     def registry_address(self) -> str:
         """Returns the address of the local registry"""
-        return f"{self._registry_info.ip_addr}:{self._registry_info.port}"
+        return f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}"
 
     def _start_local_registry(self):
         """
@@ -211,9 +211,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             assert ports.get("5000/tcp")[0].get('HostIp') == "0.0.0.0", \
                 f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
 
-            self._registry_info = RegistryInfo(container.name, "localhost", ports.get("5000/tcp")[0].get("HostPort"))
+            self._mp_registry_info = RegistryInfo(container.name, "localhost", ports.get("5000/tcp")[0].get("HostPort"))
             self._local_registry_is_running = True
-            logger.debug(f"Started local registry {self._registry_info}")
+            logger.debug(f"Started local registry {self._mp_registry_info}")
         else:
             logger.warning("Local registry is already running")
 
@@ -222,11 +222,11 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         Stops and removes the local registry along with any images
         """
         if self._local_registry_is_running:
-            logger.debug(f"Stopping and removing local registry {self._registry_info}")
+            logger.debug(f"Stopping and removing local registry {self._mp_registry_info}")
             try:
-                docker.remove(self._registry_info.name, volumes=True, force=True)
+                docker.remove(self._mp_registry_info.name, volumes=True, force=True)
             except python_on_whales.exceptions.NoSuchContainer as err:
-                logger.error(f"Failed to stop and remove local registry {self._registry_info.name}: {err}")
+                logger.error(f"Failed to stop and remove local registry {self._mp_registry_info.name}: {err}")
             self._local_registry_is_running = False
         else:
             logger.warning("Local registry is not running when attempting to stop it")
@@ -434,7 +434,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         # Updates name to be compatible with docker
         image_prefix = "buildrunner-mp"
         santized_name = f"{image_prefix}-{mp_image_name.replace('/', '-').replace(':', '-')}"
-        base_image_name = f"{self._registry_info.ip_addr}:{self._registry_info.port}/{santized_name}"
+        base_image_name = f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}/{santized_name}"
 
         # Keeps track of the built images {name: [ImageInfo(image_names)]]}
         manager = Manager()
