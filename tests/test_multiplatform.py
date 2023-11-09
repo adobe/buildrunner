@@ -399,9 +399,10 @@ def test_push_with_dest_names():
 ])
 @patch('buildrunner.docker.multiplatform_image_builder.docker.image.remove')
 @patch('buildrunner.docker.multiplatform_image_builder.docker.image.inspect')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.push')
 @patch('buildrunner.docker.multiplatform_image_builder.docker.image.pull')
 @patch('buildrunner.docker.multiplatform_image_builder.docker.buildx.build')
-def test_build(mock_build, mock_pull, mock_inspect, mock_remove, name, platforms, expected_image_names):
+def test_build(mock_build, mock_pull, mock_push, mock_inspect, mock_remove, name, platforms, expected_image_names):
     mock_inspect.return_value = MagicMock()
     mock_inspect.return_value.id = 'myfakeimageid'
     test_path = f'{TEST_DIR}/test-files/multiplatform'
@@ -421,9 +422,10 @@ def test_build(mock_build, mock_pull, mock_inspect, mock_remove, name, platforms
 
 @patch('buildrunner.docker.multiplatform_image_builder.docker.image.remove')
 @patch('buildrunner.docker.multiplatform_image_builder.docker.image.inspect')
+@patch('buildrunner.docker.multiplatform_image_builder.docker.push')
 @patch('buildrunner.docker.multiplatform_image_builder.docker.image.pull')
 @patch('buildrunner.docker.multiplatform_image_builder.docker.buildx.build')
-def test_build_multiple_builds(mock_build, mock_pull, mock_inspect, mock_remove):
+def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, mock_remove):
     mock_inspect.return_value = MagicMock()
     mock_inspect.return_value.id = 'myfakeimageid'
     name1 = 'test-build-multi-image-2001'
