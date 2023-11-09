@@ -587,6 +587,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 keep_images=not self.cleanup_images,
                 temp_dir=self.global_config.get_temp_dir(),
                 disable_multi_platform=self.disable_multi_platform,
+                platform_builders=self.global_config.get('platform-builders'),
             ) as multi_platform:
                 if not os.path.exists(self.build_results_dir):
                     # create a new results dir

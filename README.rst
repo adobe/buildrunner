@@ -188,6 +188,14 @@ they are used when put into the global configuration file:
   # the configuration in the buildrunner.yaml file.
   disable-multi-platform: true/false (defaults to false)
 
+  # Overrides the buildx builder used when doing multi-platform builds. Buildx
+  # does not provide the capability to auto-select the builder based on the platform
+  # and therefore this must be configured in buildrunner itself to perform builds
+  # across multiple builders for different platforms. Any platform not specified
+  # here will use the default configured buildx builder.
+  platform-builders:
+    platform1: builder1
+
 Configuration Locations
 -----------------------
 
