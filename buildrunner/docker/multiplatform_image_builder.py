@@ -290,7 +290,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             self,
             name: str,
             platform: str,
-            push: bool,
             path: str,
             file: str,
             tags: List[str],
@@ -303,7 +302,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         Args:
             name (str): The name of the image
             platform (str): The platform to build the image for (e.g. linux/amd64)
-            push (bool): Whether to push the image to the registry.
             path (str): The path to the Dockerfile.
             file (str): The path/name of the Dockerfile (ie. <path>/Dockerfile).
             tags (List[str]): The tags to apply to the image.
@@ -340,8 +338,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 builder=builder,
             )
         # Push after the initial load to support remote builders that cannot access the local registry
-        if push:
-            docker.push(tagged_names)
+        docker.push(tagged_names)
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
@@ -397,7 +394,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             file: str = "Dockerfile",
             mp_image_name: str = None,
             tags: List[str] = None,
-            push=True,
             do_multiprocessing: bool = True,
             build_args: dict = None,
             inject: dict = None,
@@ -411,7 +407,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             file (str, optional): The path/name of the Dockerfile (ie. <path>/Dockerfile). Defaults to "Dockerfile".
             mp_image_name (str, optional): The name of the image. Defaults to None.
             tags (List[str], optional): The tags to apply to the image. Defaults to None.
-            push (bool, optional): Whether to push the image to the registry. Defaults to True.
             do_multiprocessing (bool, optional): Whether to use multiprocessing to build the images. Defaults to True.
             build_args (dict, optional): The build args to pass to docker. Defaults to None.
             inject (dict, optional): The files to inject into the build context. Defaults to None.
@@ -472,28 +467,26 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         processes = []
         for platform in platforms:
             platform_image_name = f"{base_image_name}-{platform.replace('/', '-')}"
-            logger.debug(f"Building {platform_image_name} for {platform}")
-            process = Process(
-                target=self._build_single_image,
-                args=(
-                    platform_image_name,
-                    platform,
-                    push,
-                    path,
-                    dockerfile,
-                    tags,
-                    build_args,
-                    mp_image_name,
-                    inject
-                )
+            build_single_image_args = (
+                platform_image_name,
+                platform,
+                path,
+                dockerfile,
+                tags,
+                build_args,
+                mp_image_name,
+                inject,
             )
+            logger.debug(f"Building {platform_image_name} for {platform}")
             if do_multiprocessing:
-                processes.append(process)
+                processes.append(Process(
+                    target=self._build_single_image,
+                    args=build_single_image_args,
+                ))
             else:
-                process.start()
-                process.join()
+                self._build_single_image(*build_single_image_args)
 
-        # Start and join processes in parallel (if not already done)
+        # Start and join processes in parallel if multiprocessing is enabled
         for proc in processes:
             proc.start()
         for proc in processes:
@@ -525,12 +518,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         retries = 5
 
         src_images = self._intermediate_built_images[name]
-        # only need get tags for one image, since they should be identical
         assert len(src_images) > 0, f"No images found for {name}"
 
         # Append the tags to the names prior to pushing
         if dest_names is None:
             dest_names = name
+            # only need get tags for one image, since they should be identical
             for tag in src_images[0].tags:
                 tagged_names.append(f"{dest_names}:{tag}")
         else:
