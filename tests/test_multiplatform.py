@@ -1,6 +1,6 @@
 import os
 from typing import List
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 from python_on_whales import Image, docker
@@ -463,6 +463,61 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
         assert len(built_images2) ==  len(expected_image_names2)
         missing_images = actual_images_match_expected(built_images2, expected_image_names2)
         assert missing_images == [], f'Failed to find {missing_images} in {[image.repo for image in built_images2]}'
+
+    assert mock_build.call_count == 4
+    prefix = mock_build.call_args.kwargs['tags'][0].split('buildrunner-mp')[0]
+    assert mock_build.call_args_list == [
+        call(
+            'tests/test-files/multiplatform',
+            tags=[f'{prefix}buildrunner-mp-uuid1-linux-amd64:latest'],
+            platforms=['linux/amd64'],
+            load=True,
+            file='tests/test-files/multiplatform/Dockerfile',
+            build_args={'DOCKER_REGISTRY': None},
+            builder=None,
+        ),
+        call(
+            'tests/test-files/multiplatform',
+            tags=[f'{prefix}buildrunner-mp-uuid1-linux-arm64:latest'],
+            platforms=['linux/arm64'],
+            load=True,
+            file='tests/test-files/multiplatform/Dockerfile',
+            build_args={'DOCKER_REGISTRY': None},
+            builder=None,
+        ),
+        call(
+            'tests/test-files/multiplatform',
+            tags=[f'{prefix}buildrunner-mp-uuid2-linux-amd64:latest'],
+            platforms=['linux/amd64'],
+            load=True,
+            file='tests/test-files/multiplatform/Dockerfile',
+            build_args={'DOCKER_REGISTRY': None},
+            builder=None,
+        ),
+        call(
+            'tests/test-files/multiplatform',
+            tags=[f'{prefix}buildrunner-mp-uuid2-linux-arm64:latest'],
+            platforms=['linux/arm64'],
+            load=True,
+            file='tests/test-files/multiplatform/Dockerfile',
+            build_args={'DOCKER_REGISTRY': None},
+            builder=None,
+        ),
+    ]
+    assert mock_push.call_count == 4
+    assert mock_push.call_args_list == [
+        call([f'{prefix}buildrunner-mp-uuid1-linux-amd64:latest']),
+        call([f'{prefix}buildrunner-mp-uuid1-linux-arm64:latest']),
+        call([f'{prefix}buildrunner-mp-uuid2-linux-amd64:latest']),
+        call([f'{prefix}buildrunner-mp-uuid2-linux-arm64:latest']),
+    ]
+    assert mock_pull.call_count == 4
+    assert mock_pull.call_args_list == [
+        call(f'{prefix}buildrunner-mp-uuid1-linux-amd64:latest'),
+        call(f'{prefix}buildrunner-mp-uuid1-linux-arm64:latest'),
+        call(f'{prefix}buildrunner-mp-uuid2-linux-amd64:latest'),
+        call(f'{prefix}buildrunner-mp-uuid2-linux-arm64:latest'),
+    ]
 
 
 @pytest.mark.parametrize("name, tags, platforms, expected_image_names",[
