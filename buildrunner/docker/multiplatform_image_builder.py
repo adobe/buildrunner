@@ -11,6 +11,7 @@ from multiprocessing import Manager, Process
 from platform import machine, system
 import shutil
 import tempfile
+import uuid
 from typing import Dict, List, Optional
 
 import python_on_whales
@@ -239,7 +240,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             inject: dict,
             tagged_names: List[str],
             platform: str,
-            push: bool,
             path: str,
             file: str,
             build_args: dict,
@@ -273,7 +273,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 context_dir,
                 tags=tagged_names,
                 platforms=[platform],
-                push=push,
+                load=True,
                 file=file,
                 builder=builder,
                 build_args=build_args
@@ -324,7 +324,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 inject=inject,
                 tagged_names=tagged_names,
                 platform=platform,
-                push=push,
                 path=path,
                 file=file,
                 build_args=build_args,
@@ -335,11 +334,14 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 path,
                 tags=tagged_names,
                 platforms=[platform],
-                push=push,
+                load=True,
                 file=file,
                 build_args=build_args,
                 builder=builder,
             )
+        # Push after the initial load to support remote builders that cannot access the local registry
+        if push:
+            docker.push(tagged_names)
 
         # Check that the images were built and in the registry
         # Docker search is not currently implemented in python-on-wheels
@@ -444,7 +446,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         # Updates name to be compatible with docker
         image_prefix = "buildrunner-mp"
-        sanitized_name = f"{image_prefix}-{mp_image_name.replace('/', '-').replace(':', '-')}"
+        sanitized_name = f"{image_prefix}-{str(uuid.uuid4())}"
         base_image_name = f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}/{sanitized_name}"
 
         # Keeps track of the built images {name: [ImageInfo(image_names)]]}
