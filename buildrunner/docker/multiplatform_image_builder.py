@@ -10,6 +10,7 @@ import os
 from multiprocessing import Manager, Process
 from platform import machine, system
 import shutil
+import sys
 import tempfile
 import uuid
 from typing import Dict, List, Optional
@@ -121,6 +122,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     # pylint: disable=too-many-arguments
     def __init__(
             self,
+            log=sys.stdout,
             docker_registry: Optional[str] = None,
             use_local_registry: bool = True,
             keep_images: bool = False,
@@ -128,6 +130,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             disable_multi_platform: bool = False,
             platform_builders: Optional[Dict[str, str]] = None,
     ):
+        self._log = log
         self._docker_registry = docker_registry
         self._mp_registry_info = None
         self._use_local_registry = use_local_registry
@@ -315,7 +318,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         tagged_names = [f"{name}:{tag}" for tag in tags]
         builder = self._platform_builders.get(platform) if self._platform_builders else None
-        logger.debug(f"Building {tagged_names} for {platform} with {builder or 'default'} builder")
+        logger.debug(f"Building tagged images {tagged_names}")
+        self._log.write(f"Building image for platform {platform} with {builder or 'default'} builder\n")
 
         if inject and isinstance(inject, dict):
             self._build_with_inject(
@@ -451,20 +455,27 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         if self._disable_multi_platform:
             platforms = [self.get_single_platform_to_build(platforms)]
-            print(f"{line}\n"
-                  f"Note: Disabling multi-platform build, "
-                  "this will only build a single-platform image.\n"
-                  f"image: {sanitized_name} platform:{platforms[0]}\n"
-                  f"{line}")
+            self._log.write(
+                f"{line}\n"
+                f"Note: Disabling multi-platform build, "
+                "this will only build a single-platform image.\n"
+                f"image: {sanitized_name} platform:{platforms[0]}\n"
+                f"{line}\n"
+            )
         else:
-            print(f"{line}\n"
-                  f"Note: Building multi-platform images can take a long time, please be patient.\n"
-                  "If you are running this locally, you can speed this up by using the "
-                  "'--disable-multi-platform' CLI flag "
-                  "or set the 'disable-multi-platform' flag in the global config file.\n"
-                  f"{line}")
+            self._log.write(
+                f"{line}\n"
+                f"Note: Building multi-platform images can take a long time, please be patient.\n"
+                "If you are running this locally, you can speed this up by using the "
+                "'--disable-multi-platform' CLI flag "
+                "or set the 'disable-multi-platform' flag in the global config file.\n"
+                f"{line}\n"
+            )
 
         processes = []
+        self._log.write(
+            f'Starting builds for {len(platforms)} platforms in {"parallel" if do_multiprocessing else "sequence"}\n'
+        )
         for platform in platforms:
             platform_image_name = f"{base_image_name}-{platform.replace('/', '-')}"
             build_single_image_args = (
