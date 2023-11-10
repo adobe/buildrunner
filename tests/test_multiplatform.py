@@ -75,7 +75,7 @@ def test_start_local_registry_on_build():
     registry_name = None
     volume_name = None
 
-    with MultiplatformImageBuilder(log=MagicMock()) as mp:
+    with MultiplatformImageBuilder() as mp:
         # Check that the registry is NOT running
         assert mp._mp_registry_info is None
         assert mp._local_registry_is_running is False
