@@ -75,7 +75,7 @@ def test_start_local_registry_on_build():
     registry_name = None
     volume_name = None
 
-    with MultiplatformImageBuilder() as mp:
+    with MultiplatformImageBuilder(log=MagicMock()) as mp:
         # Check that the registry is NOT running
         assert mp._mp_registry_info is None
         assert mp._local_registry_is_running is False
@@ -113,7 +113,7 @@ def test_start_local_registry_on_build():
                                  platforms=['linux/arm64', 'linux/amd64'],
                                  path=test_path,
                                  file=f'{test_path}/Dockerfile',
-                                 do_multiprocessing=True)
+                                 do_multiprocessing=False)
 
         registry_name = mp._mp_registry_info.name
         assert first_registry_name == registry_name
