@@ -245,10 +245,10 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                 )
                 if exit_code != 0 or not builder.image:
                     raise BuildRunnerProcessingError('Error building image')
+                context['image'] = builder.image
+                self.step_runner.build_runner.generated_images.append(builder.image)
         except Exception as exc:
             self.step_runner.log.write(f'ERROR: {exc}\n')
             raise
         finally:
             builder.cleanup()
-        context['image'] = builder.image
-        self.step_runner.build_runner.generated_images.append(builder.image)
