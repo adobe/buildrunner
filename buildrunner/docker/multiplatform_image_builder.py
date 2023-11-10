@@ -265,7 +265,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 if not os.path.isdir(dest_dir):
                     os.mkdir(dest_dir)
 
-                shutil.copy(src_path, dest_path)
+                if os.path.isdir(src_path):
+                    shutil.copytree(src_path, dest_path)
+                else:
+                    shutil.copy(src_path, dest_path)
 
             assert os.path.isdir(context_dir), f"Failed to create context dir {context_dir}"
 
