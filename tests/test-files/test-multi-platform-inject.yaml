@@ -72,3 +72,27 @@ steps:
       inject:
         tests/test-files/inject/file1.txt: files/file.txt
       no-cache: true
+  build-mp-dir-inject:
+    build:
+      path: .
+      dockerfile: |
+        FROM bash:5.2.15
+        ADD inject/file1.txt /file.txt
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      inject:
+        tests/test-files/inject: inject
+      no-cache: true
+  build-mp-dir-top-inject:
+    build:
+      path: .
+      dockerfile: |
+        FROM bash:5.2.15
+        ADD inject/file1.txt /file.txt
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      inject:
+        tests/test-files/inject: .
+      no-cache: true
