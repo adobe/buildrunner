@@ -124,6 +124,9 @@ class Config(BaseModel, extra='forbid'):
                     if not isinstance(step.build.platforms, list):
                         raise ValueError(f'platforms must be a list in build step {step_name}')
 
+                    if step.build.import_param:
+                        raise ValueError(f'import is not allowed in multi-platform build step {step_name}')
+
                     # Check for valid push section, duplicate mp tags are not allowed
                     validate_push(step.push, mp_push_tags, step_name)
 
