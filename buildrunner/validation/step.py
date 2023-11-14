@@ -47,6 +47,7 @@ class StepBuild(BaseModel, extra='forbid'):
     inject: Optional[Dict[str, Optional[str]]] = None
     no_cache: Optional[bool] = Field(alias='no-cache', default=None)
     buildargs: Optional[Dict[str, Any]] = None
+    cache_from: Optional[List[str]] = None
 
 
 class RunAndServicesBase(BaseModel):

@@ -475,6 +475,9 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             file='tests/test-files/multiplatform/Dockerfile',
             build_args={'DOCKER_REGISTRY': None},
             builder=None,
+            cache=False,
+            cache_from=None,
+            pull=False
         ),
         call(
             'tests/test-files/multiplatform',
@@ -484,6 +487,9 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             file='tests/test-files/multiplatform/Dockerfile',
             build_args={'DOCKER_REGISTRY': None},
             builder=None,
+            cache=False,
+            cache_from=None,
+            pull=False
         ),
         call(
             'tests/test-files/multiplatform',
@@ -493,6 +499,9 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             file='tests/test-files/multiplatform/Dockerfile',
             build_args={'DOCKER_REGISTRY': None},
             builder=None,
+            cache=False,
+            cache_from=None,
+            pull=False
         ),
         call(
             'tests/test-files/multiplatform',
@@ -502,6 +511,9 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             file='tests/test-files/multiplatform/Dockerfile',
             build_args={'DOCKER_REGISTRY': None},
             builder=None,
+            cache=False,
+            cache_from=None,
+            pull=False
         ),
     ]
     assert mock_push.call_count == 4

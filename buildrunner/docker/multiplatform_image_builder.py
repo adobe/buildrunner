@@ -244,6 +244,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             file: str,
             build_args: dict,
             builder: Optional[str],
+            cache: bool = False,
+            cache_from: List[str] = None,
+            pull: bool = False,
     ) -> None:
 
         if not path or not os.path.isdir(path):
@@ -279,7 +282,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 load=True,
                 file=file,
                 builder=builder,
-                build_args=build_args
+                build_args=build_args,
+                cache=cache,
+                cache_from=cache_from,
+                pull=pull,
             )
 
     # pylint: disable=too-many-arguments
@@ -298,7 +304,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             tags: List[str],
             build_args: dict,
             mp_image_name: str,
-            inject: dict) -> None:
+            inject: dict,
+            cache: bool = False,
+            cache_from: List[str] = None,
+            pull: bool = False,) -> None:
         """
         Builds a single image for the given platform
 
@@ -330,6 +339,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 file=file,
                 build_args=build_args,
                 builder=builder,
+                cache=cache,
+                cache_from=cache_from,
+                pull=pull,
             )
         else:
             docker.buildx.build(
@@ -340,6 +352,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 file=file,
                 build_args=build_args,
                 builder=builder,
+                cache=cache,
+                cache_from=cache_from,
+                pull=pull,
             )
         # Push after the initial load to support remote builders that cannot access the local registry
         docker.push(tagged_names)
@@ -401,6 +416,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             do_multiprocessing: bool = True,
             build_args: dict = None,
             inject: dict = None,
+            cache: bool = False,
+            cache_from: List[str] = None,
+            pull: bool = False,
             ) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.

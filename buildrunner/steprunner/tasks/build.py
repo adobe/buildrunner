@@ -223,6 +223,9 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     mp_image_name=self.get_unique_build_name(),
                     build_args=self.buildargs,
                     inject=self.to_inject,
+                    cache=not self.nocache,
+                    cache_from=self.cache_from,
+                    pull=self.pull,
                 )
 
                 number_of_images = len(self.platforms)

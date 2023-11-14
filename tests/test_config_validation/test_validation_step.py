@@ -80,6 +80,30 @@ def test_valid_platforms():
     assert errors is None
 
 
+def test_valid_platforms():
+    config_yaml = """
+    steps:
+      build-container-multi-platform:
+        build:
+          path: .
+          dockerfile: Dockerfile
+          pull: false
+          platforms:
+            - linux/amd64
+            - linux/arm64
+          no-cache: true
+          cache_from:
+            - mytest-reg/buildrunner-test-multi-platform:latest
+        push:
+          repository: mytest-reg/buildrunner-test-multi-platform
+          tags:
+            - latest
+    """
+    config = yaml.load(config_yaml, Loader=yaml.Loader)
+    errors = validate_config(**config)
+    assert errors is None
+
+
 def test_duplicate_mp_tags_dictionary_invalid():
     # Invalid to have duplicate multi-platform tag
     config_yaml = """
