@@ -48,6 +48,8 @@ class StepBuild(BaseModel, extra='forbid'):
     no_cache: Optional[bool] = Field(alias='no-cache', default=None)
     buildargs: Optional[Dict[str, Any]] = None
     cache_from: Optional[List[str]] = None
+    # import is a python reserved keyword so we need to alias it
+    import_param: Optional[str] = Field(alias='import', default=None)
 
 
 class RunAndServicesBase(BaseModel):

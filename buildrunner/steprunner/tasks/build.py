@@ -192,7 +192,7 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
     def run(self, context):
         # 'import' will override other configuration and perform a 'docker
         # import'
-        if self._import:
+        if self._import and not self.platforms:
             self.step_runner.log.write(f'  Importing {self._import} as a Docker image\n')
             context['image'] = DockerImporter(
                 self._import,

@@ -303,6 +303,38 @@ def test_pypi_push():
     assert errors is None
 
 
+def test_invalid_mp_import():
+    config_yaml = """
+    steps:
+      build-container-multi-platform:
+        build:
+          path: .
+          dockerfile: Dockerfile
+          platforms:
+            - linux/amd64
+            - linux/arm64
+          import: mytest-reg/buildrunner-test-multi-platform:latest
+    """
+    config = yaml.load(config_yaml, Loader=yaml.Loader)
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
+
+
+def test_valid_import():
+    config_yaml = """
+    steps:
+      build-container-multi-platform:
+        build:
+          path: .
+          dockerfile: Dockerfile
+          import: mytest-reg/buildrunner-test-multi-platform:latest
+    """
+    config = yaml.load(config_yaml, Loader=yaml.Loader)
+    errors = validate_config(**config)
+    assert errors is None
+
+
 def test_services():
     config_yaml = """
     steps:

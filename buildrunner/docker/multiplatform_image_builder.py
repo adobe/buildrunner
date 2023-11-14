@@ -505,6 +505,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 build_args,
                 mp_image_name,
                 inject,
+                cache,
+                cache_from,
+                pull,
             )
             logger.debug(f"Building {platform_image_name} for {platform}")
             if do_multiprocessing:
