@@ -146,3 +146,9 @@ steps:
     run:
       image: {{ DOCKER_REGISTRY }}/centos:8
       cmd: 'if [ $(ls -laR /artifacts/setup-uncompress-dirs/ | grep tar.gz | wc -l) != 0 ]; then exit 1; fi'
+
+  test-platform:
+    run:
+      image: {{ DOCKER_REGISTRY }}/centos:8
+      cmd: 'if [ -z "{{ BUILDRUNNER_PLATFORM }}" ]; then exit 1; else echo "Platform is {{ BUILDRUNNER_PLATFORM }}"; fi'
+

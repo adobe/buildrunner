@@ -16,6 +16,7 @@ import inspect
 import json
 import logging
 import os
+import platform as python_platform
 import shutil
 import sys
 import tarfile
@@ -89,6 +90,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
 
         context = {
+            'BUILDRUNNER_PLATFORM': str(python_platform.machine()),
             'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
             'BUILDRUNNER_BUILD_ID': str(self.build_id),
             'BUILDRUNNER_BUILD_DOCKER_TAG': str(sanitize_tag(self.build_id)),
