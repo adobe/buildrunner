@@ -107,7 +107,7 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
                     image_ids = ','.join([image.trunc_digest() for image in images])
                     platforms = [f'{image.platform}:{image.trunc_digest()}' for image in images]
                     self.step_runner.build_runner.add_artifact(
-                        os.path.join(self.step_runner.name, image_ids.replace(',', '/')),
+                        repo.repository,
                         {
                             'type': 'docker-image',
                             'docker:image': image_ids,

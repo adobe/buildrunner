@@ -618,16 +618,19 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
                 # see if we should push registered tags to remote registries/repositories
                 if self.push:
-                    # push the multi-platform images
-                    if multi_platform.tagged_images_names:
-                        self.log.write(f"===> multi_platform.tagged_images_names: {multi_platform.tagged_images_names}")
-                        for local_name, dest_name in multi_platform.tagged_images_names.items():
-                            self.log.write(f"\nlocal_name: {local_name} dest_name: {dest_name}\n")
-                            multi_platform.push(name=local_name, dest_names=dest_name)
-
                     self.log.write(
                         'Push requested--pushing generated images/packages to remote registries/repositories\n'
                     )
+                    # Push multi-platform images
+                    if multi_platform.tagged_images_names:
+                        self.log.write(
+                            f"===> Pushing {len(multi_platform.tagged_images_names)} multiplatform image(s)\n"
+                        )
+                        for local_name, dest_name in multi_platform.tagged_images_names.items():
+                            self.log.write(f"Pushing {local_name} to {dest_name}\n")
+                            multi_platform.push(name=local_name, dest_names=dest_name)
+
+                    # Push single platform images
                     _docker_client = docker.new_client(timeout=self.docker_timeout)
                     for _repo_tag, _insecure_registry in self.repo_tags_to_push:
                         self.log.write(

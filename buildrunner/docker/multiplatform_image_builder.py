@@ -15,12 +15,15 @@ import uuid
 from typing import Dict, List, Optional
 
 import python_on_whales
+import timeout_decorator
 from python_on_whales import docker
 from retry import retry
 
 from buildrunner.docker import get_dockerfile
 
 logger = logging.getLogger(__name__)
+
+PUSH_TIMEOUT = 300
 
 
 class ImageInfo:
@@ -529,6 +532,23 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         return self._intermediate_built_images[mp_image_name]
 
+    @timeout_decorator.timeout(PUSH_TIMEOUT)
+    def _push_with_timeout(self, src_names: List[str], tag_names: List[str]) -> None:
+        """
+        Creates tags from a set of source images in the remote registry.
+        This method will timeout if it takes too long. An exception may be
+        caught and retried for the timeout.
+
+        Args:
+            src_names (List[str]): The source images to combine into the image manifest
+            tag_names (List[str]): The tags to push with the final image manifest
+
+        Raises:
+            TimeoutError: If the image fails to push within the timeout
+        """
+        logger.info(f'Pushing sources {src_names} to tags {tag_names}')
+        docker.buildx.imagetools.create(sources=src_names, tags=tag_names)
+
     def push(self, name: str, dest_names: List[str] = None) -> None:
         """
         Pushes the image to the remote registry embedded in dest_names or name if dest_names is None
@@ -569,19 +589,18 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         while retries > 0:
             retries -= 1
             logger.debug(f"Creating manifest list {name} with timeout {timeout_seconds} seconds")
-            curr_process = Process(target=docker.buildx.imagetools.create,
-                                   kwargs={"sources": src_names, "tags": tagged_names})
-            curr_process.start()
-            curr_process.join(timeout_seconds)
-            if curr_process.is_alive():
-                curr_process.kill()
-                if retries == 0:
-                    raise TimeoutError(f"Timeout pushing {dest_names} after {retries} retries"
-                                       f" and {timeout_seconds} seconds each try")
-            else:
+            try:
+                # Push each tag individually in order to prevent strange errors with multiple matching tags
+                for tag_name in tagged_names:
+                    self._push_with_timeout(src_names, [tag_name])
                 # Process finished within timeout
                 logger.info(f"Successfully created multiplatform images {dest_names}")
                 break
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                logger.warning(f"Caught exception while pushing images, retrying: {exc}")
+            if retries == 0:
+                raise TimeoutError(f"Timeout pushing {dest_names} after {retries} retries"
+                                   f" and {timeout_seconds} seconds each try")
             timeout_seconds += timeout_step_seconds
 
             # Cap timeout at max timeout
