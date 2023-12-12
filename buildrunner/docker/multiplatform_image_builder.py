@@ -546,6 +546,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         Raises:
             TimeoutError: If the image fails to push within the timeout
         """
+        logger.info(f'Pushing sources {src_names} to tags {tag_names}')
         docker.buildx.imagetools.create(sources=src_names, tags=tag_names)
 
     def push(self, name: str, dest_names: List[str] = None) -> None:
@@ -589,7 +590,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             retries -= 1
             logger.debug(f"Creating manifest list {name} with timeout {timeout_seconds} seconds")
             try:
-                self._push_with_timeout(src_names, tagged_names)
+                # Push each tag individually in order to prevent strange errors with multiple matching tags
+                for tag_name in tagged_names:
+                    self._push_with_timeout(src_names, [tag_name])
                 # Process finished within timeout
                 logger.info(f"Successfully created multiplatform images {dest_names}")
                 break
