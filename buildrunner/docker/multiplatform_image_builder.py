@@ -593,7 +593,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 # Process finished within timeout
                 logger.info(f"Successfully created multiplatform images {dest_names}")
                 break
-            except Exception as exc:
+            except Exception as exc:  # pylint: disable=broad-exception-caught
                 logger.warning(f"Caught exception while pushing images, retrying: {exc}")
             if retries == 0:
                 raise TimeoutError(f"Timeout pushing {dest_names} after {retries} retries"
