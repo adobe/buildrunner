@@ -419,21 +419,29 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         Given a cache name determine the local file path.
         """
-        caches_root = self.global_config.get('caches-root', DEFAULT_CACHES_ROOT)
-        build_path = os.path.splitdrive(self.build_dir)[1]
-        if os.path.isabs(build_path):
-            build_path = build_path[1:]
+        def get_filename(caches_root, cache_name):
+            local_cache_archive_file = os.path.expanduser(
+                os.path.join(caches_root, cache_name)
+            )
+            cache_dir = os.path.dirname(local_cache_archive_file)
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+            return local_cache_archive_file
 
         cache_name = f"{cache_name}.{self.get_cache_archive_ext()}"
         if project_name != "":
             cache_name = f"{project_name}-{cache_name}"
 
-        local_cache_archive_file = os.path.expanduser(
-            os.path.join(caches_root, cache_name)
-        )
-        cache_dir = os.path.dirname(local_cache_archive_file)
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
+        caches_root = self.global_config.get('caches-root', DEFAULT_CACHES_ROOT)
+        local_cache_archive_file = None
+        try:
+            local_cache_archive_file = get_filename(caches_root, cache_name)
+        except Exception as exc:  # pylint: disable=broad-except
+            # Intentinally catch all exceptions here since we don't want to fail the build
+            LOGGER.warning(f'There was a an issue with {caches_root}: {str(exc)}')
+            local_cache_archive_file = get_filename(DEFAULT_CACHES_ROOT, cache_name)
+            LOGGER.warning(f'Using {DEFAULT_CACHES_ROOT} for the cache directory')
+
         return local_cache_archive_file
 
     @staticmethod
