@@ -438,7 +438,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             local_cache_archive_file = get_filename(caches_root, cache_name)
         except Exception as exc:  # pylint: disable=broad-except
             # Intentinally catch all exceptions here since we don't want to fail the build
-            LOGGER.warning(f'There was a an issue with {caches_root}: {str(exc)}')
+            LOGGER.warning(f'There was an issue with {caches_root}: {str(exc)}')
             local_cache_archive_file = get_filename(DEFAULT_CACHES_ROOT, cache_name)
             LOGGER.warning(f'Using {DEFAULT_CACHES_ROOT} for the cache directory')
 
