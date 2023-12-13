@@ -75,6 +75,18 @@ def _test_buildrunner_file(test_dir, file_name, args, exit_code):
                )
 
 
+@pytest.fixture(autouse=True)
+def fixture_set_env():
+    # Sets an environment variable that can be used from a buildrunner file
+    os.environ['IS_BR_TEST'] = 'true'
+    # Also sets an environment variable that is available in regular jinja without using the `env` instance
+    os.environ['BUILDRUNNER_IS_TEST'] = 'true'
+    yield
+    # Cleanup
+    del os.environ['IS_BR_TEST']
+    del os.environ['BUILDRUNNER_IS_TEST']
+
+
 @pytest.mark.parametrize('test_dir, file_name, args, exit_code', _get_test_runs(f'{TEST_DIR}/test-files'))
 def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)

@@ -287,10 +287,12 @@ below contains available variables and methods.
 
 :``CONFIG_FILE``: the full path to the current file being processed (buildrunner.yaml) 
 :``CONFIG_DIR``: the full path to the directory containing the current file being processed
+:``env``: exposes the ``os.environ`` instance to retrieve arbitrary env variables
 :``read_yaml_file``: a method to read an arbitrary file in the current workspace as yaml and use the
                      contents in the script, note that the file is processed using Jinja as well and
                      that the file must exist before buildrunner is run or else this method will
                      fail
+:``raise``: a method to raise an exception with the message provided as a single argument
 
 Jinja filters
 -------------
