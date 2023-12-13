@@ -12,7 +12,7 @@ from platform import machine, system
 import shutil
 import tempfile
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import python_on_whales
 import timeout_decorator
@@ -130,6 +130,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             temp_dir: str = os.getcwd(),
             disable_multi_platform: bool = False,
             platform_builders: Optional[Dict[str, str]] = None,
+            cache_builders: Optional[List[str]] = None,
+            cache_from: Optional[Union[dict, str]] = None,
+            cache_to: Optional[Union[dict, str]] = None,
     ):
         self._docker_registry = docker_registry
         self._mp_registry_info = None
@@ -138,6 +141,14 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._temp_dir = temp_dir
         self._disable_multi_platform = disable_multi_platform
         self._platform_builders = platform_builders
+        self._cache_builders = set(cache_builders if cache_builders else [])
+        self._cache_from = cache_from
+        self._cache_to = cache_to
+        if self._cache_from or self._cache_to:
+            print(
+                f'Configuring multiplatform builds to cache from {cache_from} and to {cache_to} '
+                f'for builders {", ".join(cache_builders) if cache_builders else "(all)"}'
+            )
 
         # key is destination image name, value is list of built images
         self._intermediate_built_images = {}
@@ -182,7 +193,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         return self._mp_registry_info.port
 
     @property
-    def tagged_images_names(self) -> List[str]:
+    def tagged_images_names(self) -> Dict[str, List[str]]:
         """Returns a list of all the tagged images names"""
         return self._tagged_images_names
 
@@ -237,6 +248,19 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         else:
             logger.warning("Local registry is not running when attempting to stop it")
 
+    def _get_build_cache_options(self, builder: Optional[str]) -> dict:
+        cache_options = {
+            'cache_from': self._cache_from,
+            'cache_to': self._cache_to,
+        }
+        # If there are no configured cache builders, always return the cache options
+        if not self._cache_builders:
+            return cache_options
+
+        # If there are cache builders configured, make sure the current builder is in it
+        actual_builder = builder or 'default'
+        return cache_options if actual_builder in self._cache_builders else {}
+
     # pylint: disable=too-many-arguments,too-many-locals
     def _build_with_inject(
             self,
@@ -248,7 +272,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             build_args: dict,
             builder: Optional[str],
             cache: bool = False,
-            cache_from: List[str] = None,
             pull: bool = False,
     ) -> None:
 
@@ -287,8 +310,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 builder=builder,
                 build_args=build_args,
                 cache=cache,
-                cache_from=cache_from,
                 pull=pull,
+                **self._get_build_cache_options(builder),
             )
 
     # pylint: disable=too-many-arguments
@@ -309,7 +332,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             mp_image_name: str,
             inject: dict,
             cache: bool = False,
-            cache_from: List[str] = None,
             pull: bool = False,) -> None:
         """
         Builds a single image for the given platform
@@ -343,7 +365,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 build_args=build_args,
                 builder=builder,
                 cache=cache,
-                cache_from=cache_from,
                 pull=pull,
             )
         else:
@@ -356,8 +377,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 build_args=build_args,
                 builder=builder,
                 cache=cache,
-                cache_from=cache_from,
                 pull=pull,
+                **self._get_build_cache_options(builder),
             )
         # Push after the initial load to support remote builders that cannot access the local registry
         docker.push(tagged_names)
@@ -420,9 +441,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             build_args: dict = None,
             inject: dict = None,
             cache: bool = False,
-            cache_from: List[str] = None,
             pull: bool = False,
-            ) -> List[ImageInfo]:
+    ) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
 
@@ -434,6 +454,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             tags (List[str], optional): The tags to apply to the image. Defaults to None.
             do_multiprocessing (bool, optional): Whether to use multiprocessing to build the images. Defaults to True.
             build_args (dict, optional): The build args to pass to docker. Defaults to None.
+            inject (dict, optional): The files to inject into the build context. Defaults to None.
+            cache (bool, optional): If true, enables cache, defaults to False
+            pull (bool, optional): If true, pulls image before build, defaults to False
             inject (dict, optional): The files to inject into the build context. Defaults to None.
 
         Returns:
@@ -509,7 +532,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 mp_image_name,
                 inject,
                 cache,
-                cache_from,
                 pull,
             )
             logger.debug(f"Building {platform_image_name} for {platform}")

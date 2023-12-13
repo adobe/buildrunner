@@ -69,7 +69,9 @@ disable=logging-fstring-interpolation,
         unnecessary-pass,
         wrong-import-order,
         too-few-public-methods,
-        cyclic-import
+        cyclic-import,
+        missing-class-docstring,
+        missing-function-docstring
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

@@ -171,8 +171,8 @@ they are used when put into the global configuration file:
     some.other.file.alias: |
       The contents of the file...
 
-  # The 'caches-root' global configuration specifies the directory to use for
-  # build caches. The default directory is ~/.buildrunner/caches.
+  # Specifies the directory to use for the build caches, the default directory
+  # is ~/.buildrunner/caches
   caches-root: ~/.buildrunner/caches
 
   # Change the default docker registry, see the FAQ below for more information
@@ -195,6 +195,22 @@ they are used when put into the global configuration file:
   # here will use the default configured buildx builder.
   platform-builders:
     platform1: builder1
+
+  # Configures caching *for multi-platform builds only*
+  docker-build-cache:
+    # An optional list of builders to apply caching options to
+    # NOTE: These caching options do not work for the default (docker) buildx driver,
+    #       so be careful which builders they are configured for as this could cause
+    #       build failures
+    builders:
+    - builder1
+    # See https://docs.docker.com/build/cache/backends/ for information on how to
+    # configure the caching backend. These may be strings or dictionaries (both are
+    # shown below).
+    to: type=local,dest=/mnt/docker-cache
+    from:
+      type: local
+      src: /mnt/docker-cache
 
 Configuration Locations
 -----------------------
@@ -422,6 +438,7 @@ shows the different configuration options available:
         # Buildrunner will attempt to pull these images from the remote registry.
         # If the pull is unsuccessful, buildrunner will still pass in the image name
         # into --cache-from, allowing a cache check in the host machine cache
+        # NOTE: Does not work for multi-platform builds
         cache_from:
           - my-images/image:PR-123
           - my-images/image:latest

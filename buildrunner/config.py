@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import tempfile
+from typing import Optional
 
 import jinja2
 
@@ -395,6 +396,9 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         Default to docker.io if none is configured
         """
         return self.global_config.get('docker-registry', 'docker.io')
+
+    def get_docker_build_cache_config(self) -> Optional[dict]:
+        return self.global_config.get('docker-build-cache', {})
 
     def to_abs_path(self, path, return_list=False):
         """

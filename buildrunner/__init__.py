@@ -590,6 +590,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 temp_dir=self.global_config.get_temp_dir(),
                 disable_multi_platform=self.disable_multi_platform,
                 platform_builders=self.global_config.get('platform-builders'),
+                cache_builders=self.global_config.get_docker_build_cache_config().get('builders'),
+                cache_from=self.global_config.get_docker_build_cache_config().get('from'),
+                cache_to=self.global_config.get_docker_build_cache_config().get('to'),
             ) as multi_platform:
                 if not os.path.exists(self.build_results_dir):
                     # create a new results dir
