@@ -344,6 +344,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
                 'read_yaml_file': self._read_yaml_file,
                 'raise': self._raise_exception_jinja,
                 'strftime': self._strftime,
+                'env': os.environ,
             })
 
             if ctx:
