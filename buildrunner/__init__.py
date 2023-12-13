@@ -271,7 +271,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             )
 
     @property
-    def log(self):
+    def log(self) -> ConsoleLogger:
         """
         create the log file and open for writing
         """

@@ -21,8 +21,9 @@ from . import (
 from buildrunner.config import BuildRunnerConfig
 
 
-PROC_NAME = 'buildrunner'
-LOG_NAME = PROC_NAME
+# All loggers should be under this one, it is used to not enable additional logging for docker, requests, etc
+BASE_LOGGER_NAME = 'buildrunner'
+LOG_NAME = BASE_LOGGER_NAME
 
 
 LOGLEVEL_NAMES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
