@@ -48,6 +48,31 @@ def test_platforms_invalid():
     assert errors.count() == 2
 
 
+def test_cache_from_invalid():
+    # Invalid to have cache_from specified with platforms
+    config_yaml = """
+    steps:
+      build-container-multi-platform:
+        build:
+          path: .
+          dockerfile: Dockerfile
+          pull: false
+          platforms:
+          - linux/amd64
+          cache_from:
+          - image1
+        push:
+          repository: mytest-reg/buildrunner-test-multi-platform
+          tags:
+            - latest
+    """
+    config = yaml.load(config_yaml, Loader=yaml.Loader)
+    errors = validate_config(**config)
+    assert isinstance(errors, Errors)
+    assert errors.count() == 1
+    assert 'cache_from' in str(errors)
+
+
 def test_build_is_path():
     config_yaml = """
     steps:
@@ -92,8 +117,6 @@ def test_valid_platforms():
             - linux/amd64
             - linux/arm64
           no-cache: true
-          cache_from:
-            - mytest-reg/buildrunner-test-multi-platform:latest
         push:
           repository: mytest-reg/buildrunner-test-multi-platform
           tags:

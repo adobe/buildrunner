@@ -34,6 +34,11 @@ class Config(BaseModel, extra='forbid'):
         prompt_password: Optional[bool] = Field(alias='prompt-password', default=None)
         aliases: Optional[List[str]] = None
 
+    class DockerBuildCacheConfig(BaseModel, extra='forbid'):
+        builders: Optional[List[str]] = None
+        from_config: Optional[Union[dict, str]] = Field(None, alias='from')
+        to_config: Optional[Union[dict, str]] = Field(None, alias='to')
+
     version: Optional[float] = None
     steps: Optional[Dict[str, Step]] = None
 
@@ -44,6 +49,7 @@ class Config(BaseModel, extra='forbid'):
     #  Intentionally has loose restrictions on ssh-keys since documentation isn't clear
     ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(alias='ssh-keys', default=None)
     local_files: Optional[Dict[str, str]] = Field(alias='local-files', default=None)
+    docker_build_cache: Optional[DockerBuildCacheConfig] = Field(None, alias='docker-build-cache')
     caches_root: Optional[str] = Field(alias='caches-root', default=None)
     docker_registry: Optional[str] = Field(alias='docker-registry', default=None)
     temp_dir: Optional[str] = Field(alias='temp-dir', default=None)
@@ -123,6 +129,9 @@ class Config(BaseModel, extra='forbid'):
 
                     if not isinstance(step.build.platforms, list):
                         raise ValueError(f'platforms must be a list in build step {step_name}')
+
+                    if step.build.cache_from:
+                        raise ValueError(f'cache_from is not allowed in multi-platform build step {step_name}')
 
                     if step.build.import_param:
                         raise ValueError(f'import is not allowed in multi-platform build step {step_name}')

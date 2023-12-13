@@ -477,6 +477,7 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             builder=None,
             cache=False,
             cache_from=None,
+            cache_to=None,
             pull=False
         ),
         call(
@@ -489,6 +490,7 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             builder=None,
             cache=False,
             cache_from=None,
+            cache_to=None,
             pull=False
         ),
         call(
@@ -501,6 +503,7 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             builder=None,
             cache=False,
             cache_from=None,
+            cache_to=None,
             pull=False
         ),
         call(
@@ -513,6 +516,7 @@ def test_build_multiple_builds(mock_build, mock_pull, mock_push, mock_inspect, m
             builder=None,
             cache=False,
             cache_from=None,
+            cache_to=None,
             pull=False
         ),
     ]
@@ -567,3 +571,18 @@ def test_no_images_built():
     with MultiplatformImageBuilder() as mp:
         image = mp._find_native_platform_images('bogus-image-name')
         assert image is None
+
+
+@pytest.mark.parametrize('builder, cache_builders, return_cache_options', [
+    ('b1', None, True),
+    ('b1', [], True),
+    ('b1', ['b1'], True),
+    ('b2', ['b1'], False),
+])
+def test__get_build_cache_options(builder, cache_builders, return_cache_options):
+    multi_platform = MultiplatformImageBuilder(
+        cache_to='to-loc', cache_from='from-loc', cache_builders=cache_builders,
+    )
+    assert multi_platform._get_build_cache_options(builder) == (
+        {'cache_to': 'to-loc', 'cache_from': 'from-loc'} if return_cache_options else {}
+    )

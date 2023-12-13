@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 from tests import test_runner
 
 test_dir_path = os.path.realpath(os.path.dirname(__file__))
-TEST_DIR = os.path.basename(os.path.dirname(__file__))
+TEST_DIR = os.path.dirname(__file__)
 top_dir_path = os.path.realpath(os.path.dirname(test_dir_path))
 
 

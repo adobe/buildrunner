@@ -224,7 +224,6 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
                     build_args=self.buildargs,
                     inject=self.to_inject,
                     cache=not self.nocache,
-                    cache_from=self.cache_from,
                     pull=self.pull,
                 )
 
