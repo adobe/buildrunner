@@ -1,3 +1,9 @@
+{%- if not BUILDRUNNER_IS_TEST %}
+{%- do raise('The BUILDRUNNER_IS_TEST env var is not set') %}
+{%- elif not env.get('IS_BR_TEST') %}
+{%- do raise('The IS_BR_TEST env var is not set') %}
+{%- endif %}
+
 steps:
   test:
     run:
