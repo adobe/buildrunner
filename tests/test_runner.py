@@ -43,7 +43,7 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
             build_number=args.build_number,
             push=args.push,
             colorize_log=not args.no_log_color,
-            cleanup_images=not args.keep_images,
+            cleanup_images=args.cleanup_images,
             cleanup_step_artifacts=not args.keep_step_artifacts,
             steps_to_run=args.steps,
             publish_ports=args.publish_ports,

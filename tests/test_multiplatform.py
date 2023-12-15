@@ -275,7 +275,7 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
     tag='latest'
     test_path = f'{TEST_DIR}/test-files/multiplatform'
     try:
-        with MultiplatformImageBuilder(keep_images=True) as mp:
+        with MultiplatformImageBuilder(cleanup_images=False) as mp:
             built_images = mp.build_multiple_images(mp_image_name=name,
                                     platforms=platforms,
                                     path=test_path,

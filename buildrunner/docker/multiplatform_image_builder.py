@@ -126,7 +126,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             self,
             docker_registry: Optional[str] = None,
             use_local_registry: bool = True,
-            keep_images: bool = False,
+            cleanup_images: bool = False,
             temp_dir: str = os.getcwd(),
             disable_multi_platform: bool = False,
             platform_builders: Optional[Dict[str, str]] = None,
@@ -137,7 +137,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._docker_registry = docker_registry
         self._mp_registry_info = None
         self._use_local_registry = use_local_registry
-        self._keep_images = keep_images
+        self._cleanup_images = cleanup_images
         self._temp_dir = temp_dir
         self._disable_multi_platform = disable_multi_platform
         self._platform_builders = platform_builders
@@ -170,8 +170,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                         logger.debug(f"Removing image {image.repo}:{tag} for {name}")
                         docker.image.remove(f"{image.repo}:{tag}", force=True)
 
-        # Removes all tagged images if keep_images is False
-        if self._tagged_images_names and not self._keep_images:
+        # Removes all tagged images if cleanup_images is set
+        if self._tagged_images_names and self._cleanup_images:
             for name, images in self._tagged_images_names.items():
                 for image in images:
                     logger.debug(f"Removing tagged image {image} for {name}")
