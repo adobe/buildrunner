@@ -205,7 +205,7 @@ def test_find_native_platform(mock_os,
 def test_tag_single_platform(name, platforms, expected_image_names):
     tag='latest'
     test_path = f'{TEST_DIR}/test-files/multiplatform'
-    with MultiplatformImageBuilder() as mp:
+    with MultiplatformImageBuilder(cleanup_images=True) as mp:
         built_images = mp.build_multiple_images(mp_image_name=name,
                                 platforms=platforms,
                                 path=test_path,
@@ -218,7 +218,7 @@ def test_tag_single_platform(name, platforms, expected_image_names):
 
         mp.tag_single_platform(name)
         # Check that the image was tagged and present
-        found_image = docker.image.list(filters={'reference': f'{name}*'})
+        found_image = docker.image.list(filters={'reference': f'{name}:{tag}'})
         assert len(found_image) == 1
         assert f'{name}:{tag}' in found_image[0].repo_tags
 
@@ -227,7 +227,7 @@ def test_tag_single_platform(name, platforms, expected_image_names):
         assert len(found_image) == 0
 
     # Check that the image has be removed for host registry
-    found_image = docker.image.list(filters={'reference': f'{name}*'})
+    found_image = docker.image.list(filters={'reference': f'{name}:{tag}'})
     assert len(found_image) == 0
 
 
@@ -239,7 +239,7 @@ def test_tag_single_platform(name, platforms, expected_image_names):
 def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names):
     tags=['latest', '0.1.0']
     test_path = f'{TEST_DIR}/test-files/multiplatform'
-    with MultiplatformImageBuilder() as mp:
+    with MultiplatformImageBuilder(cleanup_images=True) as mp:
         built_images = mp.build_multiple_images(mp_image_name=name,
                                 platforms=platforms,
                                 path=test_path,
@@ -289,7 +289,7 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
             mp.tag_single_platform(name)
 
             # Check that the image was tagged and present
-            found_image = docker.image.list(filters={'reference': f'{name}*'})
+            found_image = docker.image.list(filters={'reference': f'{name}:{tag}'})
             assert len(found_image) == 1
             assert f'{name}:{tag}' in found_image[0].repo_tags
 
@@ -298,7 +298,7 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
             assert len(found_image) == 0
 
         # Check that the image is still in host registry
-        found_image = docker.image.list(filters={'reference': f'{name}*'})
+        found_image = docker.image.list(filters={'reference': f'{name}:{tag}'})
         assert len(found_image) == 1
     finally:
         docker.image.remove(name, force=True)
