@@ -130,8 +130,16 @@ def parse_args(argv):
         default=False,
         action='store_true',
         dest='keep_images',
-        help='keep generated images at the end of the build (images are by default deleted to '
-             'prevent clutter on build machines)',
+        help='DEPRECATED: The keep-images argument is deprecated. '
+             'Keep images is the default behavior. Please use --cleanup-images instead to cleanup images.',
+    )
+
+    parser.add_argument(
+        '--cleanup-images',
+        default=False,
+        action='store_true',
+        dest='cleanup_images',
+        help='Cleanup generated images at the end of the build',
     )
 
     parser.add_argument(
@@ -280,7 +288,7 @@ def main(argv):
             build_number=args.build_number,
             push=args.push,
             colorize_log=not args.no_log_color,
-            cleanup_images=not args.keep_images,
+            cleanup_images=args.cleanup_images,
             cleanup_step_artifacts=not args.keep_step_artifacts,
             cleanup_cache=args.clean_cache,
             steps_to_run=args.steps,
