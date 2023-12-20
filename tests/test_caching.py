@@ -31,7 +31,7 @@ def _tar_safe_extractall(tar, path=".", members=None, *, numeric_owner=False):
 @pytest.fixture(name="runner")
 def fixture_setup_runner():
     image_config = DockerRunner.ImageConfig(
-        'docker.io/ubuntu:19.04',
+        "docker.io/ubuntu:19.04",
         pull_image=False,
     )
     runner = DockerRunner(
@@ -60,7 +60,9 @@ def fixture_mock_logger():
     return mock_logger
 
 
-def create_test_files_in_docker(drunner, cache_name, docker_path, num_of_test_files: int = 5) -> list:
+def create_test_files_in_docker(
+    drunner, cache_name, docker_path, num_of_test_files: int = 5
+) -> list:
     test_files = []
 
     for curr in range(1, num_of_test_files + 1):
@@ -70,23 +72,24 @@ def create_test_files_in_docker(drunner, cache_name, docker_path, num_of_test_fi
     assert len(test_files) == num_of_test_files
 
     with io.StringIO() as my_stream:
-        log = ConsoleLogger(
-            "colorize_log",
-            my_stream
-        )
+        log = ConsoleLogger("colorize_log", my_stream)
         for filename in test_files:
-            drunner.run(f"mkdir -p {docker_path} &&"
-                        f"cd {docker_path} && "
-                        f"echo {filename} > {filename}",
-                        console=None,
-                        stream=True,
-                        log=log,
-                        workdir="/root/")
+            drunner.run(
+                f"mkdir -p {docker_path} &&"
+                f"cd {docker_path} && "
+                f"echo {filename} > {filename}",
+                console=None,
+                stream=True,
+                log=log,
+                workdir="/root/",
+            )
 
     return test_files
 
 
-def setup_cache_test_files(tmp_dir_name: str, cache_name: str, num_files: int = 3) -> list:
+def setup_cache_test_files(
+    tmp_dir_name: str, cache_name: str, num_files: int = 3
+) -> list:
     cwd = os.getcwd()
     os.chdir(tmp_dir_name)
     archive_file = f"{cache_name}.{BuildRunner.get_cache_archive_ext()}"
@@ -112,27 +115,24 @@ def test_restore_cache_basic(runner, tmp_dir_name, mock_logger):
     # cache_name, test_files, tmp_dir_name = prep_cache_files_type1
     # with tempfile.TemporaryDirectory() as tmp_dir_name:
     cache_name = "my_cache"
-    test_files = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
-                                        cache_name=cache_name,
-                                        num_files=3)
+    test_files = setup_cache_test_files(
+        tmp_dir_name=tmp_dir_name, cache_name=cache_name, num_files=3
+    )
 
     docker_path = "/root/cache"
 
     caches = OrderedDict()
-    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
 
     runner.restore_caches(mock_logger, caches)
 
     with io.StringIO() as my_stream:
-        log = ConsoleLogger(
-            "colorize_log",
-            my_stream
+        log = ConsoleLogger("colorize_log", my_stream)
+        runner.run(
+            f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
         )
-        runner.run(f"ls -1 {docker_path}",
-                   console=None,
-                   stream=True,
-                   log=log,
-                   workdir="/")
 
         my_stream.seek(0)
         output = my_stream.readlines()
@@ -147,26 +147,23 @@ def test_restore_cache_no_cache(runner, mock_logger):
     """
     with tempfile.TemporaryDirectory() as tmp_dir_name:
         cache_name = "my_cache"
-        test_files = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
-                                            cache_name=cache_name,
-                                            num_files=3)
+        test_files = setup_cache_test_files(
+            tmp_dir_name=tmp_dir_name, cache_name=cache_name, num_files=3
+        )
         docker_path = "/root/cache"
 
         caches = OrderedDict()
-        caches[f"{tmp_dir_name}/{cache_name}-bogusname.{BuildRunner.get_cache_archive_ext()}"] = docker_path
+        caches[
+            f"{tmp_dir_name}/{cache_name}-bogusname.{BuildRunner.get_cache_archive_ext()}"
+        ] = docker_path
 
         runner.restore_caches(mock_logger, caches)
 
         with io.StringIO() as my_stream:
-            log = ConsoleLogger(
-                "colorize_log",
-                my_stream
+            log = ConsoleLogger("colorize_log", my_stream)
+            runner.run(
+                f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
             )
-            runner.run(f"ls -1 {docker_path}",
-                       console=None,
-                       stream=True,
-                       log=log,
-                       workdir="/")
 
             my_stream.seek(0)
             output = my_stream.readlines()
@@ -180,33 +177,32 @@ def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger):
     Tests restore cache when there is prefix matching
     """
     cache_name_checksum = "my-cache-4196e213ba325c876fa893d007c61397fbf1537d"
-    test_files_checksum = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
-                                                 cache_name=cache_name_checksum,
-                                                 num_files=3)
+    test_files_checksum = setup_cache_test_files(
+        tmp_dir_name=tmp_dir_name, cache_name=cache_name_checksum, num_files=3
+    )
 
     cache_name = "my-cache"
-    test_files = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
-                                        cache_name=cache_name,
-                                        num_files=3)
+    test_files = setup_cache_test_files(
+        tmp_dir_name=tmp_dir_name, cache_name=cache_name, num_files=3
+    )
 
     docker_path = "/root/cache"
 
     caches = OrderedDict()
-    caches[f"{tmp_dir_name}/{cache_name_checksum}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name_checksum}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
 
     runner.restore_caches(mock_logger, caches)
 
     with io.StringIO() as my_stream:
-        log = ConsoleLogger(
-            "colorize_log",
-            my_stream
+        log = ConsoleLogger("colorize_log", my_stream)
+        runner.run(
+            f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
         )
-        runner.run(f"ls -1 {docker_path}",
-                   console=None,
-                   stream=True,
-                   log=log,
-                   workdir="/")
 
         my_stream.seek(0)
         output = my_stream.readlines()
@@ -228,33 +224,30 @@ def test_restore_cache_prefix_timestamps(runner, tmp_dir_name, mock_logger):
     cache_name_middle = f"{cache_name_prefix}middle"
     cache_name_newest = f"{cache_name_prefix}newest"
 
-    test_files_oldest = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
-                                               cache_name=cache_name_oldest,
-                                               num_files=3)
-    sleep(.2)
-    test_files_middle = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
-                                               cache_name=cache_name_middle,
-                                               num_files=3)
-    sleep(.2)
-    test_files_newest = setup_cache_test_files(tmp_dir_name=tmp_dir_name,
-                                               cache_name=cache_name_newest,
-                                               num_files=3)
+    test_files_oldest = setup_cache_test_files(
+        tmp_dir_name=tmp_dir_name, cache_name=cache_name_oldest, num_files=3
+    )
+    sleep(0.2)
+    test_files_middle = setup_cache_test_files(
+        tmp_dir_name=tmp_dir_name, cache_name=cache_name_middle, num_files=3
+    )
+    sleep(0.2)
+    test_files_newest = setup_cache_test_files(
+        tmp_dir_name=tmp_dir_name, cache_name=cache_name_newest, num_files=3
+    )
 
     caches = OrderedDict()
-    caches[f"{tmp_dir_name}/{cache_name_prefix}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name_prefix}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
 
     runner.restore_caches(mock_logger, caches)
 
     with io.StringIO() as my_stream:
-        log = ConsoleLogger(
-            "colorize_log",
-            my_stream
+        log = ConsoleLogger("colorize_log", my_stream)
+        runner.run(
+            f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
         )
-        runner.run(f"ls -1 {docker_path}",
-                   console=None,
-                   stream=True,
-                   log=log,
-                   workdir="/")
 
         my_stream.seek(0)
         output = my_stream.readlines()
@@ -275,14 +268,18 @@ def test_save_cache_basic(runner, tmp_dir_name, mock_logger):
     """
     cache_name = "my-cache"
     docker_path = "/root/cache"
-    test_files = create_test_files_in_docker(drunner=runner,
-                                             cache_name=cache_name,
-                                             docker_path=docker_path,
-                                             num_of_test_files=10)
+    test_files = create_test_files_in_docker(
+        drunner=runner,
+        cache_name=cache_name,
+        docker_path=docker_path,
+        num_of_test_files=10,
+    )
 
     caches = OrderedDict()
     tarfile_name = f"{cache_name}.{BuildRunner.get_cache_archive_ext()}"
-    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
     runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
@@ -317,17 +314,25 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     cache_name_venv = "venv"
     cache_name_maven = "maven"
     docker_path = "/root/cache"
-    test_files = create_test_files_in_docker(drunner=runner,
-                                             cache_name=cache_name,
-                                             docker_path=docker_path,
-                                             num_of_test_files=5)
+    test_files = create_test_files_in_docker(
+        drunner=runner,
+        cache_name=cache_name,
+        docker_path=docker_path,
+        num_of_test_files=5,
+    )
 
     caches = OrderedDict()
     tarfile_name = f"{cache_name}.{BuildRunner.get_cache_archive_ext()}"
 
-    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    caches[f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    caches[f"{tmp_dir_name}/{cache_name_maven}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name_maven}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
     runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
@@ -349,9 +354,15 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     caches.clear()
     tarfile_name = f"{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"
 
-    caches[f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
-    caches[f"{tmp_dir_name}/{cache_name_maven}.{BuildRunner.get_cache_archive_ext()}"] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
+    caches[
+        f"{tmp_dir_name}/{cache_name_maven}.{BuildRunner.get_cache_archive_ext()}"
+    ] = docker_path
     runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
@@ -375,24 +386,32 @@ def test_save_cache_multiple_caches(runner, tmp_dir_name, mock_logger):
     venv_docker_path = "/root/venv_cache"
     venv_tarfile_name = f"{venv_cache_name}.{BuildRunner.get_cache_archive_ext()}"
     venv_extracted_dir = "venv_extracted_data"
-    venv_test_files = create_test_files_in_docker(drunner=runner,
-                                                  cache_name=venv_cache_name,
-                                                  docker_path=venv_docker_path,
-                                                  num_of_test_files=5)
+    venv_test_files = create_test_files_in_docker(
+        drunner=runner,
+        cache_name=venv_cache_name,
+        docker_path=venv_docker_path,
+        num_of_test_files=5,
+    )
 
     maven_cache_name = "maven"
     maven_docker_path = "/root/maven_cache"
     maven_tarfile_name = f"{maven_cache_name}.tar"
     maven_extracted_dir = "maven_extracted_data"
-    maven_test_files = create_test_files_in_docker(drunner=runner,
-                                                   cache_name=maven_cache_name,
-                                                   docker_path=maven_docker_path,
-                                                   num_of_test_files=5)
+    maven_test_files = create_test_files_in_docker(
+        drunner=runner,
+        cache_name=maven_cache_name,
+        docker_path=maven_docker_path,
+        num_of_test_files=5,
+    )
 
     caches = OrderedDict()
 
-    caches[f"{tmp_dir_name}/{venv_cache_name}.{BuildRunner.get_cache_archive_ext()}"] = venv_docker_path
-    caches[f"{tmp_dir_name}/{maven_cache_name}.{BuildRunner.get_cache_archive_ext()}"] = maven_docker_path
+    caches[
+        f"{tmp_dir_name}/{venv_cache_name}.{BuildRunner.get_cache_archive_ext()}"
+    ] = venv_docker_path
+    caches[
+        f"{tmp_dir_name}/{maven_cache_name}.{BuildRunner.get_cache_archive_ext()}"
+    ] = maven_docker_path
     runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]

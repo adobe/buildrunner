@@ -30,6 +30,7 @@ class FailureToAcquireLockException(Exception):
     """
     Raised when there is failure to acquire file lock
     """
+
     pass
 
 
@@ -37,6 +38,7 @@ class OrderedLoader(yaml.Loader):  # pylint: disable=too-many-ancestors
     """
     Custom loader class that preserves dictionary order.
     """
+
     pass
 
 
@@ -50,8 +52,7 @@ def construct_mapping(loader, node):
 
 
 OrderedLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-    construct_mapping
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, construct_mapping
 )
 # Tell YAML how to dump the OrderedDict
 yaml.add_representer(
@@ -61,7 +62,7 @@ yaml.add_representer(
 yaml.add_representer(
     OrderedDict,
     lambda dumper, data: dumper.represent_dict(iter(data.items())),
-    Dumper=yaml.SafeDumper
+    Dumper=yaml.SafeDumper,
 )
 
 
@@ -84,14 +85,15 @@ def load_config(stream, cfg_file):
         return yaml.load(
             yaml.dump(
                 yaml.load(stream, OrderedLoader),
-                default_flow_style=False, Dumper=IgnoreAliasesDumper,
+                default_flow_style=False,
+                Dumper=IgnoreAliasesDumper,
             ),
             Loader=OrderedLoader,
         )
     except yaml.scanner.ScannerError as err:
         raise BuildRunnerConfigurationError(
-            f'The {cfg_file} file contains malformed yaml, '
-            f'please check the syntax and try again: {err}'
+            f"The {cfg_file} file contains malformed yaml, "
+            f"please check the syntax and try again: {err}"
         ) from err
 
 
@@ -105,17 +107,15 @@ def is_dict(obj):
     Return:
       True if the obj acts like a dict, False otherwise.
     """
-    return hasattr(obj, 'keys') and hasattr(obj, '__getitem__')
+    return hasattr(obj, "keys") and hasattr(obj, "__getitem__")
 
 
 def epoch_time():
     """Return the current epoch time in integer seconds."""
-    return int(
-        (datetime.utcnow() - datetime.utcfromtimestamp(0)).total_seconds()
-    )
+    return int((datetime.utcnow() - datetime.utcfromtimestamp(0)).total_seconds())
 
 
-def tempfile(prefix=None, suffix=None, temp_dir='/tmp'):
+def tempfile(prefix=None, suffix=None, temp_dir="/tmp"):
     """
     Generate a temporary file path within the container.
     """
@@ -133,10 +133,12 @@ def checksum(*files: Tuple[str]) -> str:
     Generate a single SHA1 checksum of the list of files passed in
     """
     if not isinstance(files, tuple):
-        print(f"WARNING: TypeError - Input 'files' needs to be a tuple instead of {type(files)}")
+        print(
+            f"WARNING: TypeError - Input 'files' needs to be a tuple instead of {type(files)}"
+        )
         sys.exit()
 
-    blocksize = 2 ** 16
+    blocksize = 2**16
     hasher = hashlib.sha1()
 
     for filename in sorted(files):
@@ -159,13 +161,13 @@ def hash_sha1(file_name_globs=None):
     """
     if not file_name_globs:
         file_name_globs = []
-    blocksize = 2 ** 16  # 65,536
+    blocksize = 2**16  # 65,536
     hasher = hashlib.sha1()
     for file_name_glob in file_name_globs:
         for file_name in sorted(glob.glob(file_name_glob)):
             try:
                 # Use blocksize to ensure python memory isn't too full
-                with open(file_name, 'rb') as open_file:
+                with open(file_name, "rb") as open_file:
                     buf = open_file.read(blocksize)
                     while len(buf) > 0:
                         hasher.update(buf)
@@ -195,14 +197,14 @@ class ConsoleLogger:
         with color.
         """
         if not isinstance(output, str):
-            output = str(output, encoding=sys.stdout.encoding, errors='replace')
+            output = str(output, encoding=sys.stdout.encoding, errors="replace")
         _stdout = output
 
         # colorize stdout
         if color and self.colorize_log:
             # Colorize stdout
             # pylint: disable=invalid-character-esc
-            _stdout = f'[01;3{color}m{_stdout}\033[00;00m'
+            _stdout = f"[01;3{color}m{_stdout}\033[00;00m"
         self.stdout.write(_stdout)
 
         # do not colorize output to other streams
@@ -210,8 +212,8 @@ class ConsoleLogger:
             try:
                 if stream.closed:
                     self.stderr.write(
-                        f'WARNING: Attempted to write to a closed stream {stream}. '
-                        f'Not writing {output} to {stream}.'
+                        f"WARNING: Attempted to write to a closed stream {stream}. "
+                        f"Not writing {output} to {stream}."
                     )
                 else:
                     stream.write(output)
@@ -233,6 +235,7 @@ class ContainerLogger:
     This class is not thread safe, but since each container gets its own that
     is ok.
     """
+
     BUILD_LOG_COLORS = [3, 4]
     SERVICE_LOG_COLORS = [5, 6, 1, 2]
     LOGGERS = {}
@@ -240,15 +243,15 @@ class ContainerLogger:
     def __init__(self, console_logger, name, color, timestamps=True):
         self.console_logger = console_logger
         self.name = name
-        self.line_prefix = '[' + name + '] '
+        self.line_prefix = "[" + name + "] "
         self.color = color
         self.timestamps = timestamps
         self._buffer = []
 
     def _get_timestamp(self):
         if self.timestamps:
-            return '[' + strftime("%H:%M:%S", gmtime()) + '] '
-        return ''
+            return "[" + strftime("%H:%M:%S", gmtime()) + "] "
+        return ""
 
     def _write_buffer(self):
         """
@@ -267,18 +270,18 @@ class ContainerLogger:
         """
         # Ensure that the output is a string
         if not isinstance(output, str):
-            output = str(output, encoding=sys.stdout.encoding, errors='replace')
+            output = str(output, encoding=sys.stdout.encoding, errors="replace")
 
         for char in output:
             self._buffer.append(char)
-            if char == '\n':
+            if char == "\n":
                 self._write_buffer()
 
     def cleanup(self):
         """
         Flush the buffer.
         """
-        self._buffer.append('\n')
+        self._buffer.append("\n")
         self._write_buffer()
 
     @classmethod
@@ -325,11 +328,12 @@ class ContainerLogger:
 
 
 def _acquire_flock_open(
-        lock_file: str,
-        logger: ContainerLogger,
-        mode: str,
-        timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
-        exclusive: bool = True) -> io.IOBase:
+    lock_file: str,
+    logger: ContainerLogger,
+    mode: str,
+    timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
+    exclusive: bool = True,
+) -> io.IOBase:
     """
     Acquire file lock and open file with configurable timeout
 
@@ -365,8 +369,14 @@ def _acquire_flock_open(
         except (IOError, OSError):
             # Limit the amount of logs written while waiting for the file lock
             num_seconds_between_log_writes = 10
-            if 0 <= (duration_seconds % num_seconds_between_log_writes) <= retry_sleep_seconds:
-                logger.write(f"PID:{pid} waiting for file lock on {lock_file} after {duration_seconds} seconds")
+            if (
+                0
+                <= (duration_seconds % num_seconds_between_log_writes)
+                <= retry_sleep_seconds
+            ):
+                logger.write(
+                    f"PID:{pid} waiting for file lock on {lock_file} after {duration_seconds} seconds"
+                )
         else:
             lock_file_obj = file_obj
             break
@@ -379,15 +389,18 @@ def _acquire_flock_open(
             f"PID:{pid} failed to acquire file lock for {lock_file} after timeout of {timeout_seconds} seconds"
         )
 
-    logger.write(f"PID:{pid} file opened and lock acquired for {lock_file} ({lock_file_obj})")
+    logger.write(
+        f"PID:{pid} file opened and lock acquired for {lock_file} ({lock_file_obj})"
+    )
 
     return lock_file_obj
 
 
 def acquire_flock_open_read_binary(
-        lock_file: str,
-        logger: ContainerLogger,
-        timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedReader:
+    lock_file: str,
+    logger: ContainerLogger,
+    timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
+) -> io.BufferedReader:
     """
     Acquire file lock and open binary file in read mode with configurable timeout
 
@@ -399,15 +412,17 @@ def acquire_flock_open_read_binary(
     return _acquire_flock_open(
         lock_file=lock_file,
         logger=logger,
-        mode='rb',
+        mode="rb",
         timeout_seconds=timeout_seconds,
-        exclusive=False)
+        exclusive=False,
+    )
 
 
 def acquire_flock_open_write_binary(
-        lock_file: str,
-        logger: ContainerLogger,
-        timeout_seconds: float = LOCK_TIMEOUT_SECONDS) -> io.BufferedWriter:
+    lock_file: str,
+    logger: ContainerLogger,
+    timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
+) -> io.BufferedWriter:
     """
     Acquire file lock and open binary file in write mode with configurable timeout
 
@@ -420,9 +435,10 @@ def acquire_flock_open_write_binary(
     return _acquire_flock_open(
         lock_file=lock_file,
         logger=logger,
-        mode='wb',
+        mode="wb",
         timeout_seconds=timeout_seconds,
-        exclusive=True)
+        exclusive=True,
+    )
 
 
 def release_flock(lock_file_obj, logger: ContainerLogger):

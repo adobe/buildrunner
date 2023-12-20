@@ -42,32 +42,30 @@ from buildrunner.steprunner import BuildStepRunner
 from buildrunner.steprunner.tasks.push import sanitize_tag
 from buildrunner.utils import (
     ConsoleLogger,
-    checksum,
     epoch_time,
-    hash_sha1,
-    load_config,
 )
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
 
-from . import fetch
 
 LOGGER = logging.getLogger(__name__)
 
-__version__ = 'DEVELOPMENT'
+__version__ = "DEVELOPMENT"
 try:
-    _VERSION_FILE = os.path.join(os.path.dirname(__file__), 'version.py')
+    _VERSION_FILE = os.path.join(os.path.dirname(__file__), "version.py")
     if os.path.exists(_VERSION_FILE):
-        loader = importlib.machinery.SourceFileLoader('buildrunnerversion', _VERSION_FILE)
+        loader = importlib.machinery.SourceFileLoader(
+            "buildrunnerversion", _VERSION_FILE
+        )
         _VERSION_MOD = types.ModuleType(loader.name)
         loader.exec_module(_VERSION_MOD)
-        __version__ = getattr(_VERSION_MOD, '__version__', __version__)
+        __version__ = getattr(_VERSION_MOD, "__version__", __version__)
 except Exception:  # pylint: disable=broad-except
     pass
 
-DEFAULT_CACHES_ROOT = '~/.buildrunner/caches'
-DEFAULT_RUN_CONFIG_FILES = ['buildrunner.yaml', 'gauntlet.yaml']
+DEFAULT_CACHES_ROOT = "~/.buildrunner/caches"
+DEFAULT_RUN_CONFIG_FILES = ["buildrunner.yaml", "gauntlet.yaml"]
 
-SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), 'SourceDockerfile')
+SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), "SourceDockerfile")
 
 
 class BuildRunner:  # pylint: disable=too-many-instance-attributes
@@ -75,7 +73,13 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
     Class used to manage running a build.
     """
 
-    CONTEXT_ENV_PREFIXES = ['ARTIFACTORY_', 'BUILDRUNNER_', 'VCSINFO_', 'PACKAGER_', 'GAUNTLET_']
+    CONTEXT_ENV_PREFIXES = [
+        "ARTIFACTORY_",
+        "BUILDRUNNER_",
+        "VCSINFO_",
+        "PACKAGER_",
+        "GAUNTLET_",
+    ]
 
     def _get_config_context(self, ctx=None, global_env=None):
         """
@@ -90,19 +94,19 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
 
         context = {
-            'BUILDRUNNER_PLATFORM': str(python_platform.machine()),
-            'BUILDRUNNER_BUILD_NUMBER': str(self.build_number),
-            'BUILDRUNNER_BUILD_ID': str(self.build_id),
-            'BUILDRUNNER_BUILD_DOCKER_TAG': str(sanitize_tag(self.build_id)),
-            'BUILDRUNNER_BUILD_TIME': str(self.build_time),
-            'VCSINFO_NAME': str(self.vcs.name),
-            'VCSINFO_BRANCH': str(self.vcs.branch),
-            'VCSINFO_NUMBER': str(self.vcs.number),
-            'VCSINFO_ID': str(self.vcs.id),
-            'VCSINFO_SHORT_ID': str(self.vcs.id)[:7],
-            'VCSINFO_MODIFIED': str(self.vcs.modified),
-            'VCSINFO_RELEASE': str(self.vcs.release),
-            'BUILDRUNNER_STEPS': self.steps_to_run,
+            "BUILDRUNNER_PLATFORM": str(python_platform.machine()),
+            "BUILDRUNNER_BUILD_NUMBER": str(self.build_number),
+            "BUILDRUNNER_BUILD_ID": str(self.build_id),
+            "BUILDRUNNER_BUILD_DOCKER_TAG": str(sanitize_tag(self.build_id)),
+            "BUILDRUNNER_BUILD_TIME": str(self.build_time),
+            "VCSINFO_NAME": str(self.vcs.name),
+            "VCSINFO_BRANCH": str(self.vcs.branch),
+            "VCSINFO_NUMBER": str(self.vcs.number),
+            "VCSINFO_ID": str(self.vcs.id),
+            "VCSINFO_SHORT_ID": str(self.vcs.id)[:7],
+            "VCSINFO_MODIFIED": str(self.vcs.modified),
+            "VCSINFO_RELEASE": str(self.vcs.release),
+            "BUILDRUNNER_STEPS": self.steps_to_run,
         }
 
         # Add the global env vars before any other context vars
@@ -119,29 +123,28 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         return context
 
     def __init__(
-            self,
-            build_dir,
-            build_results_dir=None,
-            global_config_file=None,
-            run_config_file=None,
-            run_config=None,
-            build_number=None,
-            push=False,
-            colorize_log=True,
-            cleanup_images=False,
-            cleanup_step_artifacts=False,
-            cleanup_cache=False,
-            steps_to_run=None,
-            publish_ports=False,
-            disable_timestamps=False,
-            log_generated_files=False,
-            docker_timeout=None,
-            local_images=False,
-            platform=None,
-            disable_multi_platform=False
+        self,
+        build_dir,
+        build_results_dir=None,
+        global_config_file=None,
+        run_config_file=None,
+        run_config=None,
+        build_number=None,
+        push=False,
+        colorize_log=True,
+        cleanup_images=False,
+        cleanup_step_artifacts=False,
+        cleanup_cache=False,
+        steps_to_run=None,
+        publish_ports=False,
+        disable_timestamps=False,
+        log_generated_files=False,
+        docker_timeout=None,
+        local_images=False,
+        platform=None,
+        disable_multi_platform=False,
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
-        """
-        """
+        """ """
         self.build_dir = build_dir
         if build_results_dir:
             self.build_results_dir = build_results_dir
@@ -187,10 +190,12 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             self.vcs = detect_vcs(self.build_dir)
             self.build_id = f"{self.vcs.id_string}-{self.build_number}"
         except VCSUnsupported as err:
-            self.log.write(f'{err}\nPlease verify you have a VCS set up for this project.\n')
+            self.log.write(
+                f"{err}\nPlease verify you have a VCS set up for this project.\n"
+            )
             sys.exit()
         except VCSMissingRevision as err:
-            self.log.write(f'{err}\nMake sure you have at least one commit.\n')
+            self.log.write(f"{err}\nMake sure you have at least one commit.\n")
             sys.exit()
 
         # cleanup existing results dir (if needed)
@@ -200,7 +205,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # default environment - must come *after* VCS detection
         base_context = {}
         if push:
-            base_context['BUILDRUNNER_DO_PUSH'] = 1
+            base_context["BUILDRUNNER_DO_PUSH"] = 1
         self.env = self._get_config_context(base_context)
 
         # load global configuration
@@ -217,15 +222,19 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # load environment again, considering the global config env vars
         # this ends up generating the context twice, but the first is needed to load
         #   the global config object
-        self.env = self._get_config_context(base_context, self.global_config.get('env', {}))
+        self.env = self._get_config_context(
+            base_context, self.global_config.get("env", {})
+        )
         # assign back to the global config env for loading files
         self.global_config.env = self.env
 
-        self.disable_multi_platform = self.global_config.get('disable-multi-platform', False)
+        self.disable_multi_platform = self.global_config.get(
+            "disable-multi-platform", False
+        )
         if disable_multi_platform:
-            if disable_multi_platform == 'true':
+            if disable_multi_platform == "true":
                 self.disable_multi_platform = True
-            elif disable_multi_platform == 'false':
+            elif disable_multi_platform == "false":
                 self.disable_multi_platform = False
 
         # print out env vars
@@ -233,7 +242,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         key_len = max(len(key) for key in self.env.keys())
         for key in sorted(self.env.keys()):
             val = self.env[key]
-            LOGGER.debug(f'Environment: {key!s:>{key_len}}: {val}')
+            LOGGER.debug(f"Environment: {key!s:>{key_len}}: {val}")
 
         # cleanup local cache
         if self.cleanup_cache:
@@ -256,16 +265,20 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
             if not _run_config_file or not os.path.exists(_run_config_file):
                 raise BuildRunnerConfigurationError(
-                    'Cannot find build configuration file'
+                    "Cannot find build configuration file"
                 )
 
             self.run_config = self.global_config.load_config(_run_config_file)
 
-        if not isinstance(self.run_config, dict) or 'steps' not in self.run_config:
-            cfg_file = _run_config_file if _run_config_file else 'provided config'
-            raise BuildRunnerConfigurationError(f'Could not find a "steps" attribute in {cfg_file}')
-        if not self.run_config['steps'] or not isinstance(self.run_config['steps'], dict):
-            cfg_file = _run_config_file if _run_config_file else 'provided config'
+        if not isinstance(self.run_config, dict) or "steps" not in self.run_config:
+            cfg_file = _run_config_file if _run_config_file else "provided config"
+            raise BuildRunnerConfigurationError(
+                f'Could not find a "steps" attribute in {cfg_file}'
+            )
+        if not self.run_config["steps"] or not isinstance(
+            self.run_config["steps"], dict
+        ):
+            cfg_file = _run_config_file if _run_config_file else "provided config"
             raise BuildRunnerConfigurationError(
                 f'The "steps" attribute is not a non-empty dictionary in {cfg_file}'
             )
@@ -280,21 +293,23 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 os.makedirs(self.build_results_dir)
             except OSError as exc:
                 if exc.errno != errno.EEXIST:
-                    sys.stderr.write(f'ERROR: {str(exc)}\n')
+                    sys.stderr.write(f"ERROR: {str(exc)}\n")
                     sys.exit(os.EX_UNAVAILABLE)
 
             try:
-                log_file_path = os.path.join(self.build_results_dir, 'build.log')
+                log_file_path = os.path.join(self.build_results_dir, "build.log")
                 # pylint: disable=consider-using-with
-                self._log_file = open(log_file_path, 'w', encoding='utf8')
+                self._log_file = open(log_file_path, "w", encoding="utf8")
                 self._log = ConsoleLogger(self.colorize_log, self._log_file)
 
                 self.add_artifact(
                     os.path.basename(log_file_path),
-                    {'type': 'log'},
+                    {"type": "log"},
                 )
             except Exception as exc:  # pylint: disable=broad-except
-                sys.stderr.write(f'ERROR: failed to initialize ConsoleLogger: {str(exc)}\n')
+                sys.stderr.write(
+                    f"ERROR: failed to initialize ConsoleLogger: {str(exc)}\n"
+                )
                 self._log = sys.stderr
                 if self._log_file:
                     self._log_file.close()
@@ -306,7 +321,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         Given a host alias string determine the actual build server host value
         to use by checking the global configuration.
         """
-        build_servers = self.global_config.get('build-servers')
+        build_servers = self.global_config.get("build-servers")
         # if no build servers configuration in global config just return host
         if not build_servers:
             return host
@@ -325,7 +340,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         ssh_keys = []
         if not key_aliases:
             return ssh_keys
-        ssh_keys = self.global_config.get('ssh-keys')
+        ssh_keys = self.global_config.get("ssh-keys")
         if not ssh_keys:
             raise BuildRunnerConfigurationError(
                 "SSH key aliases specified but no 'ssh-keys' "
@@ -335,18 +350,18 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         _keys = []
         _matched_aliases = []
         for key_info in ssh_keys:
-            if 'aliases' not in key_info or not key_info['aliases']:
+            if "aliases" not in key_info or not key_info["aliases"]:
                 continue
 
             _password = None
             _prompt_for_password = False
-            if 'password' in key_info:
-                _password = key_info['password']
+            if "password" in key_info:
+                _password = key_info["password"]
             else:
-                _prompt_for_password = key_info.get('prompt-password', False)
+                _prompt_for_password = key_info.get("prompt-password", False)
 
             for alias in key_aliases:
-                if alias in key_info['aliases']:
+                if alias in key_info["aliases"]:
                     _matched_aliases.append(alias)
 
                     # Prompt for password if necessary.  Only once per key
@@ -354,20 +369,14 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                         _password = getpass.getpass(f"Password for SSH Key ({alias}): ")
                         _prompt_for_password = False
 
-                    if 'file' in key_info:
+                    if "file" in key_info:
                         _key_file = os.path.realpath(
-                            os.path.expanduser(
-                                os.path.expandvars(key_info['file'])
-                            )
+                            os.path.expanduser(os.path.expandvars(key_info["file"]))
                         )
 
-                        _keys.append(
-                            load_ssh_key_from_file(_key_file, _password)
-                        )
-                    elif 'key' in key_info:
-                        _keys.append(
-                            load_ssh_key_from_str(key_info['key'], _password)
-                        )
+                        _keys.append(load_ssh_key_from_file(_key_file, _password))
+                    elif "key" in key_info:
+                        _keys.append(load_ssh_key_from_str(key_info["key"], _password))
 
         for alias in key_aliases:
             if alias not in _matched_aliases:
@@ -383,9 +392,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         if not file_alias:
             return None
-        local_files = self.global_config.get('local-files')
+        local_files = self.global_config.get("local-files")
         if not local_files:
-            self.log.write("No 'local-files' configuration in global build runner config")
+            self.log.write(
+                "No 'local-files' configuration in global build runner config"
+            )
             return None
 
         for local_alias, local_file in local_files.items():
@@ -421,6 +432,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         Given a cache name determine the local file path.
         """
+
         def get_filename(caches_root, cache_name):
             local_cache_archive_file = os.path.expanduser(
                 os.path.join(caches_root, cache_name)
@@ -434,15 +446,15 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if project_name != "":
             cache_name = f"{project_name}-{cache_name}"
 
-        caches_root = self.global_config.get('caches-root', DEFAULT_CACHES_ROOT)
+        caches_root = self.global_config.get("caches-root", DEFAULT_CACHES_ROOT)
         local_cache_archive_file = None
         try:
             local_cache_archive_file = get_filename(caches_root, cache_name)
         except Exception as exc:  # pylint: disable=broad-except
             # Intentinally catch all exceptions here since we don't want to fail the build
-            LOGGER.warning(f'There was an issue with {caches_root}: {str(exc)}')
+            LOGGER.warning(f"There was an issue with {caches_root}: {str(exc)}")
             local_cache_archive_file = get_filename(DEFAULT_CACHES_ROOT, cache_name)
-            LOGGER.warning(f'Using {DEFAULT_CACHES_ROOT} for the cache directory')
+            LOGGER.warning(f"Using {DEFAULT_CACHES_ROOT} for the cache directory")
 
         return local_cache_archive_file
 
@@ -451,7 +463,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         Clean cache dir
         """
-        cache_dir = os.path.expanduser(global_config.get("caches-root", DEFAULT_CACHES_ROOT))
+        cache_dir = os.path.expanduser(
+            global_config.get("caches-root", DEFAULT_CACHES_ROOT)
+        )
         if os.path.exists(cache_dir):
             global_config.log.write(f'Cleaning cache dir "{cache_dir}"\n')
             shutil.rmtree(f"{cache_dir}/")
@@ -471,10 +485,10 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         source image.
         """
         if not self._source_archive:
-            buildignore = os.path.join(self.build_dir, '.buildignore')
+            buildignore = os.path.join(self.build_dir, ".buildignore")
             excludes = []
             if os.path.exists(buildignore):
-                with open(buildignore, 'r', encoding='utf-8') as _file:
+                with open(buildignore, "r", encoding="utf-8") as _file:
                     excludes = _file.read().splitlines()
 
             def _exclude_working_dir(tarinfo):
@@ -488,7 +502,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                         return None
                 return tarinfo
 
-            self.log.write('Creating source archive\n')
+            self.log.write("Creating source archive\n")
             _fileobj = None
             try:
                 # pylint: disable=consider-using-with
@@ -496,12 +510,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                     delete=False,
                     dir=self.global_config.get_temp_dir(),
                 )
-                with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
-                    tfile.add(
-                        self.build_dir,
-                        arcname='',
-                        filter=_exclude_working_dir
-                    )
+                with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
+                    tfile.add(self.build_dir, arcname="", filter=_exclude_working_dir)
                 self._source_archive = _fileobj.name
             finally:
                 if _fileobj:
@@ -514,10 +524,10 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         from.
         """
         if not self._source_image:
-            self.log.write('Creating source image\n')
+            self.log.write("Creating source image\n")
             source_archive_path = self.get_source_archive_path()
             inject = {
-                source_archive_path: 'source.tar',
+                source_archive_path: "source.tar",
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
             source_builder = DockerBuilder(
@@ -532,8 +542,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             )
             if exit_code != 0 or not source_builder.image:
                 raise BuildRunnerProcessingError(
-                    f'Error building source image ({exit_code}), this may be a transient docker'
-                    ' error if no output is available above'
+                    f"Error building source image ({exit_code}), this may be a transient docker"
+                    " error if no output is available above"
                 )
             self._source_image = source_builder.image
         return self._source_image
@@ -544,20 +554,22 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         to the artifacts manifest.
         """
         if self.artifacts:
-            self.log.write('\nWriting artifact properties\n')
+            self.log.write("\nWriting artifact properties\n")
             artifact_manifest = os.path.join(
                 self.build_results_dir,
-                'artifacts.json',
+                "artifacts.json",
             )
             # preserve contents of artifacts.json between steps run separately
             if os.path.exists(artifact_manifest):
-                with open(artifact_manifest, 'r', encoding='utf-8') as _af:
+                with open(artifact_manifest, "r", encoding="utf-8") as _af:
                     data = json.load(_af, object_pairs_hook=OrderedDict)
-                    artifacts = OrderedDict(list(data.items()) + list(self.artifacts.items()))
+                    artifacts = OrderedDict(
+                        list(data.items()) + list(self.artifacts.items())
+                    )
             else:
                 artifacts = self.artifacts
 
-            with open(artifact_manifest, 'w', encoding='utf-8') as _af:
+            with open(artifact_manifest, "w", encoding="utf-8") as _af:
                 json.dump(artifacts, _af, indent=2)
 
     def _exit_message_and_close_log(self, exit_explanation):
@@ -566,21 +578,21 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         open.
         """
         if self.exit_code:
-            exit_message = '\nBuild ERROR.'
+            exit_message = "\nBuild ERROR."
         else:
-            exit_message = '\nBuild SUCCESS.'
+            exit_message = "\nBuild SUCCESS."
 
         if self.log:
             try:
                 if exit_explanation:
-                    self.log.write('\n' + exit_explanation + '\n')
-                self.log.write(exit_message + '\n')
+                    self.log.write("\n" + exit_explanation + "\n")
+                self.log.write(exit_message + "\n")
             finally:
                 # close the log
                 self._log_file.close()
         else:
             if exit_explanation:
-                print(f'\n{exit_explanation}')
+                print(f"\n{exit_explanation}")
             print(exit_message)
 
     def run(self):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
@@ -597,10 +609,14 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 cleanup_images=self.cleanup_images,
                 temp_dir=self.global_config.get_temp_dir(),
                 disable_multi_platform=self.disable_multi_platform,
-                platform_builders=self.global_config.get('platform-builders'),
-                cache_builders=self.global_config.get_docker_build_cache_config().get('builders'),
-                cache_from=self.global_config.get_docker_build_cache_config().get('from'),
-                cache_to=self.global_config.get_docker_build_cache_config().get('to'),
+                platform_builders=self.global_config.get("platform-builders"),
+                cache_builders=self.global_config.get_docker_build_cache_config().get(
+                    "builders"
+                ),
+                cache_from=self.global_config.get_docker_build_cache_config().get(
+                    "from"
+                ),
+                cache_to=self.global_config.get_docker_build_cache_config().get("to"),
             ) as multi_platform:
                 if not os.path.exists(self.build_results_dir):
                     # create a new results dir
@@ -608,18 +624,13 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
                 self.get_source_archive_path()
                 # run each step
-                for step_name, step_config in self.run_config['steps'].items():
+                for step_name, step_config in self.run_config["steps"].items():
                     if not self.steps_to_run or step_name in self.steps_to_run:
                         image_config = BuildStepRunner.ImageConfig(
-                            self.local_images,
-                            self.platform
+                            self.local_images, self.platform
                         )
                         build_step_runner = BuildStepRunner(
-                            self,
-                            step_name,
-                            step_config,
-                            image_config,
-                            multi_platform
+                            self, step_name, step_config, image_config, multi_platform
                         )
                         build_step_runner.run()
 
@@ -630,77 +641,86 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 # see if we should push registered tags to remote registries/repositories
                 if self.push:
                     self.log.write(
-                        'Push requested--pushing generated images/packages to remote registries/repositories\n'
+                        "Push requested--pushing generated images/packages to remote registries/repositories\n"
                     )
                     # Push multi-platform images
                     if multi_platform.tagged_images_names:
                         self.log.write(
                             f"===> Pushing {len(multi_platform.tagged_images_names)} multiplatform image(s)\n"
                         )
-                        for local_name, dest_name in multi_platform.tagged_images_names.items():
+                        for (
+                            local_name,
+                            dest_name,
+                        ) in multi_platform.tagged_images_names.items():
                             self.log.write(f"Pushing {local_name} to {dest_name}\n")
                             multi_platform.push(name=local_name, dest_names=dest_name)
 
                     # Push single platform images
                     _docker_client = docker.new_client(timeout=self.docker_timeout)
                     for _repo_tag, _insecure_registry in self.repo_tags_to_push:
-                        self.log.write(
-                            f'\nPushing {_repo_tag}\n'
-                        )
+                        self.log.write(f"\nPushing {_repo_tag}\n")
 
                         # Newer Python Docker bindings drop support for the insecure_registry
                         # option.  This test will optionally use it when it's available.
                         push_kwargs = {
-                            'stream': True,
+                            "stream": True,
                         }
-                        if 'insecure_registry' in inspect.getfullargspec(_docker_client.push).args:
-                            push_kwargs['insecure_registry'] = _insecure_registry
+                        if (
+                            "insecure_registry"
+                            in inspect.getfullargspec(_docker_client.push).args
+                        ):
+                            push_kwargs["insecure_registry"] = _insecure_registry
 
                         stream = _docker_client.push(_repo_tag, **push_kwargs)
                         previous_status = None
                         for msg_str in stream:
-                            for msg in msg_str.decode('utf-8').split("\n"):
+                            for msg in msg_str.decode("utf-8").split("\n"):
                                 if not msg:
                                     continue
                                 msg = json.loads(msg)
-                                if 'status' in msg:
-                                    if msg['status'] == previous_status:
+                                if "status" in msg:
+                                    if msg["status"] == previous_status:
                                         continue
-                                    self.log.write(msg['status'] + '\n')
-                                    previous_status = msg['status']
-                                elif 'errorDetail' in msg:
-                                    error_detail = f"Error pushing image: {msg['errorDetail']}\n"
+                                    self.log.write(msg["status"] + "\n")
+                                    previous_status = msg["status"]
+                                elif "errorDetail" in msg:
+                                    error_detail = (
+                                        f"Error pushing image: {msg['errorDetail']}\n"
+                                    )
                                     self.log.write("\n" + error_detail)
-                                    self.log.write((
-                                        "This could be because you are not "
-                                        "authenticated with the given Docker "
-                                        "registry (try 'docker login "
-                                        "<registry>')\n\n"
-                                    ))
+                                    self.log.write(
+                                        (
+                                            "This could be because you are not "
+                                            "authenticated with the given Docker "
+                                            "registry (try 'docker login "
+                                            "<registry>')\n\n"
+                                        )
+                                    )
                                     raise BuildRunnerProcessingError(error_detail)
                                 else:
-                                    self.log.write(str(msg) + '\n')
+                                    self.log.write(str(msg) + "\n")
 
                     # Push to pypi repositories
                     # Placing the import here avoids the dependency when pypi is not needed
                     import twine.commands.upload  # pylint: disable=import-outside-toplevel
+
                     for _, _items in self.pypi_packages.items():
-                        twine.commands.upload.upload(_items['upload_settings'], _items['packages'])
+                        twine.commands.upload.upload(
+                            _items["upload_settings"], _items["packages"]
+                        )
                 else:
-                    self.log.write(
-                        '\nPush not requested\n'
-                    )
+                    self.log.write("\nPush not requested\n")
 
         except BuildRunnerConfigurationError as brce:
-            print('config error')
+            print("config error")
             exit_explanation = str(brce)
             self.exit_code = os.EX_CONFIG
         except BuildRunnerProcessingError as brpe:
-            print('processing error')
+            print("processing error")
             exit_explanation = str(brpe)
             self.exit_code = 1
         except requests.exceptions.ConnectionError as rce:
-            print('connection error')
+            print("connection error")
             print(str(rce))
             exit_explanation = (
                 "Error communicating with the remote host.\n\tCheck that the "
@@ -717,9 +737,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
             # cleanup the source image
             if self._source_image:
-                self.log.write(
-                    f"Destroying source image {self._source_image}\n"
-                )
+                self.log.write(f"Destroying source image {self._source_image}\n")
                 _docker_client.remove_image(
                     self._source_image,
                     noprune=False,
@@ -727,9 +745,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 )
 
             if self.cleanup_images:
-                self.log.write(
-                    'Removing local copy of generated images\n'
-                )
+                self.log.write("Removing local copy of generated images\n")
                 # cleanup all registered docker images
                 # reverse the order of the images since child images would likely come after parent images
                 for _image in self.generated_images[::-1]:
@@ -740,17 +756,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                             force=True,
                         )
                     except Exception as _ex:  # pylint: disable=broad-except
-                        self.log.write(
-                            f'Error removing image {_image}: {str(_ex)}'
-                        )
+                        self.log.write(f"Error removing image {_image}: {str(_ex)}")
             else:
-                self.log.write(
-                    'Keeping generated images\n'
-                )
+                self.log.write("Keeping generated images\n")
             if self._source_archive:
-                self.log.write(
-                    "Destroying source archive\n"
-                )
+                self.log.write("Destroying source archive\n")
                 os.remove(self._source_archive)
 
             # remove any temporary files that we created
@@ -759,6 +769,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                     os.remove(tmp_file)
 
             self._exit_message_and_close_log(exit_explanation)
+
 
 # Local Variables:
 # fill-column: 100

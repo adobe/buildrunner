@@ -2,13 +2,10 @@ import os
 import sys
 import docker
 
-sys.path.insert(
-    0,
-    os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
-)
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
-import buildrunner.config
-from buildrunner import (
+import buildrunner.config  # noqa: E402
+from buildrunner import (  # noqa: E402
     cli,
     __version__,
     BuildRunner,
@@ -27,10 +24,7 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
     global_config_files = global_config_files or []
     if master_config_file:
         buildrunner.config.MASTER_GLOBAL_CONFIG_FILE = master_config_file
-        if (
-                not global_config_files
-                or master_config_file != global_config_files[0]
-        ):
+        if not global_config_files or master_config_file != global_config_files[0]:
             global_config_files.insert(0, master_config_file)
     if global_config_files:
         buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
@@ -50,7 +44,7 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
             log_generated_files=args.log_generated_files,
             docker_timeout=args.docker_timeout,
             platform=args.platform,
-            build_results_dir=args.build_results_dir
+            build_results_dir=args.build_results_dir,
         )
 
         build_runner.run()
@@ -63,4 +57,3 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
         print(str(inf))
         return os.EX_CONFIG
     return os.EX_OK
-

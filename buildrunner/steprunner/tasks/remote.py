@@ -27,31 +27,29 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
         super().__init__(step_runner, config)
 
         # must have a 'host' attribute
-        if 'host' not in self.config:
+        if "host" not in self.config:
             raise BuildRunnerConfigurationError(
                 f'Step "{self.step_runner.name}" has a "remote" configuration without a "host" attribute\n'
             )
         self.host = self.step_runner.build_runner.get_build_server_from_alias(
-            self.config['host'],
+            self.config["host"],
         )
 
         # must specify the cmd to run
-        if 'cmd' not in self.config:
+        if "cmd" not in self.config:
             raise BuildRunnerConfigurationError(
                 f'Step "{self.step_runner.name}" has a "remote" configuration without a "cmd" attribute\n'
             )
-        self.cmd = self.config['cmd']
+        self.cmd = self.config["cmd"]
 
-        self.artifacts = self.config.get('artifacts', {})
+        self.artifacts = self.config.get("artifacts", {})
 
     def run(self, context):  # pylint: disable=unused-argument,too-many-branches,too-many-locals
-        self.step_runner.log.write(
-            f"Building on remote host {self.host}\n\n"
-        )
+        self.step_runner.log.write(f"Building on remote host {self.host}\n\n")
 
         # call remote functions to copy tar and build remotely
-        remote_build_dir = f'/tmp/buildrunner/{self.step_runner.build_runner.build_id}-{self.step_runner.name}'
-        remote_archive_filepath = remote_build_dir + '/source.tar'
+        remote_build_dir = f"/tmp/buildrunner/{self.step_runner.build_runner.build_id}-{self.step_runner.name}"
+        remote_archive_filepath = remote_build_dir + "/source.tar"
         self.step_runner.log.write(
             f"[{self.host}] Creating temporary remote directory '{remote_build_dir}'\n"
         )
@@ -64,9 +62,7 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                 err_stream=self.step_runner.log,
             )
             if mkdir_result.return_code:
-                raise BuildRunnerProcessingError(
-                    "Error creating remote directory"
-                )
+                raise BuildRunnerProcessingError("Error creating remote directory")
 
             try:  # pylint: disable=too-many-nested-blocks
                 self.step_runner.log.write(
@@ -91,7 +87,9 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                             "Error extracting archive file"
                         )
 
-                    self.step_runner.log.write(f"[{self.host}] Running command '{self.cmd}'\n")
+                    self.step_runner.log.write(
+                        f"[{self.host}] Running command '{self.cmd}'\n"
+                    )
                     package_result = connection.run(
                         f"(cd {remote_build_dir}; {self.cmd})",
                         warn=True,
@@ -106,7 +104,7 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                             # that match the pattern
                             dummy_out = StringIO()
                             art_result = connection.run(
-                                f'ls -A1 {remote_build_dir}/{_art}',
+                                f"ls -A1 {remote_build_dir}/{_art}",
                                 hide=True,
                                 warn=True,
                                 out_stream=dummy_out,
@@ -117,8 +115,8 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
 
                             # we have at least one match--run the get
                             for _ca in connection.get(  # pylint: disable=not-an-iterable
-                                    f"{remote_build_dir}/{_art}",
-                                    f"{self.step_runner.results_dir}/%(basename)s"
+                                f"{remote_build_dir}/{_art}",
+                                f"{self.step_runner.results_dir}/%(basename)s",
                             ):
                                 _arts.append(_ca)
                                 self.step_runner.build_runner.add_artifact(
@@ -131,14 +129,12 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                         self.step_runner.log.write("\nGathered artifacts:\n")
                         for _art in _arts:
                             self.step_runner.log.write(
-                                f'- found {os.path.basename(_art)}\n',
+                                f"- found {os.path.basename(_art)}\n",
                             )
                         self.step_runner.log.write("\n")
 
                     if package_result.return_code:
-                        raise BuildRunnerProcessingError(
-                            "Error running remote build"
-                        )
+                        raise BuildRunnerProcessingError("Error running remote build")
 
                 else:
                     raise BuildRunnerProcessingError(

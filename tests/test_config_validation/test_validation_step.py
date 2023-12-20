@@ -1,4 +1,3 @@
-
 import yaml
 from buildrunner.validation.config import validate_config, Errors
 
@@ -70,7 +69,7 @@ def test_cache_from_invalid():
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
     assert errors.count() == 1
-    assert 'cache_from' in str(errors)
+    assert "cache_from" in str(errors)
 
 
 def test_build_is_path():
@@ -105,7 +104,7 @@ def test_valid_platforms():
     assert errors is None
 
 
-def test_valid_platforms():
+def test_valid_platforms_no_cache():
     config_yaml = """
     steps:
       build-container-multi-platform:

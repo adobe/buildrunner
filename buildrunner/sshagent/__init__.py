@@ -35,8 +35,7 @@ from buildrunner.errors import (
 from buildrunner.docker.builder import DockerBuilder
 
 SSH_AGENT_PROXY_BUILD_CONTEXT = os.path.join(
-    os.path.dirname(__file__),
-    'SSHAgentProxyImage'
+    os.path.dirname(__file__), "SSHAgentProxyImage"
 )
 SSH_KEY_TYPES = [RSAKey, ECDSAKey, Ed25519Key, DSSKey]
 
@@ -54,9 +53,7 @@ def load_ssh_key_from_file(key_file, passwd):
             ) from pwdreqe
         except SSHException:
             continue
-    raise BuildRunnerConfigurationError(
-        f"Unable to load key at {key_file}"
-    )
+    raise BuildRunnerConfigurationError(f"Unable to load key at {key_file}")
 
 
 def load_ssh_key_from_str(key_str, passwd):
@@ -64,10 +61,7 @@ def load_ssh_key_from_str(key_str, passwd):
     Load the given keys into paramiko PKey objects.
     """
     try:
-        return RSAKey.from_private_key(
-            io.StringIO(key_str),
-            passwd
-        )
+        return RSAKey.from_private_key(io.StringIO(key_str), passwd)
     except PasswordRequiredException as pwdreqe:
         raise BuildRunnerConfigurationError(
             "Provided key requires a password"
@@ -83,9 +77,7 @@ def load_ssh_key_from_str(key_str, passwd):
                 "Provided key requires a password"
             ) from pwdreqe
         except SSHException as sshe:
-            raise BuildRunnerConfigurationError(
-                "Unable to load provided key"
-            ) from sshe
+            raise BuildRunnerConfigurationError("Unable to load provided key") from sshe
 
 
 class DockerSSHAgentProxy:
@@ -97,8 +89,7 @@ class DockerSSHAgentProxy:
     """
 
     def __init__(self, docker_client, log, docker_registry):
-        """
-        """
+        """ """
         self.docker_client = docker_client
         self.log = log
         self.docker_registry = docker_registry
@@ -114,12 +105,7 @@ class DockerSSHAgentProxy:
         containers providing settings for ssh clients to connect to the shared
         agent.
         """
-        return (
-            self._ssh_agent_container,
-            {
-                'SSH_AUTH_SOCK': '/ssh-agent/agent'
-            }
-        )
+        return (self._ssh_agent_container, {"SSH_AUTH_SOCK": "/ssh-agent/agent"})
 
     def start(self, keys):
         """
@@ -139,47 +125,44 @@ class DockerSSHAgentProxy:
         self._ssh_agent_container = self.docker_client.create_container(
             self.get_ssh_agent_image(),
             command=[
-                f'{keys[0].get_name()} {keys[0].get_base64()}',
+                f"{keys[0].get_name()} {keys[0].get_base64()}",
             ],
             host_config=self.docker_client.create_host_config(
                 publish_all_ports=True,
-            )
-        )['Id']
+            ),
+        )["Id"]
         self.docker_client.start(
             self._ssh_agent_container,
         )
-        self.log.write(
-            f"Created ssh-agent container {self._ssh_agent_container:.10}\n"
-        )
+        self.log.write(f"Created ssh-agent container {self._ssh_agent_container:.10}\n")
 
-        _ssh_host = 'localhost'
+        _ssh_host = "localhost"
         # See if buildrunner is executing from a container.  If so, hit the
         # newly created container directly on port 22
-        if os.environ.get('BUILDRUNNER_CONTAINER'):
+        if os.environ.get("BUILDRUNNER_CONTAINER"):
             _ssh_container = self.docker_client.inspect_container(
                 self._ssh_agent_container
             )
-            _ssh_host = _ssh_container.get(
-                "NetworkSettings",
-                {}
-            ).get("IPAddress", _ssh_host)
+            _ssh_host = _ssh_container.get("NetworkSettings", {}).get(
+                "IPAddress", _ssh_host
+            )
             _ssh_port = 22
         else:
             # get the Docker server ip address and ssh port exposed by this
             # container
             p_data = urllib.parse.urlparse(self.docker_client.base_url)
-            if p_data and 'unix' not in p_data.scheme and p_data.hostname:
-                if p_data.hostname != 'localunixsocket':
+            if p_data and "unix" not in p_data.scheme and p_data.hostname:
+                if p_data.hostname != "localunixsocket":
                     _ssh_host = p_data.hostname
             _ssh_port_info = self.docker_client.port(
                 self._ssh_agent_container,
                 22,
             )
-            if not _ssh_port_info or 'HostPort' not in _ssh_port_info[0]:
+            if not _ssh_port_info or "HostPort" not in _ssh_port_info[0]:
                 raise BuildRunnerProcessingError(
                     "Unable to find port for ssh-agent container"
                 )
-            _ssh_port = _ssh_port_info[0]['HostPort']
+            _ssh_port = _ssh_port_info[0]["HostPort"]
             _ssh_port = int(_ssh_port)
         time.sleep(3)
 
@@ -197,7 +180,7 @@ class DockerSSHAgentProxy:
             self._ssh_client._agent.forward_agent_handler
         )
         self._ssh_channel.get_pty()
-        self._ssh_channel.exec_command('/login.sh')
+        self._ssh_channel.exec_command("/login.sh")
         self.log.write("Established ssh-agent container connection\n")
 
     def _try_connect(self, ssh_host, ssh_port):
@@ -212,21 +195,23 @@ class DockerSSHAgentProxy:
                 self._ssh_client.connect(
                     ssh_host,
                     port=ssh_port,
-                    username='root',
+                    username="root",
                     allow_agent=True,
                     look_for_keys=False,
                 )
                 break
             except Exception as exc:  # pylint: disable=broad-except
-                self.log.write(f'there was an issue trying to connect to container : {exc}')
+                self.log.write(
+                    f"there was an issue trying to connect to container : {exc}"
+                )
             next_backoff = backoff + previous_backoff
             previous_backoff = backoff
             backoff = next_backoff
             time.sleep(backoff)
         else:
-            self.log.write(f'Unable to successfully connect to {ssh_host}')
+            self.log.write(f"Unable to successfully connect to {ssh_host}")
             # pylint: disable=broad-exception-raised
-            raise Exception(f'Unable to successfully connect to {ssh_host}')
+            raise Exception(f"Unable to successfully connect to {ssh_host}")
 
     def stop(self):
         """
@@ -242,16 +227,12 @@ class DockerSSHAgentProxy:
                     self._ssh_client._agent.close()
                 # pylint: disable=W0703
                 except Exception as _ex:
-                    self.log.write(
-                        f"Error stopping ssh-agent: {_ex}\n"
-                    )
+                    self.log.write(f"Error stopping ssh-agent: {_ex}\n")
             try:
                 self._ssh_client.close()
             # pylint: disable=W0703
             except Exception as _ex:
-                self.log.write(
-                    f"Error stopping ssh-agent connection: {_ex}\n"
-                )
+                self.log.write(f"Error stopping ssh-agent connection: {_ex}\n")
 
         # kill container
         self.log.write(
@@ -269,7 +250,7 @@ class DockerSSHAgentProxy:
         Get and/or create the image used to proxy the ssh agent to a container.
         """
         if not self._ssh_agent_image:
-            self.log.write('Creating ssh-agent image\n')
+            self.log.write("Creating ssh-agent image\n")
             ssh_agent_builder = DockerBuilder(
                 path=SSH_AGENT_PROXY_BUILD_CONTEXT,
                 docker_registry=self.docker_registry,
@@ -279,9 +260,7 @@ class DockerSSHAgentProxy:
                 pull=False,
             )
             if exit_code != 0 or not ssh_agent_builder.image:
-                raise BuildRunnerProcessingError(
-                    'Error building ssh agent image'
-                )
+                raise BuildRunnerProcessingError("Error building ssh agent image")
             self._ssh_agent_image = ssh_agent_builder.image
         return self._ssh_agent_image
 
@@ -394,7 +373,7 @@ class CustomAgentConnectionThread(threading.Thread):
         for _key in _keys:
             # add each key
             msg.add_string(_key.asbytes())
-            msg.add_string('')
+            msg.add_string("")
         self._send_reply(msg)
 
     def _agent_sign_response(self, request):
@@ -422,7 +401,7 @@ class CustomAgentConnectionThread(threading.Thread):
         Send a reply back to the upstream agent.
         """
         raw_msg = asbytes(msg)
-        length = struct.pack('>I', len(raw_msg))
+        length = struct.pack(">I", len(raw_msg))
         self._remote_channel.send(length + raw_msg)
 
     def _receive_request(self):
@@ -431,7 +410,7 @@ class CustomAgentConnectionThread(threading.Thread):
         retrieval of message parts.
         """
         message_length = self._read_all(4)
-        msg = Message(self._read_all(struct.unpack('>I', message_length)[0]))
+        msg = Message(self._read_all(struct.unpack(">I", message_length)[0]))
         return ord(msg.get_byte()), msg
 
     def _read_all(self, wanted):
@@ -441,10 +420,10 @@ class CustomAgentConnectionThread(threading.Thread):
         result = self._remote_channel.recv(wanted)
         while len(result) < wanted:
             if len(result) == 0:
-                raise SSHException('lost upstream ssh-agent connection')
+                raise SSHException("lost upstream ssh-agent connection")
             extra = self._remote_channel.recv(wanted - len(result))
             if len(extra) == 0:
-                raise SSHException('lost upstream ssh-agent connection')
+                raise SSHException("lost upstream ssh-agent connection")
             result += extra
         return result
 

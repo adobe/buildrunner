@@ -22,17 +22,17 @@ class RepoDefinition:
     """
 
     def __init__(
-            self,
-            log,
-            repository: str,
-            tags: Optional[List[str]] = None,
-            insecure_registry: Optional[bool] = None,
+        self,
+        log,
+        repository: str,
+        tags: Optional[List[str]] = None,
+        insecure_registry: Optional[bool] = None,
     ):
         # Force a lower-case repo
         repo_lower = repository.lower()
         if repo_lower != repository:
             log.write(
-                f'Forcing repository to lowercase: {repository} => {repo_lower}\n'
+                f"Forcing repository to lowercase: {repository} => {repo_lower}\n"
             )
         self.repository = repo_lower
 
@@ -45,7 +45,7 @@ class RepoDefinition:
         # if there is a tag in the repository value, strip it off and add the tag to the list of tags
         tag_index = self.repository.find(":")
         if tag_index > 0:
-            tag = self.repository[tag_index + 1:]
+            tag = self.repository[tag_index + 1 :]
             if tag not in self.tags:
                 self.tags.append(tag)
             self.repository = self.repository[0:tag_index]
@@ -57,17 +57,18 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
     there is a run task, the snapshot of the resulting run container) to the
     given registry/repository.
     """
+
     def _get_repo_definition(self, config: Union[dict, str]) -> RepoDefinition:
         if isinstance(config, dict):
-            if 'repository' not in config:
+            if "repository" not in config:
                 raise BuildRunnerConfigurationError(
                     'Docker push configuration must at least specify a "repository" attribute'
                 )
             return RepoDefinition(
                 self.step_runner.log,
-                config['repository'],
-                config.get('tags'),
-                config.get('insecure_registry'),
+                config["repository"],
+                config.get("tags"),
+                config.get("insecure_registry"),
             )
         return RepoDefinition(self.step_runner.log, config)
 
@@ -83,61 +84,67 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
             self._repos = [self._get_repo_definition(config)]
 
     def run(self, context):  # pylint: disable=too-many-branches
-
         # Determine internal tag based on source control information and build number
         # Note: do not log sanitization as it would need to happen almost every time
         default_tag = sanitize_tag(self.step_runner.build_runner.build_id)
 
         # Tag multi-platform images
-        if self.step_runner.multi_platform.is_multiplatform(self.get_unique_build_name()):
+        if self.step_runner.multi_platform.is_multiplatform(
+            self.get_unique_build_name()
+        ):
             for repo in self._repos:
                 # Always add default tag
                 repo.tags.append(default_tag)
                 self.step_runner.multi_platform.tag_single_platform(
                     name=self.get_unique_build_name(),
                     tags=repo.tags,
-                    dest_name=repo.repository)
+                    dest_name=repo.repository,
+                )
 
                 for tag in repo.tags:
-                    self.step_runner.build_runner.committed_images.add(f'{repo.repository}:{tag}')
+                    self.step_runner.build_runner.committed_images.add(
+                        f"{repo.repository}:{tag}"
+                    )
 
                 # add image as artifact
                 if not self._commit_only:
-                    images = self.step_runner.multi_platform.get_built_images(self.get_unique_build_name())
-                    image_ids = ','.join([image.trunc_digest() for image in images])
-                    platforms = [f'{image.platform}:{image.trunc_digest()}' for image in images]
+                    images = self.step_runner.multi_platform.get_built_images(
+                        self.get_unique_build_name()
+                    )
+                    image_ids = ",".join([image.trunc_digest() for image in images])
+                    platforms = [
+                        f"{image.platform}:{image.trunc_digest()}" for image in images
+                    ]
                     self.step_runner.build_runner.add_artifact(
                         repo.repository,
                         {
-                            'type': 'docker-image',
-                            'docker:image': image_ids,
-                            'docker:repository': repo.repository,
-                            'docker:tags': repo.tags,
-                            'docker:platforms': platforms,
+                            "type": "docker-image",
+                            "docker:image": image_ids,
+                            "docker:repository": repo.repository,
+                            "docker:tags": repo.tags,
+                            "docker:platforms": platforms,
                         },
                     )
 
         # Tag single platform images
         else:
             # first see if a run task produced an image (via a post-build config)
-            if 'run-image' in context:
-                image_to_use = context.get('run-image')
+            if "run-image" in context:
+                image_to_use = context.get("run-image")
             # next see if there was a run task, committing the end state of the
             # container as the image to use
-            elif 'run_runner' in context:
-                image_to_use = context['run_runner'].commit(self.step_runner.log)
+            elif "run_runner" in context:
+                image_to_use = context["run_runner"].commit(self.step_runner.log)
             # finally see if we have an image from a build task
             else:
-                image_to_use = context.get('image', None)
+                image_to_use = context.get("image", None)
 
             # validate we have an image
             if not image_to_use:
                 raise BuildRunnerProcessingError(
-                    'Cannot find an image to tag/push from a previous task'
+                    "Cannot find an image to tag/push from a previous task"
                 )
-            self.step_runner.log.write(
-                f'Using image {image_to_use} for tagging\n'
-            )
+            self.step_runner.log.write(f"Using image {image_to_use} for tagging\n")
 
             # add the image to the list of generated images for potential cleanup
             self.step_runner.build_runner.generated_images.append(image_to_use)
@@ -163,23 +170,27 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
                         tag=tag,
                         force=True,
                     )
-                    self.step_runner.build_runner.committed_images.add(f'{repo.repository}:{tag}')
+                    self.step_runner.build_runner.committed_images.add(
+                        f"{repo.repository}:{tag}"
+                    )
 
                     if not self._commit_only:
-                        self.step_runner.build_runner.repo_tags_to_push.append((
-                            f"{repo.repository}:{tag}",
-                            repo.insecure_registry,
-                        ))
+                        self.step_runner.build_runner.repo_tags_to_push.append(
+                            (
+                                f"{repo.repository}:{tag}",
+                                repo.insecure_registry,
+                            )
+                        )
 
                 # add image as artifact
                 if not self._commit_only:
                     self.step_runner.build_runner.add_artifact(
                         os.path.join(self.step_runner.name, image_to_use),
                         {
-                            'type': 'docker-image',
-                            'docker:image': image_to_use,
-                            'docker:repository': repo.repository,
-                            'docker:tags': repo.tags,
+                            "type": "docker-image",
+                            "docker:image": image_to_use,
+                            "docker:repository": repo.repository,
+                            "docker:tags": repo.tags,
                         },
                     )
 

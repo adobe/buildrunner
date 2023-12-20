@@ -23,10 +23,10 @@ class DockerImporter:
     """
 
     def __init__(
-            self,
-            src,
-            dockerd_url=None,
-            timeout=None,
+        self,
+        src,
+        dockerd_url=None,
+        timeout=None,
     ):
         self.src = src
         self.docker_client = new_client(
@@ -44,12 +44,12 @@ class DockerImporter:
             import_return = self.docker_client.import_image(self.src)
         except docker.errors.APIError as apie:
             raise BuildRunnerProcessingError(
-                f'Error importing image from archive file {self.src}: {apie}'
+                f"Error importing image from archive file {self.src}: {apie}"
             ) from apie
         if not is_dict(import_return):
             import_return = yaml.safe_load(import_return)
-        if 'status' not in import_return:
+        if "status" not in import_return:
             raise BuildRunnerProcessingError(
-                f'Error importing image from archive file {self.src}'
+                f"Error importing image from archive file {self.src}"
             )
-        return import_return['status']
+        return import_return["status"]

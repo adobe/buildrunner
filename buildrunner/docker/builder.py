@@ -28,14 +28,14 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
     """
 
     def __init__(
-            self,
-            path=None,
-            inject=None,
-            dockerfile=None,
-            dockerd_url=None,
-            timeout=None,
-            docker_registry=None,
-            temp_dir=None,
+        self,
+        path=None,
+        inject=None,
+        dockerfile=None,
+        dockerd_url=None,
+        timeout=None,
+        docker_registry=None,
+        temp_dir=None,
     ):  # pylint: disable=too-many-arguments
         self.path = path
         self.inject = inject
@@ -43,7 +43,9 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         self.dockerfile = None
         self.cleanup_dockerfile = False
 
-        self.dockerfile, self.cleanup_dockerfile = get_dockerfile(dockerfile, self.temp_dir)
+        self.dockerfile, self.cleanup_dockerfile = get_dockerfile(
+            dockerfile, self.temp_dir
+        )
 
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
@@ -67,12 +69,21 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             :dict: sanitized arguments to be passed to the Docker client.
         """
         if not isinstance(buildargs, dict):
-            raise TypeError('buildargs must be a dictionary of keys/values')
+            raise TypeError("buildargs must be a dictionary of keys/values")
 
         return {k: str(v) for k, v in list(buildargs.items())}
 
     # pylint: disable=too-many-branches,too-many-locals,too-many-arguments,invalid-name
-    def build(self, console=None, nocache=False, cache_from=None, rm=True, pull=True, buildargs=None, platform=None):
+    def build(
+        self,
+        console=None,
+        nocache=False,
+        cache_from=None,
+        rm=True,
+        pull=True,
+        buildargs=None,
+        platform=None,
+    ):
         """
         Run a docker build using the configured context, constructing the
         context tar file if necessary.
@@ -84,18 +95,18 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         # create our own tar file, injecting the appropriate paths
         # pylint: disable=consider-using-with
         _fileobj = tempfile.NamedTemporaryFile(dir=self.temp_dir)
-        with tarfile.open(mode='w', fileobj=_fileobj) as tfile:
+        with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
             if self.path:
-                tfile.add(self.path, arcname='.')
+                tfile.add(self.path, arcname=".")
             if self.inject:
                 for to_inject, dest in self.inject.items():
                     tfile.add(to_inject, arcname=dest)
             if self.dockerfile:
-                tfile.add(self.dockerfile, arcname='./Dockerfile')
+                tfile.add(self.dockerfile, arcname="./Dockerfile")
         _fileobj.seek(0)
 
         # Always add default registry to build args
-        buildargs['DOCKER_REGISTRY'] = self.docker_registry
+        buildargs["DOCKER_REGISTRY"] = self.docker_registry
 
         stream = self.docker_client.build(
             path=None,
@@ -106,14 +117,14 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             rm=rm,
             pull=pull,
             buildargs=self._sanitize_buildargs(buildargs),
-            platform=platform
+            platform=platform,
         )
 
         # monitor output for logs and status
         exit_code = 0
-        msg_buffer = ''
+        msg_buffer = ""
         for msg_str in stream:  # pylint: disable=too-many-nested-blocks
-            for msg in msg_str.decode('utf-8').split("\n"):
+            for msg in msg_str.decode("utf-8").split("\n"):
                 if msg:
                     msg_buffer += msg
                     try:
@@ -122,16 +133,16 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
                         # here we get the next msg and append to the current
                         # one
                         json_msg = json.loads(msg_buffer)
-                        msg_buffer = ''
+                        msg_buffer = ""
                     except ValueError:
                         continue
-                    if 'stream' in json_msg:
+                    if "stream" in json_msg:
                         # capture intermediate containers for cleanup later
                         # the command line 'docker build' has a '--force-rm' option,
                         # but that isn't available in the python client
                         container_match = re.search(
-                            r' ---> Running in ([0-9a-f]+)',
-                            json_msg['stream'],
+                            r" ---> Running in ([0-9a-f]+)",
+                            json_msg["stream"],
                         )
                         if container_match:
                             self.intermediate_containers.append(
@@ -140,20 +151,20 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
 
                         # capture the resulting image
                         image_match = re.search(
-                            r'Successfully built ([0-9a-f]+)',
-                            json_msg['stream'],
+                            r"Successfully built ([0-9a-f]+)",
+                            json_msg["stream"],
                         )
                         if image_match:
                             self.image = image_match.group(1)
 
                         if console:
-                            console.write(json_msg['stream'])
-                    if 'error' in json_msg:
+                            console.write(json_msg["stream"])
+                    if "error" in json_msg:
                         exit_code = 1
-                        if 'errorDetail' in json_msg:
-                            if 'message' in json_msg['errorDetail'] and console:
-                                console.write(json_msg['errorDetail']['message'])
-                                console.write('\n')
+                        if "errorDetail" in json_msg:
+                            if "message" in json_msg["errorDetail"] and console:
+                                console.write(json_msg["errorDetail"]["message"])
+                                console.write("\n")
 
         return exit_code
 
@@ -171,4 +182,6 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             try:
                 force_remove_container(self.docker_client, container)
             except docker.errors.APIError as err:
-                logger.warning(f'Error removing intermediate container {container}: {err}')
+                logger.warning(
+                    f"Error removing intermediate container {container}: {err}"
+                )

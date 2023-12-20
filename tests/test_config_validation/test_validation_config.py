@@ -1,31 +1,21 @@
-
 import yaml
 from buildrunner.validation.config import validate_config, Errors
 
 
 def test_valid_version_config():
     #  Invalid version
-    config = {
-        'version': 'string'
-    }
+    config = {"version": "string"}
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
     assert errors.count() == 1
 
     #  Valid version
-    config = {
-        'version': 2.0,
-        'steps': {
-        }
-    }
+    config = {"version": 2.0, "steps": {}}
     errors = validate_config(**config)
     assert errors is None
 
     # Optional version
-    config = {
-        'steps': {
-        }
-    }
+    config = {"steps": {}}
     errors = validate_config(**config)
     assert errors is None
 

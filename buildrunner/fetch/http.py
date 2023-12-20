@@ -12,4 +12,4 @@ def fetch_file(parsed_url, config):
     Fetch files using HTTP.
     """
 
-    raise NotImplementedError('Not Implemented: fetch.http.file_fetch')
+    raise NotImplementedError("Not Implemented: fetch.http.file_fetch")

@@ -1,4 +1,3 @@
-
 import yaml
 
 from buildrunner.validation.config import validate_config

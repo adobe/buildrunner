@@ -39,12 +39,12 @@ from buildrunner.validation.config import validate_config
 
 from . import fetch
 
-MASTER_GLOBAL_CONFIG_FILE = '/etc/buildrunner/buildrunner.yaml'
+MASTER_GLOBAL_CONFIG_FILE = "/etc/buildrunner/buildrunner.yaml"
 DEFAULT_GLOBAL_CONFIG_FILES = [
     MASTER_GLOBAL_CONFIG_FILE,
-    '~/.buildrunner.yaml',
+    "~/.buildrunner.yaml",
 ]
-RESULTS_DIR = 'buildrunner.results'
+RESULTS_DIR = "buildrunner.results"
 
 
 class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
@@ -93,36 +93,46 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         buildrunner_version = None
 
         if not os.path.exists(version_file_path):
-            print(f"WARNING: File {version_file_path} does not exist. This could indicate an error with "
-                  f"the buildrunner installation. Unable to validate version.")
+            print(
+                f"WARNING: File {version_file_path} does not exist. This could indicate an error with "
+                f"the buildrunner installation. Unable to validate version."
+            )
             return
 
-        with open(version_file_path, 'r', encoding='utf-8') as version_file:
+        with open(version_file_path, "r", encoding="utf-8") as version_file:
             for line in version_file.readlines():
-                if '__version__' in line:
+                if "__version__" in line:
                     try:
-                        version_values = line.split('=')[1].strip().replace("'", "").split('.')
+                        version_values = (
+                            line.split("=")[1].strip().replace("'", "").split(".")
+                        )
                         buildrunner_version = f"{version_values[0]}.{version_values[1]}"
                     except IndexError as exception:
-                        raise ConfigVersionFormatError(f"couldn't parse version from \"{line}\"") from exception
+                        raise ConfigVersionFormatError(
+                            f'couldn\'t parse version from "{line}"'
+                        ) from exception
 
         if not buildrunner_version:
             raise BuildRunnerVersionError("unable to determine buildrunner version")
 
         # version is optional and is valid to not have it in the config
-        if 'version' not in config.keys():
+        if "version" not in config.keys():
             return
 
-        config_version = config['version']
+        config_version = config["version"]
 
         try:
             if float(config_version) > float(buildrunner_version):
-                raise ConfigVersionFormatError(f"configuration version {config_version} is higher than "
-                                               f"buildrunner version {buildrunner_version}")
+                raise ConfigVersionFormatError(
+                    f"configuration version {config_version} is higher than "
+                    f"buildrunner version {buildrunner_version}"
+                )
         except ValueError as exception:
-            raise ConfigVersionTypeError(f"unable to convert config version \"{config_version}\" "
-                                         f"or buildrunner version \"{buildrunner_version}\" "
-                                         f"to a float") from exception
+            raise ConfigVersionTypeError(
+                f'unable to convert config version "{config_version}" '
+                f'or buildrunner version "{buildrunner_version}" '
+                f"to a float"
+            ) from exception
 
     @staticmethod
     def _reorder_dependency_steps(config):
@@ -130,13 +140,15 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         Reorders the steps based on the dependencies that are outlined in the config
         """
         # Defines configuration keywords, should add to a config validation class
-        keyword_version = 'version'
-        keyword_steps = 'steps'
-        keyword_depends = 'depends'
+        keyword_version = "version"
+        keyword_steps = "steps"
+        keyword_depends = "depends"
         supported_version = 2.0
 
-        if keyword_version not in config.keys() \
-                or config[keyword_version] < supported_version:
+        if (
+            keyword_version not in config.keys()
+            or config[keyword_version] < supported_version
+        ):
             return config
 
         ordered_steps = OrderedDict()
@@ -150,9 +162,11 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
                     topo_sorter.add(name)
             for step in topo_sorter.static_order():
                 if step not in config[keyword_steps]:
-                    raise KeyError(f"Step '{step}' is not defined and is listed as a step dependency in "
-                                   f"the configuration. "
-                                   f"Please correct the typo or define step '{step}' in the configuration.")
+                    raise KeyError(
+                        f"Step '{step}' is not defined and is listed as a step dependency in "
+                        f"the configuration. "
+                        f"Please correct the typo or define step '{step}' in the configuration."
+                    )
 
                 if keyword_depends in config[keyword_steps][step].keys():
                     del config[keyword_steps][step][keyword_depends]
@@ -164,14 +178,14 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         return config
 
     def __init__(
-            self,
-            build_dir=None,
-            build_results_dir=None,
-            global_config_file=None,
-            log_generated_files=False,
-            build_time=None,
-            env=None,
-            log=None,
+        self,
+        build_dir=None,
+        build_results_dir=None,
+        global_config_file=None,
+        log_generated_files=False,
+        build_time=None,
+        env=None,
+        log=None,
     ):  # pylint: disable=too-many-arguments
         self.build_dir = build_dir
         if build_results_dir:
@@ -195,15 +209,17 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         # load global configuration
         _gc_files = DEFAULT_GLOBAL_CONFIG_FILES[:]
-        _gc_files.append(global_config_file or f'{self.build_dir}/.buildrunner.yaml')
+        _gc_files.append(global_config_file or f"{self.build_dir}/.buildrunner.yaml")
 
-        _global_config_files = self.to_abs_path(
-            _gc_files, return_list=True
+        _global_config_files = self.to_abs_path(_gc_files, return_list=True)
+
+        self.log.write(
+            f"\nGlobal configuration is from: {', '.join(_global_config_files)}\n"
         )
-
-        self.log.write(f"\nGlobal configuration is from: {', '.join(_global_config_files)}\n")
         self.global_config = {}
-        self.global_config = self._load_config_files(_global_config_files, log_file=False)
+        self.global_config = self._load_config_files(
+            _global_config_files, log_file=False
+        )
 
     def get(self, name, default=None):
         """
@@ -228,9 +244,9 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         Conditionally log the contents of a generated file.
         """
         if self.log_generated_files:
-            self.log.write(f'Generated contents of {file_name}:\n')
+            self.log.write(f"Generated contents of {file_name}:\n")
             for line in file_contents.splitlines():
-                self.log.write(f'{line}\n')
+                self.log.write(f"{line}\n")
 
     def _read_yaml_file(self, filename):
         """
@@ -238,7 +254,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         YAML and returns the contents.
         Throws an error on failure.
         """
-        with codecs.open(filename, 'r', encoding='utf-8') as _file:
+        with codecs.open(filename, "r", encoding="utf-8") as _file:
             jtemplate = jinja2.Template(_file.read())
         context = copy.deepcopy(self.env)
         file_contents = jtemplate.render(context)
@@ -262,7 +278,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         cfg_files = cfg_files or []
 
         username = getpass.getuser()
-        homedir = os.path.expanduser('~')
+        homedir = os.path.expanduser("~")
 
         context = ctx or {}
         for cfg in cfg_files:
@@ -278,37 +294,37 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
                 # are dropped.
                 if cfg_path != MASTER_GLOBAL_CONFIG_FILE:
                     scrubbed_local_files = {}
-                    for fname, fpath in list(ctx.get('local-files', {}).items()):
+                    for fname, fpath in list(ctx.get("local-files", {}).items()):
                         if not isinstance(fpath, str):
                             self.log.write(
                                 f'Bad "local-files" entry in {cfg_path!r}:\n'
-                                f'    {fname!r}: {fpath!r}\n'
+                                f"    {fname!r}: {fpath!r}\n"
                             )
                             continue
                         resolved_path = os.path.realpath(os.path.expanduser(fpath))
                         # pylint: disable=too-many-boolean-expressions
                         if (
-                                username == 'root'
-                                or resolved_path == homedir
-                                or resolved_path.startswith(homedir + os.path.sep)
-                                or os.stat(resolved_path).st_uid == os.getuid()
-                                or (
-                                    not os.path.isdir(resolved_path)
-                                    and os.access(resolved_path, os.R_OK | os.W_OK)
-                                )
+                            username == "root"
+                            or resolved_path == homedir
+                            or resolved_path.startswith(homedir + os.path.sep)
+                            or os.stat(resolved_path).st_uid == os.getuid()
+                            or (
+                                not os.path.isdir(resolved_path)
+                                and os.access(resolved_path, os.R_OK | os.W_OK)
+                            )
                         ):
                             scrubbed_local_files[fname] = resolved_path
                         else:
                             self.log.write(
                                 f'Bad "local-files" entry in {cfg_path!r}:\n'
-                                f'    User {username!r} is not allowed to mount {resolved_path!r}.\n'
-                                f'    You may need an entry in {MASTER_GLOBAL_CONFIG_FILE!r}.\n'
+                                f"    User {username!r} is not allowed to mount {resolved_path!r}.\n"
+                                f"    You may need an entry in {MASTER_GLOBAL_CONFIG_FILE!r}.\n"
                             )
-                    ctx['local-files'] = scrubbed_local_files
+                    ctx["local-files"] = scrubbed_local_files
 
                 context.update(ctx)
 
-        context.update({'CONFIG_FILES': cfg_files})
+        context.update({"CONFIG_FILES": cfg_files})
 
         return context
 
@@ -326,27 +342,31 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         while True:
             visited.add(fetch_file)
             contents = fetch.fetch_file(fetch_file, self.global_config)
-            jenv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'), extensions=['jinja2.ext.do'])
-            jenv.filters['hash_sha1'] = hash_sha1
-            jenv.filters['base64encode'] = base64.encode
-            jenv.filters['base64decode'] = base64.decode
-            jenv.filters['re_sub'] = self._re_sub_filter
-            jenv.filters['re_split'] = self._re_split_filter
+            jenv = jinja2.Environment(
+                loader=jinja2.FileSystemLoader("."), extensions=["jinja2.ext.do"]
+            )
+            jenv.filters["hash_sha1"] = hash_sha1
+            jenv.filters["base64encode"] = base64.encode
+            jenv.filters["base64decode"] = base64.decode
+            jenv.filters["re_sub"] = self._re_sub_filter
+            jenv.filters["re_split"] = self._re_split_filter
 
             jenv.globals.update(checksum=checksum)
             jtemplate = jenv.from_string(contents)
 
             config_context = copy.deepcopy(self.env)
-            config_context.update({
-                'CONFIG_FILE': cfg_file,
-                'CONFIG_DIR': os.path.dirname(cfg_file),
-                # This is stored after the initial env is set
-                'DOCKER_REGISTRY': self.get_docker_registry(),
-                'read_yaml_file': self._read_yaml_file,
-                'raise': self._raise_exception_jinja,
-                'strftime': self._strftime,
-                'env': os.environ,
-            })
+            config_context.update(
+                {
+                    "CONFIG_FILE": cfg_file,
+                    "CONFIG_DIR": os.path.dirname(cfg_file),
+                    # This is stored after the initial env is set
+                    "DOCKER_REGISTRY": self.get_docker_registry(),
+                    "read_yaml_file": self._read_yaml_file,
+                    "raise": self._raise_exception_jinja,
+                    "strftime": self._strftime,
+                    "env": os.environ,
+                }
+            )
 
             if ctx:
                 config_context.update(ctx)
@@ -359,7 +379,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
             if not config:
                 break
 
-            redirect = config.get('redirect')
+            redirect = config.get("redirect")
             if redirect is None:
                 break
 
@@ -372,14 +392,17 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         if config:
             self._validate_version(
                 config=config,
-                version_file_path=f"{os.path.dirname(os.path.realpath(__file__))}/version.py")
+                version_file_path=f"{os.path.dirname(os.path.realpath(__file__))}/version.py",
+            )
 
             config = self._reorder_dependency_steps(config)
 
             errors = validate_config(**config)
             if errors:
-                raise BuildRunnerConfigurationError(f'Invalid configuration, {errors.count()} error(s) found:'
-                                                    f'\n{errors}')
+                raise BuildRunnerConfigurationError(
+                    f"Invalid configuration, {errors.count()} error(s) found:"
+                    f"\n{errors}"
+                )
 
         return config
 
@@ -390,16 +413,19 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         * Global configuration property
         * Configured system temp directory
         """
-        return os.getenv('BUILDRUNNER_TEMPDIR', self.global_config.get('temp-dir', tempfile.gettempdir()))
+        return os.getenv(
+            "BUILDRUNNER_TEMPDIR",
+            self.global_config.get("temp-dir", tempfile.gettempdir()),
+        )
 
     def get_docker_registry(self):
         """
         Default to docker.io if none is configured
         """
-        return self.global_config.get('docker-registry', 'docker.io')
+        return self.global_config.get("docker-registry", "docker.io")
 
     def get_docker_build_cache_config(self) -> Optional[dict]:
-        return self.global_config.get('docker-build-cache', {})
+        return self.global_config.get("docker-build-cache", {})
 
     def to_abs_path(self, path, return_list=False):
         """

@@ -4,36 +4,46 @@
 #
 #    pip-compile test_requirements.in
 #
-astroid==2.15.5
-    # via pylint
+attrs==23.1.0
+    # via
+    #   cattrs
+    #   lsprotocol
+cattrs==23.2.3
+    # via lsprotocol
+cfgv==3.4.0
+    # via pre-commit
 coverage[toml]==7.2.7
     # via pytest-cov
-dill==0.3.6
-    # via pylint
+distlib==0.3.8
+    # via virtualenv
 execnet==1.9.0
     # via pytest-xdist
+filelock==3.13.1
+    # via virtualenv
 graphlib-backport==1.0.3
     # via -r test_requirements.in
+identify==2.5.33
+    # via pre-commit
 iniconfig==2.0.0
     # via pytest
-isort==5.12.0
-    # via pylint
-lazy-object-proxy==1.9.0
-    # via astroid
-mccabe==0.7.0
-    # via pylint
+lsprotocol==2023.0.0
+    # via
+    #   pygls
+    #   ruff-lsp
+nodeenv==1.8.0
+    # via pre-commit
 packaging==23.1
-    # via pytest
+    # via
+    #   pytest
+    #   ruff-lsp
 platformdirs==3.5.1
-    # via pylint
+    # via virtualenv
 pluggy==1.0.0
     # via pytest
-pycodestyle==2.10.0
+pre-commit==3.6.0
     # via -r test_requirements.in
-pylint==2.17.4
-    # via -r test_requirements.in
-pylintfileheader==0.3.2
-    # via -r test_requirements.in
+pygls==1.2.1
+    # via ruff-lsp
 pytest==7.3.1
     # via
     #   -r test_requirements.in
@@ -46,7 +56,18 @@ pytest-randomly==3.12.0
     # via -r test_requirements.in
 pytest-xdist==3.3.1
     # via -r test_requirements.in
-tomlkit==0.11.8
-    # via pylint
-wrapt==1.15.0
-    # via astroid
+pyyaml==6.0.1
+    # via pre-commit
+ruff==0.1.8
+    # via
+    #   -r test_requirements.in
+    #   ruff-lsp
+ruff-lsp==0.0.48
+    # via -r test_requirements.in
+typing-extensions==4.9.0
+    # via ruff-lsp
+virtualenv==20.24.1
+    # via pre-commit
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

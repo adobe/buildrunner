@@ -29,7 +29,14 @@ PUSH_TIMEOUT = 300
 
 class ImageInfo:
     """Image information repo with associated tags"""
-    def __init__(self, repo: str, tags: List[str] = None, platform: str = None, digest: str = None,):
+
+    def __init__(
+        self,
+        repo: str,
+        tags: List[str] = None,
+        platform: str = None,
+        digest: str = None,
+    ):
         """
         Args:
             repo (str): The repo name for the image.
@@ -90,6 +97,7 @@ class ImageInfo:
 
 class RegistryInfo:
     """Registry information"""
+
     def __init__(self, name: str, ip_addr: str, port: int):
         self._name = name
         self._ip_addr = ip_addr
@@ -124,16 +132,16 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     # pylint: disable=too-many-arguments
     def __init__(
-            self,
-            docker_registry: Optional[str] = None,
-            use_local_registry: bool = True,
-            cleanup_images: bool = False,
-            temp_dir: str = os.getcwd(),
-            disable_multi_platform: bool = False,
-            platform_builders: Optional[Dict[str, str]] = None,
-            cache_builders: Optional[List[str]] = None,
-            cache_from: Optional[Union[dict, str]] = None,
-            cache_to: Optional[Union[dict, str]] = None,
+        self,
+        docker_registry: Optional[str] = None,
+        use_local_registry: bool = True,
+        cleanup_images: bool = False,
+        temp_dir: str = os.getcwd(),
+        disable_multi_platform: bool = False,
+        platform_builders: Optional[Dict[str, str]] = None,
+        cache_builders: Optional[List[str]] = None,
+        cache_from: Optional[Union[dict, str]] = None,
+        cache_to: Optional[Union[dict, str]] = None,
     ):
         self._docker_registry = docker_registry
         self._mp_registry_info = None
@@ -215,21 +223,24 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         """
         if not self._local_registry_is_running:
             LOGGER.debug("Starting local docker registry")
-            image = 'registry'
+            image = "registry"
             if self._docker_registry:
-                image = f'{self._docker_registry}/{image}'
+                image = f"{self._docker_registry}/{image}"
             container = docker.run(image, detach=True, publish_all=True)
             ports = container.network_settings.ports
 
             # If any assert fails something changed in the registry image and we need to update this code
-            assert len(ports) == 1, \
-                f"Expected 1 port, but got {len(ports)}"
-            assert isinstance(ports.get("5000/tcp")[0], dict), \
-                f"Expected dict, but got {type(ports.get('5000/tcp')[0])}"
-            assert ports.get("5000/tcp")[0].get('HostIp') == "0.0.0.0", \
-                f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
+            assert len(ports) == 1, f"Expected 1 port, but got {len(ports)}"
+            assert isinstance(
+                ports.get("5000/tcp")[0], dict
+            ), f"Expected dict, but got {type(ports.get('5000/tcp')[0])}"
+            assert (
+                ports.get("5000/tcp")[0].get("HostIp") == "0.0.0.0"
+            ), f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
 
-            self._mp_registry_info = RegistryInfo(container.name, "localhost", ports.get("5000/tcp")[0].get("HostPort"))
+            self._mp_registry_info = RegistryInfo(
+                container.name, "localhost", ports.get("5000/tcp")[0].get("HostPort")
+            )
             self._local_registry_is_running = True
             LOGGER.debug(f"Started local registry {self._mp_registry_info}")
         else:
@@ -240,51 +251,59 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         Stops and removes the local registry along with any images
         """
         if self._local_registry_is_running:
-            LOGGER.debug(f"Stopping and removing local registry {self._mp_registry_info}")
+            LOGGER.debug(
+                f"Stopping and removing local registry {self._mp_registry_info}"
+            )
             try:
                 docker.remove(self._mp_registry_info.name, volumes=True, force=True)
             except python_on_whales.exceptions.NoSuchContainer as err:
-                LOGGER.error(f"Failed to stop and remove local registry {self._mp_registry_info.name}: {err}")
+                LOGGER.error(
+                    f"Failed to stop and remove local registry {self._mp_registry_info.name}: {err}"
+                )
             self._local_registry_is_running = False
         else:
             LOGGER.warning("Local registry is not running when attempting to stop it")
 
     def _get_build_cache_options(self, builder: Optional[str]) -> dict:
         cache_options = {
-            'cache_from': self._cache_from,
-            'cache_to': self._cache_to,
+            "cache_from": self._cache_from,
+            "cache_to": self._cache_to,
         }
         # If there are no configured cache builders, always return the cache options
         if not self._cache_builders:
             return cache_options
 
         # If there are cache builders configured, make sure the current builder is in it
-        actual_builder = builder or 'default'
+        actual_builder = builder or "default"
         return cache_options if actual_builder in self._cache_builders else {}
 
     # pylint: disable=too-many-arguments,too-many-locals
     def _build_with_inject(
-            self,
-            inject: dict,
-            tagged_names: List[str],
-            platform: str,
-            path: str,
-            file: str,
-            build_args: dict,
-            builder: Optional[str],
-            cache: bool = False,
-            pull: bool = False,
+        self,
+        inject: dict,
+        tagged_names: List[str],
+        platform: str,
+        path: str,
+        file: str,
+        build_args: dict,
+        builder: Optional[str],
+        cache: bool = False,
+        pull: bool = False,
     ) -> None:
-
         if not path or not os.path.isdir(path):
-            LOGGER.warning(f"Failed to inject {inject} for {tagged_names} since path {path} isn't a directory.")
+            LOGGER.warning(
+                f"Failed to inject {inject} for {tagged_names} since path {path} isn't a directory."
+            )
             return
 
-        dir_prefix = 'mp-tmp-dir'
-        with tempfile.TemporaryDirectory(dir=self._temp_dir, prefix=dir_prefix) as tmp_dir:
-
-            context_dir = os.path.join(tmp_dir, f'{dir_prefix}/')
-            shutil.copytree(path, context_dir, ignore=shutil.ignore_patterns(dir_prefix, '.git'))
+        dir_prefix = "mp-tmp-dir"
+        with tempfile.TemporaryDirectory(
+            dir=self._temp_dir, prefix=dir_prefix
+        ) as tmp_dir:
+            context_dir = os.path.join(tmp_dir, f"{dir_prefix}/")
+            shutil.copytree(
+                path, context_dir, ignore=shutil.ignore_patterns(dir_prefix, ".git")
+            )
 
             for src, dest in inject.items():
                 src_path = os.path.join(path, src)
@@ -300,7 +319,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 else:
                     shutil.copy(src_path, dest_path)
 
-            assert os.path.isdir(context_dir), f"Failed to create context dir {context_dir}"
+            assert os.path.isdir(
+                context_dir
+            ), f"Failed to create context dir {context_dir}"
 
             docker.buildx.build(
                 context_dir,
@@ -316,24 +337,27 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             )
 
     # pylint: disable=too-many-arguments
-    @retry(python_on_whales.exceptions.DockerException,
-           tries=5,
-           delay=1,
-           backoff=3,
-           max_delay=30,
-           logger=LOGGER)
+    @retry(
+        python_on_whales.exceptions.DockerException,
+        tries=5,
+        delay=1,
+        backoff=3,
+        max_delay=30,
+        logger=LOGGER,
+    )
     def _build_single_image(
-            self,
-            name: str,
-            platform: str,
-            path: str,
-            file: str,
-            tags: List[str],
-            build_args: dict,
-            mp_image_name: str,
-            inject: dict,
-            cache: bool = False,
-            pull: bool = False,) -> None:
+        self,
+        name: str,
+        platform: str,
+        path: str,
+        file: str,
+        tags: List[str],
+        build_args: dict,
+        mp_image_name: str,
+        inject: dict,
+        cache: bool = False,
+        pull: bool = False,
+    ) -> None:
         """
         Builds a single image for the given platform
 
@@ -347,14 +371,19 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             mp_image_name (str): The multi-platform name of the image.
             inject (dict): The files to inject into the build context.
         """
-        assert os.path.isdir(path) and os.path.exists(f"{file}"), \
-            f"Either path {path}({os.path.isdir(path)}) or file " \
+        assert os.path.isdir(path) and os.path.exists(f"{file}"), (
+            f"Either path {path}({os.path.isdir(path)}) or file "
             f"'{file}'({os.path.exists(f'{file}')}) does not exist!"
+        )
 
         tagged_names = [f"{name}:{tag}" for tag in tags]
-        builder = self._platform_builders.get(platform) if self._platform_builders else None
+        builder = (
+            self._platform_builders.get(platform) if self._platform_builders else None
+        )
         LOGGER.debug(f"Building tagged images {tagged_names}")
-        print(f"Building image for platform {platform} with {builder or 'default'} builder")
+        print(
+            f"Building image for platform {platform} with {builder or 'default'} builder"
+        )
 
         if inject and isinstance(inject, dict):
             self._build_with_inject(
@@ -402,18 +431,22 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 LOGGER.error(f"Failed to build {tag_name}: {err}")
                 raise err
 
-        self._intermediate_built_images[mp_image_name].append(ImageInfo(
-            repo=name,
-            tags=tags,
-            platform=platform,
-            digest=image_id,
-        ))
+        self._intermediate_built_images[mp_image_name].append(
+            ImageInfo(
+                repo=name,
+                tags=tags,
+                platform=platform,
+                digest=image_id,
+            )
+        )
 
     def get_single_platform_to_build(self, platforms: List[str]) -> str:
-        """ Returns the platform to build for single platform flag """
+        """Returns the platform to build for single platform flag"""
 
         assert isinstance(platforms, list), f"Expected list, but got {type(platforms)}"
-        assert len(platforms) > 0, f"Expected at least one platform, but got {len(platforms)}"
+        assert (
+            len(platforms) > 0
+        ), f"Expected at least one platform, but got {len(platforms)}"
 
         host_system = system()
         host_machine = machine()
@@ -432,17 +465,17 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     # pylint: disable=too-many-locals
     def build_multiple_images(
-            self,
-            platforms: List[str],
-            path: str = ".",
-            file: str = "Dockerfile",
-            mp_image_name: str = None,
-            tags: List[str] = None,
-            do_multiprocessing: bool = True,
-            build_args: dict = None,
-            inject: dict = None,
-            cache: bool = False,
-            pull: bool = False,
+        self,
+        platforms: List[str],
+        path: str = ".",
+        file: str = "Dockerfile",
+        mp_image_name: str = None,
+        tags: List[str] = None,
+        do_multiprocessing: bool = True,
+        build_args: dict = None,
+        inject: dict = None,
+        cache: bool = False,
+        pull: bool = False,
     ) -> List[ImageInfo]:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
@@ -464,6 +497,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             List[ImageInfo]: The list of intermediate built images, these images are ephemeral
             and will be removed when the builder is garbage collected
         """
+
         def get_path(file):
             if os.path.exists(file):
                 return os.path.dirname(file)
@@ -471,7 +505,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         if build_args is None:
             build_args = {}
-        build_args['DOCKER_REGISTRY'] = self._docker_registry
+        build_args["DOCKER_REGISTRY"] = self._docker_registry
 
         # It is not valid to pass None for the path when building multi-platform images
         if not path:
@@ -479,7 +513,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         dockerfile, cleanup_dockerfile = get_dockerfile(file)
 
-        LOGGER.debug(f"Building {mp_image_name}:{tags} for platforms {platforms} from {dockerfile}")
+        LOGGER.debug(
+            f"Building {mp_image_name}:{tags} for platforms {platforms} from {dockerfile}"
+        )
 
         if self._use_local_registry and not self._local_registry_is_running:
             # Starts local registry container to do ephemeral image storage
@@ -537,10 +573,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             )
             LOGGER.debug(f"Building {platform_image_name} for {platform}")
             if do_multiprocessing:
-                processes.append(Process(
-                    target=self._build_single_image,
-                    args=build_single_image_args,
-                ))
+                processes.append(
+                    Process(
+                        target=self._build_single_image,
+                        args=build_single_image_args,
+                    )
+                )
             else:
                 self._build_single_image(*build_single_image_args)
 
@@ -569,7 +607,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         Raises:
             TimeoutError: If the image fails to push within the timeout
         """
-        LOGGER.info(f'Pushing sources {src_names} to tags {tag_names}')
+        LOGGER.info(f"Pushing sources {src_names} to tags {tag_names}")
         docker.buildx.imagetools.create(sources=src_names, tags=tag_names)
 
     def push(self, name: str, dest_names: List[str] = None) -> List[str]:
@@ -611,7 +649,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         timeout_seconds = initial_timeout_seconds
         while retries > 0:
             retries -= 1
-            LOGGER.debug(f"Creating manifest list {name} with timeout {timeout_seconds} seconds")
+            LOGGER.debug(
+                f"Creating manifest list {name} with timeout {timeout_seconds} seconds"
+            )
             try:
                 # Push each tag individually in order to prevent strange errors with multiple matching tags
                 for tag_name in tagged_names:
@@ -620,10 +660,14 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 LOGGER.info(f"Successfully created multiplatform images {dest_names}")
                 break
             except Exception as exc:  # pylint: disable=broad-exception-caught
-                LOGGER.warning(f"Caught exception while pushing images, retrying: {exc}")
+                LOGGER.warning(
+                    f"Caught exception while pushing images, retrying: {exc}"
+                )
             if retries == 0:
-                raise TimeoutError(f"Timeout pushing {dest_names} after {retries} retries"
-                                   f" and {timeout_seconds} seconds each try")
+                raise TimeoutError(
+                    f"Timeout pushing {dest_names} after {retries} retries"
+                    f" and {timeout_seconds} seconds each try"
+                )
             timeout_seconds += timeout_step_seconds
 
             # Cap timeout at max timeout
@@ -646,19 +690,31 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         pattern = f"{host_os}-{host_arch}"
 
         # No images built for this name
-        if name not in self._intermediate_built_images.keys() \
-           or self._intermediate_built_images[name] == []:  # pylint: disable=consider-iterating-dictionary
+        if (
+            name not in self._intermediate_built_images.keys()
+            or self._intermediate_built_images[name] == []
+        ):  # pylint: disable=consider-iterating-dictionary
             return None
 
-        match_platform = [image for image in self._intermediate_built_images[name] if image.repo.endswith(pattern)]
+        match_platform = [
+            image
+            for image in self._intermediate_built_images[name]
+            if image.repo.endswith(pattern)
+        ]
 
         # No matches found, change os
         if not match_platform:
             if host_os == "Darwin":
                 pattern = f"linux-{host_arch}"
-            match_platform = [image for image in self._intermediate_built_images[name] if image.repo.endswith(pattern)]
+            match_platform = [
+                image
+                for image in self._intermediate_built_images[name]
+                if image.repo.endswith(pattern)
+            ]
 
-        assert len(match_platform) <= 1, f"Found more than one match for {name} and {pattern}: {match_platform}"
+        assert (
+            len(match_platform) <= 1
+        ), f"Found more than one match for {name} and {pattern}: {match_platform}"
 
         # Still no matches found, get the first image
         if not match_platform:
@@ -666,7 +722,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         return match_platform[0]
 
-    def tag_single_platform(self, name: str, tags: List[str] = None,  dest_name: str = None) -> None:
+    def tag_single_platform(
+        self, name: str, tags: List[str] = None, dest_name: str = None
+    ) -> None:
         """
         Loads a single platform image into the host registry. If a matching image to the native platform
         is not found, then the first image is loaded.

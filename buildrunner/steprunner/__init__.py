@@ -11,22 +11,23 @@ import traceback
 import uuid
 
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
-from buildrunner.errors import (BuildRunnerConfigurationError,
-                                BuildRunnerError)
+from buildrunner.errors import BuildRunnerConfigurationError, BuildRunnerError
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
-from buildrunner.steprunner.tasks.push import (CommitBuildStepRunnerTask,
-                                               PushBuildStepRunnerTask)
+from buildrunner.steprunner.tasks.push import (
+    CommitBuildStepRunnerTask,
+    PushBuildStepRunnerTask,
+)
 from buildrunner.steprunner.tasks.pypipush import PypiPushBuildStepRunnerTask
 from buildrunner.steprunner.tasks.remote import RemoteBuildStepRunnerTask
 from buildrunner.steprunner.tasks.run import RunBuildStepRunnerTask
 
 TASK_MAPPINGS = {
-    'remote': RemoteBuildStepRunnerTask,
-    'build': BuildBuildStepRunnerTask,
-    'run': RunBuildStepRunnerTask,
-    'push': PushBuildStepRunnerTask,
-    'commit': CommitBuildStepRunnerTask,
-    'pypi-push': PypiPushBuildStepRunnerTask,
+    "remote": RemoteBuildStepRunnerTask,
+    "build": BuildBuildStepRunnerTask,
+    "run": RunBuildStepRunnerTask,
+    "push": PushBuildStepRunnerTask,
+    "commit": CommitBuildStepRunnerTask,
+    "pypi-push": PypiPushBuildStepRunnerTask,
 }
 
 
@@ -44,12 +45,14 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
             self.local_images = local_images
             self.platform = platform
 
-    def __init__(self,  # pylint: disable=too-many-arguments
-                 build_runner,
-                 step_name,
-                 step_config,
-                 image_config,
-                 multi_platform: MultiplatformImageBuilder):
+    def __init__(
+        self,  # pylint: disable=too-many-arguments
+        build_runner,
+        step_name,
+        step_config,
+        image_config,
+        multi_platform: MultiplatformImageBuilder,
+    ):
         """
         Constructor.
         """
@@ -87,23 +90,25 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         _context = {}
         try:
             for _task_name, _task_config in self.config.items():
-                self.log.write(f'==> Running step: {self.name}:{_task_name}\n')
+                self.log.write(f"==> Running step: {self.name}:{_task_name}\n")
                 if _task_name in TASK_MAPPINGS:
                     if self.local_images:
-                        _task_config['pull'] = False
+                        _task_config["pull"] = False
                     if self.platform:
-                        _task_config['platform'] = self.platform
+                        _task_config["platform"] = self.platform
                     _task = TASK_MAPPINGS[_task_name](self, _task_config)
                     _tasks.append(_task)
                     try:
                         _task.run(_context)
                     except BuildRunnerError as err:
-                        if not isinstance(_task_config, dict) or not _task_config.get('xfail', False):
+                        if not isinstance(_task_config, dict) or not _task_config.get(
+                            "xfail", False
+                        ):
                             raise
 
                         self.log.write(
                             f'Step "{self.name}" failed with exception: {err}\n    '
-                            f'Ignoring due to XFAIL\n'
+                            f"Ignoring due to XFAIL\n"
                         )
                 else:
                     raise BuildRunnerConfigurationError(
@@ -114,5 +119,5 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
                 try:
                     _task.cleanup(_context)
                 except Exception:  # pylint: disable=broad-except
-                    self.log.write('\nError cleaning up task:\n')
+                    self.log.write("\nError cleaning up task:\n")
                     traceback.print_exc(file=self.log)
