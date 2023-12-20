@@ -29,7 +29,8 @@ RUN                                                              \
     python3 -m pip install -U pip &&                             \
     sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
     python3 -m pip install                                       \
-        -r requirements.txt                                      \
+        -r requirements.txt &&                                   \
+    python3 -m pip install                                       \
         -r test_requirements.txt &&                              \
     python3 setup.py install &&                                  \
     rm -rf /buildrunner-source
