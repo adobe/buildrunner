@@ -5,4 +5,5 @@ pytest-xdist>=2.4.0
 graphlib-backport>=1.0.3
 ruff>=0.1.7
 ruff-lsp>=0.0.45
-pre-commit
+# Python 3.8 only supports up to 3.5.0
+pre-commit<3.6
