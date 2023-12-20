@@ -24,22 +24,25 @@ def fetch_file(url, config):
 
     parsed_url = urllib.parse.urlparse(url)
 
-    if parsed_url.scheme == 'github':
+    if parsed_url.scheme == "github":
         file_contents = github.fetch_file(parsed_url, config)
 
-    elif parsed_url.scheme == 'file' or (parsed_url.scheme == '' and parsed_url.netloc == ''):
+    elif parsed_url.scheme == "file" or (
+        parsed_url.scheme == "" and parsed_url.netloc == ""
+    ):
         purl = list(parsed_url)
-        purl[0] = 'file'
+        purl[0] = "file"
         parsed_url = urllib.parse.ParseResult(*purl)
         file_contents = file.fetch_file(parsed_url, config)
 
-    elif parsed_url.scheme in ('http', 'https'):
+    elif parsed_url.scheme in ("http", "https"):
         file_contents = http.fetch_file(parsed_url, config)
 
     else:
-        raise NotImplementedError(f'Unknown fetch backend: {parsed_url.scheme}')
+        raise NotImplementedError(f"Unknown fetch backend: {parsed_url.scheme}")
 
     return file_contents
+
 
 # Local Variables:
 # fill-column: 100

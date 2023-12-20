@@ -43,6 +43,7 @@ class BuildRunnerCacheTimeout(Exception):
     """
     Exception which is raised when there is a timeout issue related to caching.
     """
+
     pass
 
 
@@ -56,6 +57,7 @@ class DockerRunner:
         """
         An object that captures image-specific configuration
         """
+
         def __init__(self, image_name, pull_image=True, platform=None):
             self.image_name = image_name
             self.pull_image = pull_image
@@ -69,7 +71,9 @@ class DockerRunner:
         self.image_name = image_name.lower()
         self.platform = platform
         if log and self.image_name != image_name:
-            log.write(f'Forcing image_name to lowercase: {image_name} => {self.image_name}\n')
+            log.write(
+                f"Forcing image_name to lowercase: {image_name} => {self.image_name}\n"
+            )
         self.docker_client = new_client(
             dockerd_url=dockerd_url,
             # Disable timeouts for running commands
@@ -86,14 +90,17 @@ class DockerRunner:
         # Pull all images to ensure we get the hashes for intermediate images
         found_image = False
         for image in self.docker_client.images(all=True):
-            if image["Id"].startswith("sha256:" + self.image_name) or image["Id"] == self.image_name:
+            if (
+                image["Id"].startswith("sha256:" + self.image_name)
+                or image["Id"] == self.image_name
+            ):
                 # If the image name is simply a hash, it refers to an intermediate
                 # or imported image.  We don't want to "pull" these, as the hash
                 # won't exist as a valid upstream repoistory/image
                 found_image = True
                 pull_image = False
             else:
-                for tag in image['RepoTags'] or []:
+                for tag in image["RepoTags"] or []:
                     if tag == self.image_name:
                         found_image = True
                         break
@@ -103,38 +110,40 @@ class DockerRunner:
 
         if pull_image or not found_image:
             if log:
-                log.write(f'Pulling image {self.image_name}\n')
-            for data in self.docker_client.pull(self.image_name, stream=True, decode=True, platform=self.platform):
+                log.write(f"Pulling image {self.image_name}\n")
+            for data in self.docker_client.pull(
+                self.image_name, stream=True, decode=True, platform=self.platform
+            ):
                 # Unused variable (see comment below about interactive mode)
                 _ = data
                 if log:
-                    log.write('.')
+                    log.write(".")
                     # If we implement an interactive mode, this could be used instead
                     # line = data.get('progress', data.get('status')) or '...'
                     # log.write(f'\r{line:<80}')
             if log:
-                log.write('\nImage pulled successfully\n')
+                log.write("\nImage pulled successfully\n")
 
     def start(
-            self,
-            shell='/bin/sh',
-            working_dir=None,
-            name=None,
-            volumes=None,
-            volumes_from=None,
-            links=None,
-            ports=None,
-            provisioners=None,
-            environment=None,
-            user=None,
-            hostname=None,
-            dns=None,
-            dns_search=None,
-            extra_hosts=None,
-            containers=None,
-            systemd=None,
-            cap_add=None,
-            privileged=False,
+        self,
+        shell="/bin/sh",
+        working_dir=None,
+        name=None,
+        volumes=None,
+        volumes_from=None,
+        links=None,
+        ports=None,
+        provisioners=None,
+        environment=None,
+        user=None,
+        hostname=None,
+        dns=None,
+        dns_search=None,
+        extra_hosts=None,
+        containers=None,
+        systemd=None,
+        cap_add=None,
+        privileged=False,
     ):  # pylint: disable=too-many-arguments,too-many-locals
         """
         Kwargs:
@@ -142,7 +151,7 @@ class DockerRunner:
                           path (value)
         """
         if self.container:
-            raise BuildRunnerContainerError('Container already started')
+            raise BuildRunnerContainerError("Container already started")
         self.shell = shell
 
         # save any spawned containers
@@ -167,14 +176,14 @@ class DockerRunner:
             for key, value in volumes.items():
                 to_bind = value
                 _ro = False
-                if to_bind.rfind(':') > 0:
-                    tokens = to_bind.rsplit(':', 1)
+                if to_bind.rfind(":") > 0:
+                    tokens = to_bind.rsplit(":", 1)
                     to_bind = tokens[0]
-                    _ro = tokens[1] == 'ro'
+                    _ro = tokens[1] == "ro"
                 _volumes.append(to_bind)
                 _binds[key] = {
-                    'bind': to_bind,
-                    'ro': _ro,
+                    "bind": to_bind,
+                    "ro": _ro,
                 }
 
         # prepare ports
@@ -184,20 +193,20 @@ class DockerRunner:
 
         # check args
         if dns_search and isinstance(dns_search, six.string_types):
-            dns_search = dns_search.split(',')
+            dns_search = dns_search.split(",")
 
         kwargs = {
-            'name': name,
-            'command': command,
-            'volumes': _volumes,
-            'ports': _port_list,
-            'stdin_open': True,
-            'tty': True,
-            'environment': environment,
-            'user': user,
-            'working_dir': working_dir,
-            'hostname': hostname,
-            'host_config': self.docker_client.create_host_config(
+            "name": name,
+            "command": command,
+            "volumes": _volumes,
+            "ports": _port_list,
+            "stdin_open": True,
+            "tty": True,
+            "environment": environment,
+            "user": user,
+            "working_dir": working_dir,
+            "hostname": hostname,
+            "host_config": self.docker_client.create_host_config(
                 binds=_binds,
                 links=links,
                 port_bindings=ports,
@@ -207,16 +216,16 @@ class DockerRunner:
                 extra_hosts=extra_hosts,
                 security_opt=security_opt,
                 cap_add=cap_add,
-                privileged=privileged
-            )
+                privileged=privileged,
+            ),
         }
 
-        if compare_version('1.10', self.docker_client.api_version) < 0:
-            kwargs['dns'] = dns
+        if compare_version("1.10", self.docker_client.api_version) < 0:
+            kwargs["dns"] = dns
 
         # start the container
         self.container = self.docker_client.create_container(self.image_name, **kwargs)
-        self.docker_client.start(self.container['Id'])
+        self.docker_client.start(self.container["Id"])
 
         # run any supplied provisioners
         if provisioners:
@@ -227,7 +236,7 @@ class DockerRunner:
                     self.cleanup()
                     raise ex
 
-        return self.container['Id']
+        return self.container["Id"]
 
     def stop(self):
         """
@@ -235,7 +244,7 @@ class DockerRunner:
         """
         if self.container:
             self.docker_client.stop(
-                self.container['Id'],
+                self.container["Id"],
                 timeout=0,
             )
 
@@ -250,23 +259,26 @@ class DockerRunner:
                 except docker.errors.NotFound:
                     try:
                         container_ids = self.docker_client.containers(
-                            filters={'label': container},
-                            quiet=True
+                            filters={"label": container}, quiet=True
                         )
                         if container_ids:
                             for container_id in container_ids:
                                 self.docker_client.remove_container(
-                                    container_id['Id'],
+                                    container_id["Id"],
                                     force=True,
                                     v=True,
                                 )
                         else:
-                            print(f'Unable to find docker container with name or label "{container}"')
+                            print(
+                                f'Unable to find docker container with name or label "{container}"'
+                            )
                     except docker.errors.NotFound:
-                        print(f'Unable to find docker container with name or label "{container}"')
+                        print(
+                            f'Unable to find docker container with name or label "{container}"'
+                        )
 
             self.docker_client.remove_container(
-                self.container['Id'],
+                self.container["Id"],
                 force=True,
                 v=True,
             )
@@ -275,10 +287,12 @@ class DockerRunner:
 
     @staticmethod
     def _get_cache_file_from_prefix(
-            logger: ContainerLogger, local_cache_archive_file: str, docker_path: str
+        logger: ContainerLogger, local_cache_archive_file: str, docker_path: str
     ) -> Optional[str]:
         if os.path.exists(local_cache_archive_file):
-            logger.write(f"Using cache {local_cache_archive_file} for destination path {docker_path}\n")
+            logger.write(
+                f"Using cache {local_cache_archive_file} for destination path {docker_path}\n"
+            )
             return local_cache_archive_file
         cache_dir = os.path.dirname(local_cache_archive_file)
 
@@ -326,14 +340,18 @@ class DockerRunner:
         :param file_obj: Opened file object of cache
         :return: True if the call succeeds.
         """
-        return self.docker_client.put_archive(self.container['Id'], docker_path, file_obj)
+        return self.docker_client.put_archive(
+            self.container["Id"], docker_path, file_obj
+        )
 
     def restore_caches(self, logger: ContainerLogger, caches: OrderedDict) -> None:
         """
         Restores caches from the host system to the destination location in the docker container.
         """
         if caches is None or not isinstance(caches, OrderedDict):
-            raise TypeError(f"Caches should be type OrderDict instead of {type(caches)}")
+            raise TypeError(
+                f"Caches should be type OrderDict instead of {type(caches)}"
+            )
 
         restored_cache_src = set()
         for local_cache_archive_file, docker_path in caches.items():
@@ -345,7 +363,9 @@ class DockerRunner:
                 continue
 
             # Check for prefix matching
-            actual_cache_archive_file = self._get_cache_file_from_prefix(logger, local_cache_archive_file, docker_path)
+            actual_cache_archive_file = self._get_cache_file_from_prefix(
+                logger, local_cache_archive_file, docker_path
+            )
             if actual_cache_archive_file is None:
                 # Errors are printed out in the other method
                 continue
@@ -356,16 +376,19 @@ class DockerRunner:
                 self.shell = "/bin/sh"
                 exit_code = self.run(f"mkdir -p {docker_path}")
                 if exit_code:
-                    logger.write(f"WARNING: There was an issue creating {docker_path} on the docker container\n")
+                    logger.write(
+                        f"WARNING: There was an issue creating {docker_path} on the docker container\n"
+                    )
 
                 # Allow multiple people to read from the file at the same time
                 # If another instance adds an exclusive lock in the save method below,
                 # this will block until the lock is released
                 file_obj = acquire_flock_open_read_binary(
-                    lock_file=actual_cache_archive_file,
-                    logger=logger
+                    lock_file=actual_cache_archive_file, logger=logger
                 )
-                logger.write("File lock acquired. Attempting to put cache into the container.")
+                logger.write(
+                    "File lock acquired. Attempting to put cache into the container."
+                )
 
                 restored_cache_src.add(docker_path)
                 if not self._put_cache_in_container(docker_path, file_obj):
@@ -389,7 +412,9 @@ class DockerRunner:
         :param docker_path: Path of file or folder in the container
         :param file_obj: Opened file object to write cache
         """
-        bits, _ = self.docker_client.get_archive(self.container['Id'], f"{docker_path}/.")
+        bits, _ = self.docker_client.get_archive(
+            self.container["Id"], f"{docker_path}/."
+        )
         for chunk in bits:
             file_obj.write(chunk)
 
@@ -411,10 +436,11 @@ class DockerRunner:
                     file_obj = None
                     try:
                         file_obj = acquire_flock_open_write_binary(
-                            lock_file=local_cache_archive_file,
-                            logger=logger
+                            lock_file=local_cache_archive_file, logger=logger
                         )
-                        logger.write("File lock acquired. Attempting to write to cache.")
+                        logger.write(
+                            "File lock acquired. Attempting to write to cache."
+                        )
                         self._write_cache(docker_path, file_obj)
                     finally:
                         release_flock(file_obj, logger)
@@ -434,26 +460,30 @@ class DockerRunner:
         _ = workdir
 
         if isinstance(cmd, str):
-            cmdv = [self.shell, '-xc', cmd]
-        elif hasattr(cmd, 'next') or hasattr(cmd, '__next__') or hasattr(cmd, '__iter__') or \
-                isinstance(cmd, GeneratorType):
+            cmdv = [self.shell, "-xc", cmd]
+        elif (
+            hasattr(cmd, "next")
+            or hasattr(cmd, "__next__")
+            or hasattr(cmd, "__iter__")
+            or isinstance(cmd, GeneratorType)
+        ):
             cmdv = cmd
         else:
-            raise TypeError(f'Unhandled command type: {type(cmd)}:{cmd}')
+            raise TypeError(f"Unhandled command type: {type(cmd)}:{cmd}")
         # if console is None:
         #    raise Exception('No console!')
         if not self.container:
-            raise BuildRunnerContainerError('Container has not been started')
+            raise BuildRunnerContainerError("Container has not been started")
         if not self.shell:
             raise BuildRunnerContainerError(
-                'Cannot call run if container cmd not shell'
+                "Cannot call run if container cmd not shell"
             )
 
         if log:
-            log.write(f'Executing: {cmdv}\n')
+            log.write(f"Executing: {cmdv}\n")
 
         create_res = self.docker_client.exec_create(
-            self.container['Id'],
+            self.container["Id"],
             cmdv,
             tty=False,
             # workdir=workdir,
@@ -467,7 +497,7 @@ class DockerRunner:
                 console.write(output_buffer)
             if log:
                 log.write(output_buffer)
-        elif hasattr(output_buffer, 'next') or isinstance(output_buffer, GeneratorType):
+        elif hasattr(output_buffer, "next") or isinstance(output_buffer, GeneratorType):
             try:
                 for line in output_buffer:
                     if console:
@@ -478,36 +508,38 @@ class DockerRunner:
                 # Ignore timeouts since we check for the exit code anyways at the end
                 pass
         else:
-            warning = f'WARNING: Unexpected output object: {output_buffer}'
+            warning = f"WARNING: Unexpected output object: {output_buffer}"
             if console:
                 console.write(warning)
             if log:
                 log.write(warning)
         inspect_res = self.docker_client.exec_inspect(create_res)
-        if 'ExitCode' in inspect_res:
-            if inspect_res['ExitCode'] is None:
-                raise BuildRunnerContainerError(f'Error running cmd ({cmd}): exit code is None')
-            return inspect_res['ExitCode']
-        raise BuildRunnerContainerError('Error running cmd: no exit code')
+        if "ExitCode" in inspect_res:
+            if inspect_res["ExitCode"] is None:
+                raise BuildRunnerContainerError(
+                    f"Error running cmd ({cmd}): exit code is None"
+                )
+            return inspect_res["ExitCode"]
+        raise BuildRunnerContainerError("Error running cmd: no exit code")
 
     def run_script(
-            self,
-            script,
-            args='',
-            console=None,
+        self,
+        script,
+        args="",
+        console=None,
     ):
         """
         Run the given script within the container.
         """
         # write temp file with script contents
         script_file_path = tempfile()
-        self.run(f'mkdir -p $(dirname {script_file_path})', console=console)
+        self.run(f"mkdir -p $(dirname {script_file_path})", console=console)
         self.write_to_container_file(script, script_file_path)
-        self.run(f'chmod +x {script_file_path}', console=console)
+        self.run(f"chmod +x {script_file_path}", console=console)
 
         # execute the script
         return self.run(
-            f'{script_file_path} {args}',
+            f"{script_file_path} {args}",
             console=console,
         )
 
@@ -529,7 +561,7 @@ class DockerRunner:
         status = None
         try:
             status = self.docker_client.inspect_container(
-                self.container['Id'],
+                self.container["Id"],
             )
         except docker.errors.APIError:
             pass
@@ -543,9 +575,9 @@ class DockerRunner:
         try:
             if self.is_running():
                 inspection = self.docker_client.inspect_container(
-                    self.container['Id'],
+                    self.container["Id"],
                 )
-                ipaddr = inspection.get('NetworkSettings', {}).get('IPAddress', None)
+                ipaddr = inspection.get("NetworkSettings", {}).get("IPAddress", None)
         except docker.errors.APIError:
             pass
         return ipaddr
@@ -558,9 +590,9 @@ class DockerRunner:
         status = self._get_status()
         if not status:
             return False
-        if 'State' not in status or 'Running' not in status['State']:
+        if "State" not in status or "Running" not in status["State"]:
             return False
-        return status['State']['Running']
+        return status["State"]["Running"]
 
     @property
     def exit_code(self):
@@ -571,9 +603,9 @@ class DockerRunner:
         status = self._get_status()
         if not status:
             return None
-        if 'State' not in status or 'ExitCode' not in status['State']:
+        if "State" not in status or "ExitCode" not in status["State"]:
             return None
-        return status['State']['ExitCode']
+        return status["State"]["ExitCode"]
 
     def attach_until_finished(self, stream=None):
         """
@@ -581,7 +613,7 @@ class DockerRunner:
         the container exits.
         """
         docker_socket: socket.SocketIO = self.docker_client.attach_socket(
-            self.container['Id'],
+            self.container["Id"],
         )
         running = self.is_running()
         while running:
@@ -592,7 +624,7 @@ class DockerRunner:
             except socket.timeout:
                 pass
             except ssl.SSLError as ssle:
-                if 'The read operation timed out' not in str(ssle):
+                if "The read operation timed out" not in str(ssle):
                     raise
             running = self.is_running()
 
@@ -604,16 +636,14 @@ class DockerRunner:
         if self.committed_image:
             return self.committed_image
         if not self.container:
-            raise BuildRunnerContainerError('Container not started')
+            raise BuildRunnerContainerError("Container not started")
         if self.is_running():
-            raise BuildRunnerContainerError('Container is still running')
+            raise BuildRunnerContainerError("Container is still running")
         stream.write(
             f"Committing build container {self.container['Id']:.10} as an image...\n"
         )
         self.committed_image = self.docker_client.commit(
-            self.container['Id'],
-        )['Id']
-        stream.write(
-            f'Resulting build container image: {self.committed_image:.10}\n'
-        )
+            self.container["Id"],
+        )["Id"]
+        stream.write(f"Resulting build container image: {self.committed_image:.10}\n")
         return self.committed_image

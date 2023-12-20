@@ -23,7 +23,7 @@ class ShellProvisioner:
         Run the shell script as a provisioner, with the given shell.
         """
         if self.console:
-            self.console.write('Running shell provisioner...\n')
+            self.console.write("Running shell provisioner...\n")
         exit_code = runner.run_script(
             self.script,
             console=self.console,

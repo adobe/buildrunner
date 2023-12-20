@@ -15,29 +15,31 @@ from buildrunner.validation.errors import Errors, get_validation_errors
 from buildrunner.validation.step import Step, StepPushCommitDict
 
 
-class Config(BaseModel, extra='forbid'):
-    """ Top level config model """
+class Config(BaseModel, extra="forbid"):
+    """Top level config model"""
 
     # Unclear if this is actively used
-    class GithubModel(BaseModel, extra='forbid'):
-        """ Github model """
+    class GithubModel(BaseModel, extra="forbid"):
+        """Github model"""
+
         endpoint: str
         version: str
         username: str
         app_token: str
 
-    class SSHKey(BaseModel, extra='forbid'):
-        """ SSH key model """
+    class SSHKey(BaseModel, extra="forbid"):
+        """SSH key model"""
+
         file: Optional[str] = None
         key: Optional[str] = None
         password: Optional[str] = None
-        prompt_password: Optional[bool] = Field(alias='prompt-password', default=None)
+        prompt_password: Optional[bool] = Field(alias="prompt-password", default=None)
         aliases: Optional[List[str]] = None
 
-    class DockerBuildCacheConfig(BaseModel, extra='forbid'):
+    class DockerBuildCacheConfig(BaseModel, extra="forbid"):
         builders: Optional[List[str]] = None
-        from_config: Optional[Union[dict, str]] = Field(None, alias='from')
-        to_config: Optional[Union[dict, str]] = Field(None, alias='to')
+        from_config: Optional[Union[dict, str]] = Field(None, alias="from")
+        to_config: Optional[Union[dict, str]] = Field(None, alias="to")
 
     version: Optional[float] = None
     steps: Optional[Dict[str, Step]] = None
@@ -45,18 +47,28 @@ class Config(BaseModel, extra='forbid'):
     github: Optional[Dict[str, GithubModel]] = None
     # Global config attributes
     env: Optional[Dict[str, Any]] = None
-    build_servers: Optional[Dict[str, Union[str, List[str]]]] = Field(alias='build-servers', default=None)
+    build_servers: Optional[Dict[str, Union[str, List[str]]]] = Field(
+        alias="build-servers", default=None
+    )
     #  Intentionally has loose restrictions on ssh-keys since documentation isn't clear
-    ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(alias='ssh-keys', default=None)
-    local_files: Optional[Dict[str, str]] = Field(alias='local-files', default=None)
-    docker_build_cache: Optional[DockerBuildCacheConfig] = Field(None, alias='docker-build-cache')
-    caches_root: Optional[str] = Field(alias='caches-root', default=None)
-    docker_registry: Optional[str] = Field(alias='docker-registry', default=None)
-    temp_dir: Optional[str] = Field(alias='temp-dir', default=None)
-    disable_multi_platform: Optional[bool] = Field(alias='disable-multi-platform', default=None)
-    platform_builders: Optional[Dict[str, str]] = Field(alias='platform-builders', default=None)
+    ssh_keys: Optional[Union[SSHKey, List[SSHKey]]] = Field(
+        alias="ssh-keys", default=None
+    )
+    local_files: Optional[Dict[str, str]] = Field(alias="local-files", default=None)
+    docker_build_cache: Optional[DockerBuildCacheConfig] = Field(
+        None, alias="docker-build-cache"
+    )
+    caches_root: Optional[str] = Field(alias="caches-root", default=None)
+    docker_registry: Optional[str] = Field(alias="docker-registry", default=None)
+    temp_dir: Optional[str] = Field(alias="temp-dir", default=None)
+    disable_multi_platform: Optional[bool] = Field(
+        alias="disable-multi-platform", default=None
+    )
+    platform_builders: Optional[Dict[str, str]] = Field(
+        alias="platform-builders", default=None
+    )
 
-    @field_validator('steps')
+    @field_validator("steps")
     @classmethod
     def validate_steps(cls, vals) -> None:
         """
@@ -66,10 +78,12 @@ class Config(BaseModel, extra='forbid'):
             ValueError | pydantic.ValidationError : If the config file is invalid
         """
 
-        def validate_push(push: Union[StepPushCommitDict, str, List[Union[str, StepPushCommitDict]]],
-                          mp_push_tags: Set[str],
-                          step_name: str,
-                          update_mp_push_tags: bool = True):
+        def validate_push(
+            push: Union[StepPushCommitDict, str, List[Union[str, StepPushCommitDict]]],
+            mp_push_tags: Set[str],
+            step_name: str,
+            update_mp_push_tags: bool = True,
+        ):
             """
             Validate push step
 
@@ -89,7 +103,7 @@ class Config(BaseModel, extra='forbid'):
                 if isinstance(push, str):
                     name = push
                     if ":" not in name:
-                        name = f'{name}:latest'
+                        name = f"{name}:latest"
 
                 if isinstance(push, StepPushCommitDict):
                     names = [f"{push.repository}:{tag}" for tag in push.tags]
@@ -98,11 +112,15 @@ class Config(BaseModel, extra='forbid'):
                     for current_name in names:
                         if current_name in mp_push_tags:
                             # raise ValueError(f'Cannot specify duplicate tag {current_name} in build step {step_name}')
-                            raise ValueError(f'Cannot specify duplicate tag {current_name} in build step {step_name}')
+                            raise ValueError(
+                                f"Cannot specify duplicate tag {current_name} in build step {step_name}"
+                            )
 
                 if name is not None and name in mp_push_tags:
                     # raise ValueError(f'Cannot specify duplicate tag {name} in build step {step_name}')
-                    raise ValueError(f'Cannot specify duplicate tag {name} in build step {step_name}')
+                    raise ValueError(
+                        f"Cannot specify duplicate tag {name} in build step {step_name}"
+                    )
 
                 if update_mp_push_tags and names is not None:
                     mp_push_tags.update(names)
@@ -124,24 +142,34 @@ class Config(BaseModel, extra='forbid'):
             for step_name, step in vals.items():
                 if step.is_multi_platform():
                     if step.build.platform is not None:
-                        raise ValueError(f'Cannot specify both platform ({step.build.platform}) and '
-                                         f'platforms ({step.build.platforms}) in build step {step_name}')
+                        raise ValueError(
+                            f"Cannot specify both platform ({step.build.platform}) and "
+                            f"platforms ({step.build.platforms}) in build step {step_name}"
+                        )
 
                     if not isinstance(step.build.platforms, list):
-                        raise ValueError(f'platforms must be a list in build step {step_name}')
+                        raise ValueError(
+                            f"platforms must be a list in build step {step_name}"
+                        )
 
                     if step.build.cache_from:
-                        raise ValueError(f'cache_from is not allowed in multi-platform build step {step_name}')
+                        raise ValueError(
+                            f"cache_from is not allowed in multi-platform build step {step_name}"
+                        )
 
                     if step.build.import_param:
-                        raise ValueError(f'import is not allowed in multi-platform build step {step_name}')
+                        raise ValueError(
+                            f"import is not allowed in multi-platform build step {step_name}"
+                        )
 
                     # Check for valid push section, duplicate mp tags are not allowed
                     validate_push(step.push, mp_push_tags, step_name)
 
         has_multi_platform_build = False
         for step in vals.values():
-            has_multi_platform_build = has_multi_platform_build or step.is_multi_platform()
+            has_multi_platform_build = (
+                has_multi_platform_build or step.is_multi_platform()
+            )
 
         if has_multi_platform_build:
             mp_push_tags = set()
@@ -152,10 +180,12 @@ class Config(BaseModel, extra='forbid'):
                 # Check that there are no single platform tags that match multi-platform tags
                 if not step.is_multi_platform():
                     if step.push is not None:
-                        validate_push(push=step.push,
-                                      mp_push_tags=mp_push_tags,
-                                      step_name=step_name,
-                                      update_mp_push_tags=False)
+                        validate_push(
+                            push=step.push,
+                            mp_push_tags=mp_push_tags,
+                            step_name=step_name,
+                            update_mp_push_tags=False,
+                        )
         return vals
 
 

@@ -17,9 +17,11 @@ def sanitize_tag(tag, log=None):
     :param log: Optional log to write warnings to.
     :return: The sanitized tag.
     """
-    _tag = re.sub(r'[^-_\w.]+', '-', tag.lower())
+    _tag = re.sub(r"[^-_\w.]+", "-", tag.lower())
     if _tag != tag and log:
-        log.write(f'Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}\n')
+        log.write(
+            f"Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}\n"
+        )
     return _tag
 
 
@@ -58,4 +60,4 @@ class MultiPlatformBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Returns a unique build name for this build and step.
         """
-        return f'{self.step_runner.name}-{sanitize_tag(self.step_runner.build_runner.build_id)}'
+        return f"{self.step_runner.name}-{sanitize_tag(self.step_runner.build_runner.build_id)}"

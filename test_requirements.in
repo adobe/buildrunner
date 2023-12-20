@@ -2,7 +2,8 @@ pytest>=7.2.1
 pytest-randomly>=3.5.0
 pytest-cov>=2.10.1
 pytest-xdist>=2.4.0
-pylint>=2.7.1
-pylintfileheader>=0.3.0
 graphlib-backport>=1.0.3
-pycodestyle>=2.10.0
+ruff>=0.1.7
+ruff-lsp>=0.0.45
+# Python 3.8 only supports up to 3.5.0
+pre-commit<3.6

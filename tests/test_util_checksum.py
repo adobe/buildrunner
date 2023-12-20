@@ -1,5 +1,5 @@
 import os
-from buildrunner import checksum
+from buildrunner.utils import checksum
 
 test_dir_path = os.path.realpath(os.path.dirname(__file__))
 
