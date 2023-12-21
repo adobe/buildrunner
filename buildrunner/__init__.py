@@ -644,16 +644,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                         "Push requested--pushing generated images/packages to remote registries/repositories\n"
                     )
                     # Push multi-platform images
-                    if multi_platform.tagged_images_names:
+                    if multi_platform.num_built_images:
                         self.log.write(
-                            f"===> Pushing {len(multi_platform.tagged_images_names)} multiplatform image(s)\n"
+                            f"===> Pushing {multi_platform.num_built_images} multiplatform image(s)\n"
                         )
-                        for (
-                            local_name,
-                            dest_name,
-                        ) in multi_platform.tagged_images_names.items():
-                            self.log.write(f"Pushing {local_name} to {dest_name}\n")
-                            multi_platform.push(name=local_name, dest_names=dest_name)
+                        multi_platform.push(self.log)
 
                     # Push single platform images
                     _docker_client = docker.new_client(timeout=self.docker_timeout)

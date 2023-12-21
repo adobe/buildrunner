@@ -17,11 +17,11 @@ from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
-from buildrunner.steprunner.tasks import MultiPlatformBuildStepRunnerTask
+from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.utils import is_dict
 
 
-class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: disable=too-many-instance-attributes
+class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many-instance-attributes
     """
     Class used to manage "build" build tasks.
     """
@@ -245,28 +245,28 @@ class BuildBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):  # pylint: dis
         )
         try:
             if self.platforms:
-                built_platform_images = (
-                    self.step_runner.multi_platform.build_multiple_images(
-                        platforms=self.platforms,
-                        path=self.path,
-                        file=self.dockerfile,
-                        mp_image_name=self.get_unique_build_name(),
-                        build_args=self.buildargs,
-                        inject=self.to_inject,
-                        cache=not self.nocache,
-                        pull=self.pull,
-                    )
+                built_image = self.step_runner.multi_platform.build_multiple_images(
+                    platforms=self.platforms,
+                    path=self.path,
+                    file=self.dockerfile,
+                    build_args=self.buildargs,
+                    inject=self.to_inject,
+                    cache=not self.nocache,
+                    pull=self.pull,
                 )
 
-                number_of_images = len(self.platforms)
+                num_platforms = len(self.platforms)
 
                 if self.step_runner.multi_platform.disable_multi_platform:
-                    number_of_images = 1
+                    num_platforms = 1
 
-                assert len(built_platform_images) == number_of_images, (
-                    f"Number of built images ({len(built_platform_images)}) does not match "
-                    f"the number of platforms ({number_of_images})"
+                num_built_platforms = len(built_image.platforms)
+
+                assert num_built_platforms == num_platforms, (
+                    f"Number of built images ({num_built_platforms}) does not match "
+                    f"the number of platforms ({num_platforms})"
                 )
+                context["mp_built_image"] = built_image
 
             else:
                 exit_code = builder.build(

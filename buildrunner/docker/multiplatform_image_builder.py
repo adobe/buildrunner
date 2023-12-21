@@ -7,11 +7,11 @@ with the terms of the Adobe license agreement accompanying it.
 """
 import logging
 import os
-from multiprocessing import Manager, Process
-from platform import machine, system
+import platform as python_platform
 import shutil
 import tempfile
 import uuid
+from multiprocessing import Process, SimpleQueue
 from typing import Dict, List, Optional, Union
 
 import python_on_whales
@@ -19,80 +19,15 @@ import timeout_decorator
 from python_on_whales import docker
 from retry import retry
 
+from buildrunner.utils import ConsoleLogger
 from buildrunner.docker import get_dockerfile
+from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
 
 
 LOGGER = logging.getLogger(__name__)
+OUTPUT_LINE = "-----------------------------------------------------------------"
 
 PUSH_TIMEOUT = 300
-
-
-class ImageInfo:
-    """Image information repo with associated tags"""
-
-    def __init__(
-        self,
-        repo: str,
-        tags: List[str] = None,
-        platform: str = None,
-        digest: str = None,
-    ):
-        """
-        Args:
-            repo (str): The repo name for the image.
-            tags (List[str], optional): The tags for the image. Defaults to None.
-            platform (str, optional): The platform for the image. Defaults to None.
-            digest (str, optional): The digest id for the image. Defaults to None.
-        """
-        self._repo = repo
-
-        if tags is None:
-            self._tags = ["latest"]
-        else:
-            self._tags = tags
-
-        self._platform = platform
-        self._digest = digest
-
-    @property
-    def repo(self) -> str:
-        """The repo name for the image."""
-        return self._repo
-
-    @property
-    def tags(self) -> List[str]:
-        """The tags for the image."""
-        return self._tags
-
-    @property
-    def digest(self) -> str:
-        """The digest id for the image."""
-        return self._digest
-
-    def trunc_digest(self) -> str:
-        """The truncated digest id for the image."""
-        if self._digest is None:
-            return "Digest not available"
-        return self._digest.replace("sha256:", "")[:12]
-
-    @property
-    def platform(self) -> str:
-        """The platform for the image."""
-        return self._platform
-
-    def formatted_list(self) -> List[str]:
-        """Returns a list of formatted image names"""
-        return [f"{self._repo}:{tag}" for tag in self._tags]
-
-    def __str__(self):
-        """Returns a string representation of the image info"""
-        if len(self._tags) == 1:
-            return f"{self._repo}:{self._tags[0]}"
-        return f"{self._repo} tags={self._tags}"
-
-    def __repr__(self):
-        """Returns a string representation of the image info"""
-        return self.__str__()
 
 
 class RegistryInfo:
@@ -159,9 +94,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 f'for builders {", ".join(cache_builders) if cache_builders else "(all)"}'
             )
 
-        # key is destination image name, value is list of built images
-        self._intermediate_built_images = {}
-        self._tagged_images_names = {}
+        self._built_images: List[BuiltImageInfo] = []
         self._local_registry_is_running = False
 
     def __enter__(self):
@@ -171,44 +104,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         if self._local_registry_is_running:
             self._stop_local_registry()
 
-        # Removes all intermediate built images
-        if self._intermediate_built_images:
-            for name, images in self._intermediate_built_images.items():
-                for image in images:
-                    for tag in image.tags:
-                        LOGGER.debug(f"Removing image {image.repo}:{tag} for {name}")
-                        docker.image.remove(f"{image.repo}:{tag}", force=True)
-
-        # Removes all tagged images if cleanup_images is set
-        if self._tagged_images_names and self._cleanup_images:
-            for name, images in self._tagged_images_names.items():
-                for image in images:
-                    LOGGER.debug(f"Removing tagged image {image} for {name}")
-                    docker.image.remove(image, force=True)
-
     @property
-    def disable_multi_platform(self) -> int:
-        """Returns the ip address of the local registry"""
+    def disable_multi_platform(self) -> bool:
+        """Returns true if multi-platform builds are disabled by configuration, false otherwise"""
         return self._disable_multi_platform
-
-    @property
-    def registry_ip(self) -> int:
-        """Returns the ip address of the local registry"""
-        return self._mp_registry_info.ip_addr
-
-    @property
-    def registry_port(self) -> int:
-        """Returns the port of the local registry"""
-        return self._mp_registry_info.port
-
-    @property
-    def tagged_images_names(self) -> Dict[str, List[str]]:
-        """Returns a list of all the tagged images names"""
-        return self._tagged_images_names
-
-    def is_multiplatform(self, name: str) -> bool:
-        """Returns True if the image with name is multiplatform"""
-        return len(self._intermediate_built_images.get(name, [])) > 0
 
     def registry_address(self) -> str:
         """Returns the address of the local registry"""
@@ -281,10 +180,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     def _build_with_inject(
         self,
         inject: dict,
-        tagged_names: List[str],
+        image_ref: str,
         platform: str,
         path: str,
-        file: str,
+        dockerfile: str,
         build_args: dict,
         builder: Optional[str],
         cache: bool = False,
@@ -292,7 +191,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     ) -> None:
         if not path or not os.path.isdir(path):
             LOGGER.warning(
-                f"Failed to inject {inject} for {tagged_names} since path {path} isn't a directory."
+                f"Failed to inject {inject} for {image_ref} since path {path} isn't a directory."
             )
             return
 
@@ -325,16 +224,20 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
             docker.buildx.build(
                 context_dir,
-                tags=tagged_names,
+                tags=[image_ref],
                 platforms=[platform],
                 load=True,
-                file=file,
+                file=dockerfile,
                 builder=builder,
                 build_args=build_args,
                 cache=cache,
                 pull=pull,
                 **self._get_build_cache_options(builder),
             )
+
+    @staticmethod
+    def _get_image_digest(image_ref: str) -> str:
+        return docker.buildx.imagetools.inspect(image_ref).config.digest
 
     # pylint: disable=too-many-arguments
     @retry(
@@ -347,40 +250,37 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     )
     def _build_single_image(
         self,
-        name: str,
+        queue: SimpleQueue,
+        image_ref: str,
         platform: str,
         path: str,
-        file: str,
-        tags: List[str],
+        dockerfile: str,
         build_args: dict,
-        mp_image_name: str,
         inject: dict,
         cache: bool = False,
         pull: bool = False,
     ) -> None:
         """
-        Builds a single image for the given platform
+        Builds a single image for the given platform.
 
         Args:
-            name (str): The name of the image
+            queue (SimpleQueue): The queue to put the message digest on
+            image_ref (str): The image ref for the new image
             platform (str): The platform to build the image for (e.g. linux/amd64)
             path (str): The path to the Dockerfile.
-            file (str): The path/name of the Dockerfile (ie. <path>/Dockerfile).
-            tags (List[str]): The tags to apply to the image.
+            dockerfile (str): The path/name of the Dockerfile (i.e. <path>/Dockerfile).
             build_args (dict): The build args to pass to docker.
-            mp_image_name (str): The multi-platform name of the image.
             inject (dict): The files to inject into the build context.
         """
-        assert os.path.isdir(path) and os.path.exists(f"{file}"), (
-            f"Either path {path}({os.path.isdir(path)}) or file "
-            f"'{file}'({os.path.exists(f'{file}')}) does not exist!"
+        assert os.path.isdir(path) and os.path.exists(dockerfile), (
+            f"Either path {path} ({os.path.isdir(path)}) or file "
+            f"'{dockerfile}' ({os.path.exists(dockerfile)}) does not exist!"
         )
 
-        tagged_names = [f"{name}:{tag}" for tag in tags]
         builder = (
             self._platform_builders.get(platform) if self._platform_builders else None
         )
-        LOGGER.debug(f"Building tagged images {tagged_names}")
+        LOGGER.debug(f"Building image {image_ref} for platform {platform}")
         print(
             f"Building image for platform {platform} with {builder or 'default'} builder"
         )
@@ -388,10 +288,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         if inject and isinstance(inject, dict):
             self._build_with_inject(
                 inject=inject,
-                tagged_names=tagged_names,
+                image_ref=image_ref,
                 platform=platform,
                 path=path,
-                file=file,
+                dockerfile=dockerfile,
                 build_args=build_args,
                 builder=builder,
                 cache=cache,
@@ -400,10 +300,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         else:
             docker.buildx.build(
                 path,
-                tags=tagged_names,
+                tags=[image_ref],
                 platforms=[platform],
                 load=True,
-                file=file,
+                file=dockerfile,
                 build_args=build_args,
                 builder=builder,
                 cache=cache,
@@ -411,36 +311,13 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 **self._get_build_cache_options(builder),
             )
         # Push after the initial load to support remote builders that cannot access the local registry
-        docker.push(tagged_names)
+        docker.push([image_ref])
 
-        # Check that the images were built and in the registry
-        # Docker search is not currently implemented in python-on-wheels
-        image_id = None
-        for tag_name in tagged_names:
-            try:
-                images = docker.image.pull(tag_name)
-                assert images, f"Failed to build {tag_name}"
-                image_id = docker.image.inspect(tag_name).id
-                # Removes the image from host, if this fails it is considered a warning
-                try:
-                    LOGGER.debug(f"Removing {tag_name}")
-                    docker.image.remove(tag_name, force=True)
-                except python_on_whales.exceptions.DockerException as err:
-                    LOGGER.warning(f"Failed to remove {images}: {err}")
-            except python_on_whales.exceptions.DockerException as err:
-                LOGGER.error(f"Failed to build {tag_name}: {err}")
-                raise err
+        # Retrieve the digest and put it on the queue
+        image_digest = self._get_image_digest(image_ref)
+        queue.put((image_ref, image_digest))
 
-        self._intermediate_built_images[mp_image_name].append(
-            ImageInfo(
-                repo=name,
-                tags=tags,
-                platform=platform,
-                digest=image_id,
-            )
-        )
-
-    def get_single_platform_to_build(self, platforms: List[str]) -> str:
+    def _get_single_platform_to_build(self, platforms: List[str]) -> str:
         """Returns the platform to build for single platform flag"""
 
         assert isinstance(platforms, list), f"Expected list, but got {type(platforms)}"
@@ -448,9 +325,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             len(platforms) > 0
         ), f"Expected at least one platform, but got {len(platforms)}"
 
-        host_system = system()
-        host_machine = machine()
-        native_platform = None
+        host_system = python_platform.system()
+        host_machine = python_platform.machine()
 
         if host_system in ("Darwin", "linux"):
             native_platform = f"linux/{host_machine}"
@@ -469,109 +345,103 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         platforms: List[str],
         path: str = ".",
         file: str = "Dockerfile",
-        mp_image_name: str = None,
-        tags: List[str] = None,
         do_multiprocessing: bool = True,
         build_args: dict = None,
         inject: dict = None,
         cache: bool = False,
         pull: bool = False,
-    ) -> List[ImageInfo]:
+    ) -> BuiltImageInfo:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
 
-        Args:
-            platforms (List[str]): The platforms to build the image for (e.g. linux/amd64)
-            path (str, optional): The path to the Dockerfile. Defaults to ".".
-            file (str, optional): The path/name of the Dockerfile (ie. <path>/Dockerfile). Defaults to "Dockerfile".
-            mp_image_name (str, optional): The name of the image. Defaults to None.
-            tags (List[str], optional): The tags to apply to the image. Defaults to None.
-            do_multiprocessing (bool, optional): Whether to use multiprocessing to build the images. Defaults to True.
-            build_args (dict, optional): The build args to pass to docker. Defaults to None.
-            inject (dict, optional): The files to inject into the build context. Defaults to None.
-            cache (bool, optional): If true, enables cache, defaults to False
-            pull (bool, optional): If true, pulls image before build, defaults to False
-            inject (dict, optional): The files to inject into the build context. Defaults to None.
-
-        Returns:
-            List[ImageInfo]: The list of intermediate built images, these images are ephemeral
-            and will be removed when the builder is garbage collected
+        :arg platforms: The platforms to build the image for (e.g. linux/amd64)
+        :arg path: The path to the Dockerfile. Defaults to ".".
+        :arg file: The path/name of the Dockerfile (i.e. <path>/Dockerfile). Defaults to "Dockerfile".
+        :arg do_multiprocessing: Whether to use multiprocessing to build the images. Defaults to True.
+        :arg build_args: The build args to pass to docker. Defaults to None.
+        :arg inject: The files to inject into the build context. Defaults to None.
+        :arg cache: If true, enables cache, defaults to False
+        :arg pull: If true, pulls image before build, defaults to False
+        :return: A BuiltImageInfo instance that describes the built images for each platform and can be used to track
+                 final images as well
         """
-
-        def get_path(file):
-            if os.path.exists(file):
-                return os.path.dirname(file)
-            return "."
-
         if build_args is None:
             build_args = {}
         build_args["DOCKER_REGISTRY"] = self._docker_registry
 
         # It is not valid to pass None for the path when building multi-platform images
         if not path:
-            path = get_path(file)
+            if os.path.exists(file):
+                path = os.path.dirname(file)
+            else:
+                path = "."
 
         dockerfile, cleanup_dockerfile = get_dockerfile(file)
 
+        # Track this newly built image
+        built_image = BuiltImageInfo(id=str(uuid.uuid4()))
+        self._built_images.append(built_image)
+
         LOGGER.debug(
-            f"Building {mp_image_name}:{tags} for platforms {platforms} from {dockerfile}"
+            f"Building multi-platform images {built_image} for platforms {platforms} from {dockerfile}"
         )
 
         if self._use_local_registry and not self._local_registry_is_running:
             # Starts local registry container to do ephemeral image storage
             self._start_local_registry()
 
-        if tags is None:
-            tags = ["latest"]
-
-        # Updates name to be compatible with docker
-        image_prefix = "buildrunner-mp"
-        sanitized_name = f"{image_prefix}-{str(uuid.uuid4())}"
-        base_image_name = f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}/{sanitized_name}"
-
-        # Keeps track of the built images {name: [ImageInfo(image_names)]]}
-        manager = Manager()
-        self._intermediate_built_images[mp_image_name] = manager.list()
-        line = "-----------------------------------------------------------------"
+        # The name should stay consistent and the tags are variable per build step/platform
+        repo = f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}/buildrunner-mp"
 
         if self._disable_multi_platform:
-            platforms = [self.get_single_platform_to_build(platforms)]
+            platforms = [self._get_single_platform_to_build(platforms)]
             print(
-                f"{line}\n"
+                f"{OUTPUT_LINE}\n"
                 f"Note: Disabling multi-platform build, "
                 "this will only build a single-platform image.\n"
-                f"image: {sanitized_name} platform:{platforms[0]}\n"
-                f"{line}"
+                f"image: {repo} platform:{platforms[0]}\n"
+                f"{OUTPUT_LINE}"
             )
         else:
             print(
-                f"{line}\n"
+                f"{OUTPUT_LINE}\n"
                 f"Note: Building multi-platform images can take a long time, please be patient.\n"
                 "If you are running this locally, you can speed this up by using the "
                 "'--disable-multi-platform' CLI flag "
                 "or set the 'disable-multi-platform' flag in the global config file.\n"
-                f"{line}"
+                f"{OUTPUT_LINE}"
             )
 
         processes = []
         print(
             f'Starting builds for {len(platforms)} platforms in {"parallel" if do_multiprocessing else "sequence"}'
         )
+
+        # Since multiprocessing may be used, use a simple queue to communicate with the build method
+        # This queue receives tuples of (image_ref, image_digest)
+        image_info_by_image_ref = {}
+        queue = SimpleQueue()
         for platform in platforms:
-            platform_image_name = f"{base_image_name}-{platform.replace('/', '-')}"
+            tag = f"{built_image.id}-{platform.replace('/', '-')}"
+            image_ref = f"{repo}:{tag}"
+            # Contains all fields needed for the BuiltTaggedImage instance except digest, which will be added later
+            image_info_by_image_ref[image_ref] = {
+                "repo": repo,
+                "tag": tag,
+                "platform": platform,
+            }
             build_single_image_args = (
-                platform_image_name,
+                queue,
+                image_ref,
                 platform,
                 path,
                 dockerfile,
-                tags,
                 build_args,
-                mp_image_name,
                 inject,
                 cache,
                 pull,
             )
-            LOGGER.debug(f"Building {platform_image_name} for {platform}")
+            LOGGER.debug(f"Building {repo} for {platform}")
             if do_multiprocessing:
                 processes.append(
                     Process(
@@ -588,16 +458,31 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         for proc in processes:
             proc.join()
 
+        while not queue.empty():
+            image_ref, image_digest = queue.get()
+            assert (
+                image_ref in image_info_by_image_ref
+            ), f"Image ref {image_ref} is missing in generated info"
+            image_info = image_info_by_image_ref.pop(image_ref)
+            built_image.add_platform_image(
+                image_info.get("platform"),
+                BuiltTaggedImage(
+                    **image_info,
+                    digest=image_digest,
+                ),
+            )
+        assert not image_info_by_image_ref, f"Image refs were not generated successfully, unclaimed refs: {image_info_by_image_ref}"
+
         if cleanup_dockerfile and dockerfile and os.path.exists(dockerfile):
             os.remove(dockerfile)
 
-        return self._intermediate_built_images[mp_image_name]
+        return built_image
 
     @timeout_decorator.timeout(PUSH_TIMEOUT)
     def _push_with_timeout(self, src_names: List[str], tag_names: List[str]) -> None:
         """
         Creates tags from a set of source images in the remote registry.
-        This method will timeout if it takes too long. An exception may be
+        This method will time out if it takes too long. An exception may be
         caught and retried for the timeout.
 
         Args:
@@ -610,164 +495,93 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         LOGGER.info(f"Pushing sources {src_names} to tags {tag_names}")
         docker.buildx.imagetools.create(sources=src_names, tags=tag_names)
 
-    def push(self, name: str, dest_names: List[str] = None) -> List[str]:
+    def push(self, log: ConsoleLogger) -> None:
         """
-        Pushes the image to the remote registry embedded in dest_names or name if dest_names is None
-
-        Args:
-            name (str): The name of the image to push
-            dest_names (List[str], optional): The names of the images to push to. Defaults to None.
-
-        Raises:
-            TimeoutError: If the image fails to push within the specified timeout and retries
+        Pushes all built images to their tagged image counterparts.
+        :arg log: The log instance for output to the console.
+        :raises TimeoutError: If the image fails to push within the specified timeout and retries
         """
-        tagged_names = []
-        src_names = []
-
         # Parameters for timeout and retries
         initial_timeout_seconds = 60
         timeout_step_seconds = 60
         timeout_max_seconds = 600
         retries = 5
 
-        src_images = self._intermediate_built_images[name]
-        assert len(src_images) > 0, f"No images found for {name}"
+        for built_image in self._built_images:
+            if not built_image.tagged_images:
+                log.write(
+                    f"No tags exist for built image {built_image.id}, not pushing\n"
+                )
+                continue
 
-        # Append the tags to the names prior to pushing
-        if dest_names is None:
-            dest_names = name
-            # only need get tags for one image, since they should be identical
-            for tag in src_images[0].tags:
-                tagged_names.append(f"{dest_names}:{tag}")
-        else:
-            tagged_names = dest_names
+            source_image_refs = [image.image_ref for image in built_image.built_images]
 
-        for image in src_images:
-            for tag in image.tags:
-                src_names.append(f"{image.repo}:{tag}")
+            for tagged_image in built_image.tagged_images:
+                log.write(
+                    f"Pushing {built_image.id} to {', '.join(tagged_image.image_refs)}\n"
+                )
 
-        timeout_seconds = initial_timeout_seconds
-        while retries > 0:
-            retries -= 1
+                timeout_seconds = initial_timeout_seconds
+                while retries > 0:
+                    retries -= 1
+                    LOGGER.debug(
+                        f"Creating manifest(s) {tagged_image} with timeout {timeout_seconds} seconds"
+                    )
+                    try:
+                        # Push each tag individually in order to prevent strange errors with multiple matching tags
+                        for image_ref in tagged_image.image_refs:
+                            self._push_with_timeout(source_image_refs, [image_ref])
+                        # Process finished within timeout
+                        LOGGER.info(
+                            f"Successfully pushed multiplatform image(s) {tagged_image}"
+                        )
+                        break
+                    except Exception as exc:  # pylint: disable=broad-exception-caught
+                        LOGGER.warning(
+                            f"Caught exception while pushing images, retrying: {exc}"
+                        )
+                    if retries == 0:
+                        raise TimeoutError(
+                            f"Timeout pushing {tagged_image} after {retries} retries"
+                            f" and {timeout_seconds} seconds each try"
+                        )
+                    timeout_seconds += timeout_step_seconds
+
+                    # Cap timeout at max timeout
+                    timeout_seconds = min(timeout_seconds, timeout_max_seconds)
+
+    @property
+    def num_built_images(self) -> int:
+        """
+        Returns the count of built images that currently exist.
+        """
+        return len(self._built_images)
+
+    @staticmethod
+    def tag_native_platform(built_image: BuiltImageInfo) -> None:
+        """
+        Tags a single built image into the host registry for the platform matching this machine's platform.
+        If a matching image to the native platform is not found, then the first image is tagged. The tags come
+        from all registered tagged images in the built image info.
+        :arg built_image: The built image to pull and tag
+        """
+        for tagged_image in built_image.tagged_images:
             LOGGER.debug(
-                f"Creating manifest list {name} with timeout {timeout_seconds} seconds"
+                f"Tagging {built_image} as {tagged_image} for the native platform"
             )
+            native_image = built_image.native_platform_image
+
+            # Pull the native image and then tag it
             try:
-                # Push each tag individually in order to prevent strange errors with multiple matching tags
-                for tag_name in tagged_names:
-                    self._push_with_timeout(src_names, [tag_name])
-                # Process finished within timeout
-                LOGGER.info(f"Successfully created multiplatform images {dest_names}")
-                break
-            except Exception as exc:  # pylint: disable=broad-exception-caught
-                LOGGER.warning(
-                    f"Caught exception while pushing images, retrying: {exc}"
-                )
-            if retries == 0:
-                raise TimeoutError(
-                    f"Timeout pushing {dest_names} after {retries} retries"
-                    f" and {timeout_seconds} seconds each try"
-                )
-            timeout_seconds += timeout_step_seconds
-
-            # Cap timeout at max timeout
-            timeout_seconds = min(timeout_seconds, timeout_max_seconds)
-        return tagged_names
-
-    def _find_native_platform_images(self, name: str) -> Optional[ImageInfo]:
-        """
-        Returns the built native platform image(s) for the given name
-
-        Args:
-            name (str): The name of the image to find
-
-        Returns:
-            str: The name of the native platform image
-        """
-        host_os = system()
-        host_arch = machine()
-        LOGGER.debug(f"Finding native platform for {name} for {host_os}/{host_arch}")
-        pattern = f"{host_os}-{host_arch}"
-
-        # No images built for this name
-        if (
-            name not in self._intermediate_built_images.keys()
-            or self._intermediate_built_images[name] == []
-        ):  # pylint: disable=consider-iterating-dictionary
-            return None
-
-        match_platform = [
-            image
-            for image in self._intermediate_built_images[name]
-            if image.repo.endswith(pattern)
-        ]
-
-        # No matches found, change os
-        if not match_platform:
-            if host_os == "Darwin":
-                pattern = f"linux-{host_arch}"
-            match_platform = [
-                image
-                for image in self._intermediate_built_images[name]
-                if image.repo.endswith(pattern)
-            ]
-
-        assert (
-            len(match_platform) <= 1
-        ), f"Found more than one match for {name} and {pattern}: {match_platform}"
-
-        # Still no matches found, get the first image
-        if not match_platform:
-            return self._intermediate_built_images[name][0]
-
-        return match_platform[0]
-
-    def tag_single_platform(
-        self, name: str, tags: List[str] = None, dest_name: str = None
-    ) -> None:
-        """
-        Loads a single platform image into the host registry. If a matching image to the native platform
-        is not found, then the first image is loaded.
-
-        Args:
-            name (str): The name of the image to load
-            tags (List[str], optional): The tags to load. Defaults to "latest".
-            dest_name (str, optional): The name to load the image as. Defaults to the "name" arg.
-        """
-        # This is to handle pylint's "dangerous-default-value" error
-        if tags is None:
-            tags = ["latest"]
-        LOGGER.debug(f"Tagging {name} with tags {tags} - Dest name: {dest_name}")
-        source_image = self._find_native_platform_images(name)
-        if dest_name is None:
-            dest_name = name
-
-        if self._tagged_images_names.get(name) is None:
-            self._tagged_images_names[name] = []
-
-        # Tags all the source images with the dest_name and tags
-        # Then removes the intermediate source images
-        for image in source_image.formatted_list():
-            try:
-                docker.pull(image)
-                for tag in tags:
-                    dest_tag = f"{dest_name}:{tag}"
-                    docker.tag(image, dest_tag)
-                    LOGGER.debug(f"Tagged {image} as {dest_tag}")
-                    self._tagged_images_names[name].append(dest_tag)
-                docker.image.remove(image, force=True)
+                docker.pull(native_image.image_ref)
+                for tagged_image_ref in tagged_image.image_refs:
+                    docker.tag(native_image.image_ref, tagged_image_ref)
+                    LOGGER.debug(
+                        f"Tagged {native_image.image_ref} as {tagged_image_ref}"
+                    )
+                docker.image.remove(native_image.image_ref, force=True)
             except python_on_whales.exceptions.DockerException as err:
-                LOGGER.error(f"Failed while tagging {dest_name}: {err}")
+                LOGGER.error(
+                    f"Failed while tagging {native_image.image_ref} as {tagged_image}: {err}"
+                )
                 raise err
-
-    def get_built_images(self, name: str) -> List[str]:
-        """
-        Returns the list of tagged images for the given name
-
-        Args:
-            name (str): The name of the image to find
-
-        Returns:
-            List[str]: The list of built images for the given name
-        """
-        return self._intermediate_built_images[name]
