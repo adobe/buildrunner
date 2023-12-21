@@ -22,6 +22,7 @@ from typing import Optional
 
 import jinja2
 
+from buildrunner.docker import multiplatform_image_builder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerVersionError,
@@ -423,6 +424,14 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         Default to docker.io if none is configured
         """
         return self.global_config.get("docker-registry", "docker.io")
+
+    def get_build_registry(self):
+        """
+        Default to local registry if none is configured
+        """
+        return self.global_config.get(
+            "build-registry", multiplatform_image_builder.LOCAL_REGISTRY
+        )
 
     def get_docker_build_cache_config(self) -> Optional[dict]:
         return self.global_config.get("docker-build-cache", {})

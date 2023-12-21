@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Set, Union
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel, Field, field_validator, ValidationError
 
+from buildrunner.docker import multiplatform_image_builder
 from buildrunner.validation.errors import Errors, get_validation_errors
 from buildrunner.validation.step import Step, StepPushCommitDict
 
@@ -63,6 +64,9 @@ class Config(BaseModel, extra="forbid"):
     temp_dir: Optional[str] = Field(alias="temp-dir", default=None)
     disable_multi_platform: Optional[bool] = Field(
         alias="disable-multi-platform", default=None
+    )
+    build_registry: Optional[str] = Field(
+        alias="build-registry", default=multiplatform_image_builder.LOCAL_REGISTRY
     )
     platform_builders: Optional[Dict[str, str]] = Field(
         alias="platform-builders", default=None
