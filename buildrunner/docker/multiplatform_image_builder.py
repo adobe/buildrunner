@@ -70,7 +70,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self,
         docker_registry: Optional[str] = None,
         use_local_registry: bool = True,
-        cleanup_images: bool = False,
         temp_dir: str = os.getcwd(),
         disable_multi_platform: bool = False,
         platform_builders: Optional[Dict[str, str]] = None,
@@ -81,7 +80,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._docker_registry = docker_registry
         self._mp_registry_info = None
         self._use_local_registry = use_local_registry
-        self._cleanup_images = cleanup_images
         self._temp_dir = temp_dir
         self._disable_multi_platform = disable_multi_platform
         self._platform_builders = platform_builders
