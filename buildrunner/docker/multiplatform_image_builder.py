@@ -73,7 +73,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         docker_registry: Optional[str] = None,
-        build_registry: Optional[str] = None,
+        build_registry: Optional[str] = LOCAL_REGISTRY,
         temp_dir: str = os.getcwd(),
         disable_multi_platform: bool = False,
         platform_builders: Optional[Dict[str, str]] = None,
