@@ -6,12 +6,11 @@ import pytest
 from python_on_whales import docker
 from python_on_whales.exceptions import DockerException
 
-from buildrunner.docker.multiplatform_image_builder import (
-    ImageInfo,
-    MultiplatformImageBuilder,
-)
+from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
+from buildrunner.docker.image_info import BuiltImageInfo
 
-TEST_DIR = os.path.basename(os.path.dirname(__file__))
+
+TEST_DIR = os.path.dirname(__file__)
 
 # FIXME: These tests can be broken if a custom buildx builder is set as default  # pylint: disable=fixme
 
@@ -30,26 +29,25 @@ def fixture_uuid_mock():
         yield uuid_mock
 
 
-def actual_images_match_expected(actual_images, expected_images) -> List[str]:
+def _actual_images_match_expected(
+    built_image: BuiltImageInfo, expected_tags
+) -> List[str]:
+    actual_images = built_image.built_images
     missing_images = []
-    found = False
-    for expected_image in expected_images:
+    for expected_tag in expected_tags:
         found = False
         for actual_image in actual_images:
-            if actual_image.repo.endswith(expected_image):
+            if actual_image.tag.endswith(expected_tag):
                 found = True
         if not found:
-            missing_images.append(expected_image)
+            missing_images.append(expected_tag)
     return missing_images
 
 
 def test_start_local_registry():
-    registry_name = None
-    volume_name = None
-
-    with MultiplatformImageBuilder() as mp:
-        mp._start_local_registry()
-        registry_name = mp._mp_registry_info.name
+    with MultiplatformImageBuilder() as mpib:
+        mpib._start_local_registry()
+        registry_name = mpib._mp_registry_info.name
 
         # Check that the registry is running and only one is found with that name
         registry_container = docker.ps(filters={"name": registry_name})
@@ -75,18 +73,14 @@ def test_start_local_registry():
 
 
 def test_start_local_registry_on_build():
-    registry_name = None
-    volume_name = None
-
-    with MultiplatformImageBuilder() as mp:
+    with MultiplatformImageBuilder() as mpib:
         # Check that the registry is NOT running
-        assert mp._mp_registry_info is None
-        assert mp._local_registry_is_running is False
+        assert mpib._mp_registry_info is None
+        assert mpib._local_registry_is_running is False
 
         # Building should start the registry
         test_path = f"{TEST_DIR}/test-files/multiplatform"
-        mp.build_multiple_images(
-            mp_image_name="test-images-2000-start-on-build",
+        mpib.build_multiple_images(
             platforms=["linux/arm64", "linux/amd64"],
             path=test_path,
             file=f"{test_path}/Dockerfile",
@@ -94,7 +88,7 @@ def test_start_local_registry_on_build():
         )
 
         # Check that the registry is running and only one is found with that name
-        registry_name = mp._mp_registry_info.name
+        registry_name = mpib._mp_registry_info.name
         first_registry_name = registry_name
         registry_container = docker.ps(filters={"name": registry_name})
         assert len(registry_container) == 1
@@ -113,15 +107,14 @@ def test_start_local_registry_on_build():
         assert registry_container.state.running
 
         # Building again should not start a new registry
-        mp.build_multiple_images(
-            mp_image_name="test-images-2000-start-on-build2",
+        mpib.build_multiple_images(
             platforms=["linux/arm64", "linux/amd64"],
             path=test_path,
             file=f"{test_path}/Dockerfile",
             do_multiprocessing=False,
         )
 
-        registry_name = mp._mp_registry_info.name
+        registry_name = mpib._mp_registry_info.name
         assert first_registry_name == registry_name
 
     # Check that the registry is stopped and cleaned up
@@ -131,161 +124,51 @@ def test_start_local_registry_on_build():
 
 
 @pytest.mark.parametrize(
-    "name, in_mock_os, in_mock_arch, built_images, expected_image",
-    [
-        # platform = linux/arm64
-        (
-            "test-images-2000",
-            "linux",
-            "arm64",
-            {
-                "test-images-2000": [
-                    ImageInfo(
-                        "localhost:32828/test-images-2000-linux-amd64", ["latest"]
-                    ),
-                    ImageInfo(
-                        "localhost:32828/test-images-2000-linux-arm64", ["latest"]
-                    ),
-                ]
-            },
-            "localhost:32828/test-images-2000-linux-arm64:latest",
-        ),
-        # OS does not match for Darwin change to linux
-        (
-            "test-images-2000",
-            "Darwin",
-            "arm64",
-            {
-                "test-images-2000": [
-                    ImageInfo(
-                        "localhost:32829/test-images-2000-linux-amd64", ["latest"]
-                    ),
-                    ImageInfo(
-                        "localhost:32829/test-images-2000-linux-arm64", ["latest"]
-                    ),
-                ]
-            },
-            "localhost:32829/test-images-2000-linux-arm64:latest",
-        ),
-        # platform = linux/amd64
-        (
-            "test-images-2000",
-            "linux",
-            "amd64",
-            {
-                "test-images-2000": [
-                    ImageInfo(
-                        "localhost:32811/test-images-2000-linux-amd64", ["latest"]
-                    ),
-                    ImageInfo(
-                        "localhost:32811/test-images-2000-linux-arm64", ["latest"]
-                    ),
-                ]
-            },
-            "localhost:32811/test-images-2000-linux-amd64:latest",
-        ),
-        # No match found, get the first image
-        (
-            "test-images-2000",
-            "linux",
-            "arm",
-            {
-                "test-images-2000": [
-                    ImageInfo(
-                        "localhost:32830/test-images-2000-linux-amd64", ["0.1.0"]
-                    ),
-                    ImageInfo(
-                        "localhost:32830/test-images-2000-linux-amd64", ["0.2.0"]
-                    ),
-                ]
-            },
-            "localhost:32830/test-images-2000-linux-amd64:0.1.0",
-        ),
-        # Built_images for name does not exist in dictionary
-        (
-            "test-images-2001",
-            "linux",
-            "arm64",
-            {
-                "test-images-2000": [
-                    ImageInfo(
-                        "localhost:32831/test-images-2000-linux-amd64", ["latest"]
-                    ),
-                    ImageInfo(
-                        "localhost:32831/test-images-2000-linux-arm64", ["latest"]
-                    ),
-                ]
-            },
-            None,
-        ),
-        # Built_images for name is empty
-        ("test-images-2000", "linux", "arm64", {"test-images-2000": []}, None),
-    ],
+    "platforms, expected_image_tags",
+    [(["linux/arm64"], ["uuid1-linux-arm64"])],
 )
-@patch("buildrunner.docker.multiplatform_image_builder.machine")
-@patch("buildrunner.docker.multiplatform_image_builder.system")
-def test_find_native_platform(
-    mock_os, mock_arch, name, in_mock_os, in_mock_arch, built_images, expected_image
-):
-    mock_os.return_value = in_mock_os
-    mock_arch.return_value = in_mock_arch
-    with MultiplatformImageBuilder() as mp:
-        mp._intermediate_built_images = built_images
-        found_platform = mp._find_native_platform_images(name)
-        assert str(found_platform) == str(expected_image)
-
-
-@pytest.mark.parametrize(
-    "name, platforms, expected_image_names",
-    [("test-image-tag-2000", ["linux/arm64"], ["buildrunner-mp-uuid1-linux-arm64"])],
-)
-def test_tag_single_platform(name, platforms, expected_image_names):
-    tag = "latest"
+def test_tag_native_platform(platforms, expected_image_tags):
     test_path = f"{TEST_DIR}/test-files/multiplatform"
-    with MultiplatformImageBuilder(cleanup_images=True) as mp:
-        built_images = mp.build_multiple_images(
-            mp_image_name=name,
-            platforms=platforms,
+    with MultiplatformImageBuilder() as mpib:
+        built_image = mpib.build_multiple_images(
+            platforms,
             path=test_path,
             file=f"{test_path}/Dockerfile",
             do_multiprocessing=False,
         )
 
         assert (
-            built_images is not None and len(built_images) == 1
-        ), f"Failed to build {name} for {platforms}"
-        missing_images = actual_images_match_expected(
-            built_images, expected_image_names
-        )
+            built_image is not None and len(built_image.built_images) == 1
+        ), f"Failed to build for {platforms}"
+        missing_images = _actual_images_match_expected(built_image, expected_image_tags)
         assert (
             missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_images]}"
+        ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
 
-        mp.tag_single_platform(name)
+        mpib.tag_native_platform(built_image)
         # Check that the image was tagged and present
-        found_image = docker.image.list(filters={"reference": f"{name}:{tag}"})
+        found_image = docker.image.list(
+            filters={"reference": built_image.built_images[0].image_ref}
+        )
         assert len(found_image) == 1
-        assert f"{name}:{tag}" in found_image[0].repo_tags
+        assert built_image.built_images[0].image_ref in found_image[0].repo_tags
 
-        # Check that intermediate images are not on host registry
-        found_image = docker.image.list(filters={"reference": f"{built_images[0]}*"})
-        assert len(found_image) == 0
-
-    # Check that the image has be removed for host registry
-    found_image = docker.image.list(filters={"reference": f"{name}:{tag}"})
-    assert len(found_image) == 0
+        # Check that intermediate images are on the host registry
+        found_image = docker.image.list(
+            filters={"reference": f"{built_image.built_images[0].image_ref}*"}
+        )
+        assert len(found_image) == 1
 
 
 @pytest.mark.parametrize(
-    "name, platforms, expected_image_names",
-    [("test-image-tag-2000", ["linux/arm64"], ["buildrunner-mp-uuid1-linux-arm64"])],
+    "name, platforms, expected_image_tags",
+    [("test-image-tag-2000", ["linux/arm64"], ["uuid1-linux-arm64"])],
 )
-def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names):
+def test_tag_native_platform_multiple_tags(name, platforms, expected_image_tags):
     tags = ["latest", "0.1.0"]
     test_path = f"{TEST_DIR}/test-files/multiplatform"
-    with MultiplatformImageBuilder(cleanup_images=True) as mp:
-        built_images = mp.build_multiple_images(
-            mp_image_name=name,
+    with MultiplatformImageBuilder() as mpib:
+        built_image = mpib.build_multiple_images(
             platforms=platforms,
             path=test_path,
             file=f"{test_path}/Dockerfile",
@@ -293,16 +176,15 @@ def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names
         )
 
         assert (
-            built_images is not None and len(built_images) == 1
+            built_image is not None and len(built_image.built_images) == 1
         ), f"Failed to build {name} for {platforms}"
-        missing_images = actual_images_match_expected(
-            built_images, expected_image_names
-        )
+        missing_images = _actual_images_match_expected(built_image, expected_image_tags)
         assert (
             missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_images]}"
+        ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
 
-        mp.tag_single_platform(name=name, tags=tags)
+        built_image.add_tagged_image(repo=name, tags=tags)
+        mpib.tag_native_platform(built_image)
         # Check that the image was tagged and present
         found_image = docker.image.list(filters={"reference": f"{name}*"})
         assert len(found_image) == 1
@@ -310,25 +192,22 @@ def test_tag_single_platform_multiple_tags(name, platforms, expected_image_names
             assert f"{name}:{tag}" in found_image[0].repo_tags
 
         # Check that intermediate images are not on host registry
-        found_image = docker.image.list(filters={"reference": f"{built_images[0]}*"})
+        found_image = docker.image.list(
+            filters={"reference": f"{built_image.built_images[0].image_ref}*"}
+        )
         assert len(found_image) == 0
-
-    # Check that the tagged image has be removed for host registry
-    found_image = docker.image.list(filters={"reference": f"{name}*"})
-    assert len(found_image) == 0
 
 
 @pytest.mark.parametrize(
-    "name, platforms, expected_image_names",
-    [("test-image-tag-2000", ["linux/arm64"], ["buildrunner-mp-uuid1-linux-arm64"])],
+    "name, platforms, expected_image_tags",
+    [("test-image-tag-2000", ["linux/arm64"], ["uuid1-linux-arm64"])],
 )
-def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
+def test_tag_native_platform_keep_images(name, platforms, expected_image_tags):
     tag = "latest"
     test_path = f"{TEST_DIR}/test-files/multiplatform"
     try:
-        with MultiplatformImageBuilder(cleanup_images=False) as mp:
-            built_images = mp.build_multiple_images(
-                mp_image_name=name,
+        with MultiplatformImageBuilder() as mpib:
+            built_image = mpib.build_multiple_images(
                 platforms=platforms,
                 path=test_path,
                 file=f"{test_path}/Dockerfile",
@@ -336,16 +215,17 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
             )
 
             assert (
-                built_images is not None and len(built_images) == 1
+                built_image is not None and len(built_image.built_images) == 1
             ), f"Failed to build {name} for {platforms}"
-            missing_images = actual_images_match_expected(
-                built_images, expected_image_names
+            missing_images = _actual_images_match_expected(
+                built_image, expected_image_tags
             )
             assert (
                 missing_images == []
-            ), f"Failed to find {missing_images} in {[image.repo for image in built_images]}"
+            ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
 
-            mp.tag_single_platform(name)
+            built_image.add_tagged_image(repo=name, tags=["latest"])
+            mpib.tag_native_platform(built_image)
 
             # Check that the image was tagged and present
             found_image = docker.image.list(filters={"reference": f"{name}:{tag}"})
@@ -354,7 +234,7 @@ def test_tag_single_platform_keep_images(name, platforms, expected_image_names):
 
             # Check that intermediate images are not on host registry
             found_image = docker.image.list(
-                filters={"reference": f"{built_images[0]}*"}
+                filters={"reference": f"{built_image.built_images[0].image_ref}*"}
             )
             assert len(found_image) == 0
 
@@ -377,18 +257,17 @@ def test_push():
             platforms = ["linux/arm64", "linux/amd64"]
 
             test_path = f"{TEST_DIR}/test-files/multiplatform"
-            with MultiplatformImageBuilder() as mp:
-                built_images = mp.build_multiple_images(
-                    mp_image_name=build_name,
+            with MultiplatformImageBuilder() as mpib:
+                built_image = mpib.build_multiple_images(
                     platforms=platforms,
                     path=test_path,
                     file=f"{test_path}/Dockerfile",
                     do_multiprocessing=False,
-                    tags=tags,
                 )
 
-                assert built_images is not None
-                mp.push(build_name)
+                assert built_image is not None
+                built_image.add_tagged_image(repo=build_name, tags=tags)
+                mpib.push(MagicMock())
 
                 # Make sure the image isn't in the local registry
                 docker.image.remove(build_name, force=True)
@@ -410,7 +289,6 @@ def test_push():
 
 def test_push_with_dest_names():
     dest_names = None
-    built_images = None
     try:
         with MultiplatformImageBuilder() as remote_mp:
             remote_mp._start_local_registry()
@@ -423,18 +301,18 @@ def test_push_with_dest_names():
             platforms = ["linux/arm64", "linux/amd64"]
 
             test_path = f"{TEST_DIR}/test-files/multiplatform"
-            with MultiplatformImageBuilder() as mp:
-                built_images = mp.build_multiple_images(
-                    mp_image_name=build_name,
+            with MultiplatformImageBuilder() as mpib:
+                built_image = mpib.build_multiple_images(
                     platforms=platforms,
                     path=test_path,
                     file=f"{test_path}/Dockerfile",
                     do_multiprocessing=False,
-                    tags=tags,
                 )
 
-                assert built_images is not None
-                mp.push(name=build_name, dest_names=dest_names)
+                assert built_image is not None
+                for dest_name in dest_names:
+                    built_image.add_tagged_image(repo=dest_name, tags=tags)
+                mpib.push(MagicMock())
 
                 # Make sure the image isn't in the local registry
                 for dest_name in dest_names:
@@ -457,87 +335,86 @@ def test_push_with_dest_names():
 
 
 @pytest.mark.parametrize(
-    "name, platforms, expected_image_names",
+    "name, platforms, expected_image_tags",
     [
         (
             "test-build-image-2000",
             ["linux/arm64"],
-            ["buildrunner-mp-uuid1-linux-arm64"],
+            ["uuid1-linux-arm64"],
         ),
         (
             "test-build-image-2001",
             ["linux/amd64", "linux/arm64"],
-            ["buildrunner-mp-uuid1-linux-amd64", "buildrunner-mp-uuid1-linux-arm64"],
+            ["uuid1-linux-amd64", "uuid1-linux-arm64"],
         ),
     ],
 )
 @patch("buildrunner.docker.multiplatform_image_builder.docker.image.remove")
-@patch("buildrunner.docker.multiplatform_image_builder.docker.image.inspect")
 @patch("buildrunner.docker.multiplatform_image_builder.docker.push")
-@patch("buildrunner.docker.multiplatform_image_builder.docker.image.pull")
+@patch(
+    "buildrunner.docker.multiplatform_image_builder.docker.buildx.imagetools.inspect"
+)
 @patch("buildrunner.docker.multiplatform_image_builder.docker.buildx.build")
 def test_build(
     mock_build,
-    mock_pull,
+    mock_imagetools_inspect,
     mock_push,
-    mock_inspect,
     mock_remove,
     name,
     platforms,
-    expected_image_names,
+    expected_image_tags,
 ):
-    mock_inspect.return_value = MagicMock()
-    mock_inspect.return_value.id = "myfakeimageid"
+    _ = mock_build
+    _ = mock_push
+    _ = mock_remove
+    mock_imagetools_inspect.return_value = MagicMock()
+    mock_imagetools_inspect.return_value.config.digest = "myfakeimageid"
     test_path = f"{TEST_DIR}/test-files/multiplatform"
-    with MultiplatformImageBuilder() as mp:
-        built_images = mp.build_multiple_images(
-            mp_image_name=name,
+    with MultiplatformImageBuilder() as mpib:
+        built_image = mpib.build_multiple_images(
             platforms=platforms,
             path=test_path,
             file=f"{test_path}/Dockerfile",
             do_multiprocessing=False,
         )
 
-        assert len(built_images) == len(platforms)
-        assert len(built_images) == len(expected_image_names)
+        assert len(built_image.built_images) == len(platforms)
+        assert len(built_image.built_images) == len(expected_image_tags)
 
-        missing_images = actual_images_match_expected(
-            built_images, expected_image_names
-        )
+        missing_images = _actual_images_match_expected(built_image, expected_image_tags)
         assert (
             missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_images]}"
+        ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
 
 
 @patch("buildrunner.docker.multiplatform_image_builder.docker.image.remove")
-@patch("buildrunner.docker.multiplatform_image_builder.docker.image.inspect")
 @patch("buildrunner.docker.multiplatform_image_builder.docker.push")
-@patch("buildrunner.docker.multiplatform_image_builder.docker.image.pull")
+@patch(
+    "buildrunner.docker.multiplatform_image_builder.docker.buildx.imagetools.inspect"
+)
 @patch("buildrunner.docker.multiplatform_image_builder.docker.buildx.build")
 def test_build_multiple_builds(
-    mock_build, mock_pull, mock_push, mock_inspect, mock_remove
+    mock_build, mock_imagetools_inspect, mock_push, mock_remove
 ):
-    mock_inspect.return_value = MagicMock()
-    mock_inspect.return_value.id = "myfakeimageid"
-    name1 = "test-build-multi-image-2001"
+    _ = mock_remove
+    mock_imagetools_inspect.return_value = MagicMock()
+    mock_imagetools_inspect.return_value.config.digest = "myfakeimageid"
     platforms1 = ["linux/amd64", "linux/arm64"]
-    expected_image_names1 = [
-        "buildrunner-mp-uuid1-linux-amd64",
-        "buildrunner-mp-uuid1-linux-arm64",
+    expected_image_tags1 = [
+        "uuid1-linux-amd64",
+        "uuid1-linux-arm64",
     ]
 
-    name2 = "test-build-multi-image-2002"
     platforms2 = ["linux/amd64", "linux/arm64"]
-    expected_image_names2 = [
-        "buildrunner-mp-uuid2-linux-amd64",
-        "buildrunner-mp-uuid2-linux-arm64",
+    expected_image_tags2 = [
+        "uuid2-linux-amd64",
+        "uuid2-linux-arm64",
     ]
 
     test_path = f"{TEST_DIR}/test-files/multiplatform"
-    with MultiplatformImageBuilder() as mp:
+    with MultiplatformImageBuilder() as mpib:
         # Build set 1
-        built_images1 = mp.build_multiple_images(
-            mp_image_name=name1,
+        built_image1 = mpib.build_multiple_images(
             platforms=platforms1,
             path=test_path,
             file=f"{test_path}/Dockerfile",
@@ -545,8 +422,7 @@ def test_build_multiple_builds(
         )
 
         # Build set 2
-        built_images2 = mp.build_multiple_images(
-            mp_image_name=name2,
+        built_image2 = mpib.build_multiple_images(
             platforms=platforms2,
             path=test_path,
             file=f"{test_path}/Dockerfile",
@@ -554,34 +430,34 @@ def test_build_multiple_builds(
         )
 
         # Check set 1
-        assert len(built_images1) == len(platforms1)
-        assert len(built_images1) == len(expected_image_names1)
-        missing_images = actual_images_match_expected(
-            built_images1, expected_image_names1
+        assert len(built_image1.built_images) == len(platforms1)
+        assert len(built_image1.built_images) == len(expected_image_tags1)
+        missing_images = _actual_images_match_expected(
+            built_image1, expected_image_tags1
         )
         assert (
             missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_images1]}"
+        ), f"Failed to find {missing_images} in {[image.repo for image in built_image1.built_images1]}"
 
         # Check set 2
-        assert len(built_images2) == len(platforms2)
-        assert len(built_images2) == len(expected_image_names2)
-        missing_images = actual_images_match_expected(
-            built_images2, expected_image_names2
+        assert len(built_image2.built_images) == len(platforms2)
+        assert len(built_image2.built_images) == len(expected_image_tags2)
+        missing_images = _actual_images_match_expected(
+            built_image2, expected_image_tags2
         )
         assert (
             missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_images2]}"
+        ), f"Failed to find {missing_images} in {[image.repo for image in built_image2.built_images]}"
 
     assert mock_build.call_count == 4
     prefix = mock_build.call_args.kwargs["tags"][0].split("buildrunner-mp")[0]
     assert mock_build.call_args_list == [
         call(
-            "tests/test-files/multiplatform",
-            tags=[f"{prefix}buildrunner-mp-uuid1-linux-amd64:latest"],
+            test_path,
+            tags=[f"{prefix}buildrunner-mp:uuid1-linux-amd64"],
             platforms=["linux/amd64"],
             load=True,
-            file="tests/test-files/multiplatform/Dockerfile",
+            file=f"{test_path}/Dockerfile",
             build_args={"DOCKER_REGISTRY": None},
             builder=None,
             cache=False,
@@ -590,11 +466,11 @@ def test_build_multiple_builds(
             pull=False,
         ),
         call(
-            "tests/test-files/multiplatform",
-            tags=[f"{prefix}buildrunner-mp-uuid1-linux-arm64:latest"],
+            test_path,
+            tags=[f"{prefix}buildrunner-mp:uuid1-linux-arm64"],
             platforms=["linux/arm64"],
             load=True,
-            file="tests/test-files/multiplatform/Dockerfile",
+            file=f"{test_path}/Dockerfile",
             build_args={"DOCKER_REGISTRY": None},
             builder=None,
             cache=False,
@@ -603,11 +479,11 @@ def test_build_multiple_builds(
             pull=False,
         ),
         call(
-            "tests/test-files/multiplatform",
-            tags=[f"{prefix}buildrunner-mp-uuid2-linux-amd64:latest"],
+            test_path,
+            tags=[f"{prefix}buildrunner-mp:uuid2-linux-amd64"],
             platforms=["linux/amd64"],
             load=True,
-            file="tests/test-files/multiplatform/Dockerfile",
+            file=f"{test_path}/Dockerfile",
             build_args={"DOCKER_REGISTRY": None},
             builder=None,
             cache=False,
@@ -616,11 +492,11 @@ def test_build_multiple_builds(
             pull=False,
         ),
         call(
-            "tests/test-files/multiplatform",
-            tags=[f"{prefix}buildrunner-mp-uuid2-linux-arm64:latest"],
+            test_path,
+            tags=[f"{prefix}buildrunner-mp:uuid2-linux-arm64"],
             platforms=["linux/arm64"],
             load=True,
-            file="tests/test-files/multiplatform/Dockerfile",
+            file=f"{test_path}/Dockerfile",
             build_args={"DOCKER_REGISTRY": None},
             builder=None,
             cache=False,
@@ -631,66 +507,18 @@ def test_build_multiple_builds(
     ]
     assert mock_push.call_count == 4
     assert mock_push.call_args_list == [
-        call([f"{prefix}buildrunner-mp-uuid1-linux-amd64:latest"]),
-        call([f"{prefix}buildrunner-mp-uuid1-linux-arm64:latest"]),
-        call([f"{prefix}buildrunner-mp-uuid2-linux-amd64:latest"]),
-        call([f"{prefix}buildrunner-mp-uuid2-linux-arm64:latest"]),
+        call([f"{prefix}buildrunner-mp:uuid1-linux-amd64"]),
+        call([f"{prefix}buildrunner-mp:uuid1-linux-arm64"]),
+        call([f"{prefix}buildrunner-mp:uuid2-linux-amd64"]),
+        call([f"{prefix}buildrunner-mp:uuid2-linux-arm64"]),
     ]
-    assert mock_pull.call_count == 4
-    assert mock_pull.call_args_list == [
-        call(f"{prefix}buildrunner-mp-uuid1-linux-amd64:latest"),
-        call(f"{prefix}buildrunner-mp-uuid1-linux-arm64:latest"),
-        call(f"{prefix}buildrunner-mp-uuid2-linux-amd64:latest"),
-        call(f"{prefix}buildrunner-mp-uuid2-linux-arm64:latest"),
+    assert mock_imagetools_inspect.call_count == 4
+    assert mock_imagetools_inspect.call_args_list == [
+        call(f"{prefix}buildrunner-mp:uuid1-linux-amd64"),
+        call(f"{prefix}buildrunner-mp:uuid1-linux-arm64"),
+        call(f"{prefix}buildrunner-mp:uuid2-linux-amd64"),
+        call(f"{prefix}buildrunner-mp:uuid2-linux-arm64"),
     ]
-
-
-@pytest.mark.parametrize(
-    "name, tags, platforms, expected_image_names",
-    [
-        (
-            "test-build-tag-image-2000",
-            ["latest", "0.1.0"],
-            ["linux/arm64"],
-            ["buildrunner-mp-uuid1-linux-arm64"],
-        ),
-        (
-            "test-build-tag-image-2001",
-            ["latest", "0.2.0"],
-            ["linux/amd64", "linux/arm64"],
-            ["buildrunner-mp-uuid1-linux-amd64", "buildrunner-mp-uuid1-linux-arm64"],
-        ),
-    ],
-)
-def test_build_with_tags(name, tags, platforms, expected_image_names):
-    test_path = f"{TEST_DIR}/test-files/multiplatform"
-    with MultiplatformImageBuilder() as mp:
-        built_images = mp.build_multiple_images(
-            mp_image_name=name,
-            platforms=platforms,
-            path=test_path,
-            file=f"{test_path}/Dockerfile",
-            tags=tags,
-            do_multiprocessing=False,
-        )
-
-        assert len(built_images) == len(platforms)
-        assert len(built_images) == len(expected_image_names)
-        missing_images = actual_images_match_expected(
-            built_images, expected_image_names
-        )
-        assert (
-            missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_images]}"
-
-
-def test_no_images_built():
-    """
-    Check that None is returned when no images are built
-    """
-    with MultiplatformImageBuilder() as mp:
-        image = mp._find_native_platform_images("bogus-image-name")
-        assert image is None
 
 
 @pytest.mark.parametrize(

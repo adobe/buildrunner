@@ -6,6 +6,7 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 import os
+import re
 from typing import List, Optional, Union
 
 import buildrunner.docker
@@ -13,7 +14,23 @@ from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
-from buildrunner.steprunner.tasks import MultiPlatformBuildStepRunnerTask, sanitize_tag
+from buildrunner.steprunner.tasks import BuildStepRunnerTask
+
+
+def sanitize_tag(tag, log=None):
+    """
+    Sanitize a tag to remove illegal characters.
+
+    :param tag: The tag to sanitize.
+    :param log: Optional log to write warnings to.
+    :return: The sanitized tag.
+    """
+    _tag = re.sub(r"[^-_\w.]+", "-", tag.lower())
+    if _tag != tag and log:
+        log.write(
+            f"Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}\n"
+        )
+    return _tag
 
 
 class RepoDefinition:
@@ -51,7 +68,7 @@ class RepoDefinition:
             self.repository = self.repository[0:tag_index]
 
 
-class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
+class PushBuildStepRunnerTask(BuildStepRunnerTask):
     """
     Class used to push the resulting image (either from the build task, or if
     there is a run task, the snapshot of the resulting run container) to the
@@ -89,42 +106,41 @@ class PushBuildStepRunnerTask(MultiPlatformBuildStepRunnerTask):
         default_tag = sanitize_tag(self.step_runner.build_runner.build_id)
 
         # Tag multi-platform images
-        if self.step_runner.multi_platform.is_multiplatform(
-            self.get_unique_build_name()
-        ):
+        built_image = context.get("mp_built_image")
+        if built_image:
+            # These are used in the image artifacts below, and should match for all tagged images
+            built_image_ids_str = ",".join(
+                [image.trunc_digest for image in built_image.built_images]
+            )
+            built_image_id_with_platforms = [
+                f"{image.platform}:{image.trunc_digest}"
+                for image in built_image.built_images
+            ]
+
             for repo in self._repos:
-                # Always add default tag
+                # Always add default tag and then add it to the built image info
                 repo.tags.append(default_tag)
-                self.step_runner.multi_platform.tag_single_platform(
-                    name=self.get_unique_build_name(),
-                    tags=repo.tags,
-                    dest_name=repo.repository,
-                )
+                tagged_image = built_image.add_tagged_image(repo.repository, repo.tags)
 
-                for tag in repo.tags:
-                    self.step_runner.build_runner.committed_images.add(
-                        f"{repo.repository}:{tag}"
-                    )
+                # Add tagged image refs to committed images for use in determining if pull should be true/false
+                for image_ref in tagged_image.image_refs:
+                    self.step_runner.build_runner.committed_images.add(image_ref)
 
-                # add image as artifact
+                # Add tagged image as artifact if this is a push and not just a commit
                 if not self._commit_only:
-                    images = self.step_runner.multi_platform.get_built_images(
-                        self.get_unique_build_name()
-                    )
-                    image_ids = ",".join([image.trunc_digest() for image in images])
-                    platforms = [
-                        f"{image.platform}:{image.trunc_digest()}" for image in images
-                    ]
                     self.step_runner.build_runner.add_artifact(
                         repo.repository,
                         {
                             "type": "docker-image",
-                            "docker:image": image_ids,
+                            "docker:image": built_image_ids_str,
                             "docker:repository": repo.repository,
                             "docker:tags": repo.tags,
-                            "docker:platforms": platforms,
+                            "docker:platforms": built_image_id_with_platforms,
                         },
                     )
+
+            # Tag all images locally for the native platform
+            self.step_runner.multi_platform.tag_native_platform(built_image)
 
         # Tag single platform images
         else:
