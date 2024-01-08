@@ -606,6 +606,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         try:  # pylint: disable=too-many-nested-blocks
             with MultiplatformImageBuilder(
                 docker_registry=self.global_config.get_docker_registry(),
+                build_registry=self.global_config.get_build_registry(),
                 temp_dir=self.global_config.get_temp_dir(),
                 disable_multi_platform=self.disable_multi_platform,
                 platform_builders=self.global_config.get("platform-builders"),

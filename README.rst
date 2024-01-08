@@ -188,6 +188,11 @@ they are used when put into the global configuration file:
   # the configuration in the buildrunner.yaml file.
   disable-multi-platform: true/false (defaults to false)
 
+  # Optionally uses a registry for temporary multi-platform builds
+  # If not specified or set to "local", uses a temporary registry Docker container
+  # which only lives for the duration of the build
+  build-registry: docker-build.example.com
+
   # Overrides the buildx builder used when doing multi-platform builds. Buildx
   # does not provide the capability to auto-select the builder based on the platform
   # and therefore this must be configured in buildrunner itself to perform builds

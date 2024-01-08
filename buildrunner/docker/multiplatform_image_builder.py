@@ -8,6 +8,7 @@ with the terms of the Adobe license agreement accompanying it.
 import logging
 import os
 import platform as python_platform
+import re
 import shutil
 import tempfile
 import uuid
@@ -26,6 +27,9 @@ from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
 
 LOGGER = logging.getLogger(__name__)
 OUTPUT_LINE = "-----------------------------------------------------------------"
+# Marker for using the local registry instead of an upstream registry
+LOCAL_REGISTRY = "local"
+IMAGE_PREFIX = "buildrunner-mp"
 
 PUSH_TIMEOUT = 300
 
@@ -69,7 +73,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         docker_registry: Optional[str] = None,
-        use_local_registry: bool = True,
+        build_registry: Optional[str] = LOCAL_REGISTRY,
         temp_dir: str = os.getcwd(),
         disable_multi_platform: bool = False,
         platform_builders: Optional[Dict[str, str]] = None,
@@ -78,8 +82,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         cache_to: Optional[Union[dict, str]] = None,
     ):
         self._docker_registry = docker_registry
-        self._mp_registry_info = None
-        self._use_local_registry = use_local_registry
+        self._build_registry = build_registry
+        self._use_local_registry = build_registry == LOCAL_REGISTRY
         self._temp_dir = temp_dir
         self._disable_multi_platform = disable_multi_platform
         self._platform_builders = platform_builders
@@ -94,6 +98,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         self._built_images: List[BuiltImageInfo] = []
         self._local_registry_is_running = False
+        self._mp_registry_info = None
 
     def __enter__(self):
         return self
@@ -107,9 +112,11 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         """Returns true if multi-platform builds are disabled by configuration, false otherwise"""
         return self._disable_multi_platform
 
-    def registry_address(self) -> str:
+    def _build_registry_address(self) -> str:
         """Returns the address of the local registry"""
-        return f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}"
+        if self._build_registry == LOCAL_REGISTRY:
+            return f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}"
+        return self._build_registry
 
     def _start_local_registry(self):
         """
@@ -388,8 +395,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             # Starts local registry container to do ephemeral image storage
             self._start_local_registry()
 
-        # The name should stay consistent and the tags are variable per build step/platform
-        repo = f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}/buildrunner-mp"
+        # Uses the current node name as the repo
+        if python_platform.node():
+            sanitized_name = f"{IMAGE_PREFIX}-{re.sub(r'[^a-zA-Z0-9]', '', python_platform.node()).lower()}"
+        else:
+            sanitized_name = f"{IMAGE_PREFIX}-unknown-node"
+        repo = f"{self._build_registry_address()}/{sanitized_name}"
 
         if self._disable_multi_platform:
             platforms = [self._get_single_platform_to_build(platforms)]

@@ -249,7 +249,7 @@ def test_push():
     try:
         with MultiplatformImageBuilder() as remote_mp:
             remote_mp._start_local_registry()
-            reg_add = remote_mp.registry_address()
+            reg_add = remote_mp._build_registry_address()
             assert reg_add is not None
 
             tags = ["latest", "0.1.0"]
@@ -292,7 +292,7 @@ def test_push_with_dest_names():
     try:
         with MultiplatformImageBuilder() as remote_mp:
             remote_mp._start_local_registry()
-            reg_add = remote_mp.registry_address()
+            reg_add = remote_mp._build_registry_address()
             assert reg_add is not None
 
             tags = ["latest", "0.1.0"]
@@ -450,11 +450,11 @@ def test_build_multiple_builds(
         ), f"Failed to find {missing_images} in {[image.repo for image in built_image2.built_images]}"
 
     assert mock_build.call_count == 4
-    prefix = mock_build.call_args.kwargs["tags"][0].split("buildrunner-mp")[0]
+    image_name = mock_build.call_args.kwargs["tags"][0].rsplit(":", 1)[0]
     assert mock_build.call_args_list == [
         call(
             test_path,
-            tags=[f"{prefix}buildrunner-mp:uuid1-linux-amd64"],
+            tags=[f"{image_name}:uuid1-linux-amd64"],
             platforms=["linux/amd64"],
             load=True,
             file=f"{test_path}/Dockerfile",
@@ -467,7 +467,7 @@ def test_build_multiple_builds(
         ),
         call(
             test_path,
-            tags=[f"{prefix}buildrunner-mp:uuid1-linux-arm64"],
+            tags=[f"{image_name}:uuid1-linux-arm64"],
             platforms=["linux/arm64"],
             load=True,
             file=f"{test_path}/Dockerfile",
@@ -480,7 +480,7 @@ def test_build_multiple_builds(
         ),
         call(
             test_path,
-            tags=[f"{prefix}buildrunner-mp:uuid2-linux-amd64"],
+            tags=[f"{image_name}:uuid2-linux-amd64"],
             platforms=["linux/amd64"],
             load=True,
             file=f"{test_path}/Dockerfile",
@@ -493,7 +493,7 @@ def test_build_multiple_builds(
         ),
         call(
             test_path,
-            tags=[f"{prefix}buildrunner-mp:uuid2-linux-arm64"],
+            tags=[f"{image_name}:uuid2-linux-arm64"],
             platforms=["linux/arm64"],
             load=True,
             file=f"{test_path}/Dockerfile",
@@ -507,17 +507,17 @@ def test_build_multiple_builds(
     ]
     assert mock_push.call_count == 4
     assert mock_push.call_args_list == [
-        call([f"{prefix}buildrunner-mp:uuid1-linux-amd64"]),
-        call([f"{prefix}buildrunner-mp:uuid1-linux-arm64"]),
-        call([f"{prefix}buildrunner-mp:uuid2-linux-amd64"]),
-        call([f"{prefix}buildrunner-mp:uuid2-linux-arm64"]),
+        call([f"{image_name}:uuid1-linux-amd64"]),
+        call([f"{image_name}:uuid1-linux-arm64"]),
+        call([f"{image_name}:uuid2-linux-amd64"]),
+        call([f"{image_name}:uuid2-linux-arm64"]),
     ]
     assert mock_imagetools_inspect.call_count == 4
     assert mock_imagetools_inspect.call_args_list == [
-        call(f"{prefix}buildrunner-mp:uuid1-linux-amd64"),
-        call(f"{prefix}buildrunner-mp:uuid1-linux-arm64"),
-        call(f"{prefix}buildrunner-mp:uuid2-linux-amd64"),
-        call(f"{prefix}buildrunner-mp:uuid2-linux-arm64"),
+        call(f"{image_name}:uuid1-linux-amd64"),
+        call(f"{image_name}:uuid1-linux-arm64"),
+        call(f"{image_name}:uuid2-linux-amd64"),
+        call(f"{image_name}:uuid2-linux-arm64"),
     ]
 
 
@@ -539,3 +539,30 @@ def test__get_build_cache_options(builder, cache_builders, return_cache_options)
     assert multi_platform._get_build_cache_options(builder) == (
         {"cache_to": "to-loc", "cache_from": "from-loc"} if return_cache_options else {}
     )
+
+
+def test_use_build_registry():
+    registry_mpib = MultiplatformImageBuilder()
+    registry_mpib._start_local_registry()
+    build_registry = registry_mpib._build_registry_address()
+    try:
+        with MultiplatformImageBuilder(build_registry=build_registry) as mpib:
+            # Building should use the registry
+            test_path = f"{TEST_DIR}/test-files/multiplatform"
+            built_image = mpib.build_multiple_images(
+                platforms=["linux/arm64", "linux/amd64"],
+                path=test_path,
+                file=f"{test_path}/Dockerfile",
+                do_multiprocessing=False,
+            )
+            assert all(
+                image_info.repo.startswith(f"{build_registry}/")
+                for image_info in built_image.images_by_platform.values()
+            )
+
+            # Check that the registry is running and only one is found with that name
+            assert (
+                mpib._mp_registry_info is None
+            ), "The local registry should not have been started when using a build registry"
+    finally:
+        registry_mpib._stop_local_registry()
