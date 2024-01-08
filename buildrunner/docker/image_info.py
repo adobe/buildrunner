@@ -81,9 +81,7 @@ class BuiltImageInfo(BaseModel):
 
     def image_for_platform(self, platform: str) -> Optional[BuiltTaggedImage]:
         """Retrieves the built image for the given platform."""
-        if platform not in self.images_by_platform:
-            return None
-        return self.images_by_platform[platform]
+        return self.images_by_platform.get(platform)
 
     def add_platform_image(self, platform: str, image_info: BuiltTaggedImage) -> None:
         if platform in self.images_by_platform:

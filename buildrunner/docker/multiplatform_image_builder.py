@@ -326,7 +326,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         host_system = python_platform.system()
         host_machine = python_platform.machine()
 
-        if host_system in ("Darwin", "linux"):
+        if host_system.lower() in ("darwin", "linux"):
             native_platform = f"linux/{host_machine}"
         else:
             native_platform = f"{host_system}/{host_machine}"
