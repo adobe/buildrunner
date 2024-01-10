@@ -246,3 +246,35 @@ def test_invalid_multiplatform_from_dockerfile_in_filesystem():
     assert isinstance(errors, Errors)
     assert errors.count() == 1
     assert RETAG_ERROR_MESSAGE in errors.errors[0].message
+
+
+def test_reusing_multi_platform_images():
+    # Reuse multi-platform images is valid if the image isn't committed or pushed
+    config_yaml = """
+    steps:
+        build-container-multi-platform:
+            build:
+                dockerfile: |
+                    FROM {{ DOCKER_REGISTRY }}/busybox
+                platforms:
+                    - linux/amd64
+                    - linux/arm64/v8
+            push:
+                - repository: user1/buildrunner-test-multi-platform
+                  tags: [ 'latest', '0.0.1' ]
+                - repository: user2/buildrunner-test-multi-platform
+                  tags: [ 'latest', '0.0.1' ]
+
+        use-built-image1:
+            run:
+                image: user1/buildrunner-test-multi-platform:0.0.1
+                cmd: echo "Hello World"
+
+        use-built-image2:
+            run:
+                image: user2/buildrunner-test-multi-platform:0.0.1
+                cmd: echo "Hello World"
+    """
+    config = yaml.load(config_yaml, Loader=yaml.Loader)
+    errors = validate_config(**config)
+    assert errors is None

@@ -272,6 +272,7 @@ class Config(BaseModel, extra="forbid"):
                     for src_image in step_images_info.source_image:
                         if (
                             src_image in other_step_info.dest_images
+                            and step_images_info.dest_images
                             and other_step_info.is_multi_platform
                         ):
                             retagged_images.append(src_image)
