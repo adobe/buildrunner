@@ -8,12 +8,10 @@ with the terms of the Adobe license agreement accompanying it.
 from typing import List
 
 
-class StepImagesInfo():
-
-    def __init__(self,
-                 source_image: str,
-                 dest_images: List[str],
-                 is_multi_platform: bool) -> None:
+class StepImagesInfo:
+    def __init__(
+        self, source_image: str, dest_images: List[str], is_multi_platform: bool
+    ) -> None:
         self._is_multi_platform = is_multi_platform
         self._source_image = source_image
         self._dest_images = dest_images

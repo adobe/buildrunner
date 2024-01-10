@@ -25,6 +25,7 @@ def test_invalid_multiplatform_retagging_with_push():
     assert isinstance(errors, Errors)
     assert errors.count() == 1
 
+
 def test_invalid_multiplatform_retagging_latest_tag():
     # Retagging a multiplatform image is not supported
     # Tests adding 'latest' tag when left out
@@ -95,6 +96,7 @@ def test_invalid_multiplatform_retagging_latest_tag():
     assert isinstance(errors, Errors)
     assert errors.count() == 1
 
+
 def test_invalid_multiplatform_retagging_with_push_empty_tags():
     # Retagging a multiplatform image is not supported
     config_yaml = """
@@ -123,6 +125,7 @@ def test_invalid_multiplatform_retagging_with_push_empty_tags():
     assert isinstance(errors, Errors)
     assert errors.count() == 1
 
+
 def test_invalid_multiplatform_retagging_with_commit():
     # Retagging a multiplatform image is not supported
     # Tests with commit in build step
@@ -146,6 +149,7 @@ def test_invalid_multiplatform_retagging_with_commit():
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
     assert errors.count() == 1
+
 
 def test_invalid_multiplatform_retagging_with_commit2():
     # Retagging a multiplatform image is not supported
@@ -172,6 +176,7 @@ def test_invalid_multiplatform_retagging_with_commit2():
     assert isinstance(errors, Errors)
     assert errors.count() == 1
 
+
 def test_valid_single_platform_retagging():
     # Retagging a single platform image is supported
     config_yaml = """
@@ -191,6 +196,7 @@ def test_valid_single_platform_retagging():
     config = yaml.load(config_yaml, Loader=yaml.Loader)
     errors = validate_config(**config)
     assert errors is None
+
 
 def test_invalid_multiplatform_rebuild_and_push():
     # Retagging a multiplatform image is not supported
@@ -215,6 +221,7 @@ def test_invalid_multiplatform_rebuild_and_push():
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
     assert errors.count() == 1
+
 
 def test_invalid_multiplatform_from_dockerfile_in_filesystem():
     # Retagging a multiplatform image is not supported

@@ -1,4 +1,3 @@
-
 import yaml
 from buildrunner.validation.config import validate_config, Errors
 
@@ -25,6 +24,7 @@ def test_no_run_with_multiplatform_build():
     errors = validate_config(**config)
     assert isinstance(errors, Errors)
     assert errors.count() == 1
+
 
 def test_no_run_with_single_build():
     # Run in single platform build is supported

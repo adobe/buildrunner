@@ -19,6 +19,7 @@ from buildrunner.validation.step_images_info import StepImagesInfo
 
 RETAG_ERROR_MESSAGE = "Multi-platform build steps cannot re-tag images. The following images are re-tagged:"
 
+
 class Config(BaseModel, extra="forbid"):
     """Top level config model"""
 
@@ -114,7 +115,7 @@ class Config(BaseModel, extra="forbid"):
 
                 if isinstance(push, StepPushCommitDict):
                     if not push.tags:
-                        name = f'{push.repository}:latest'
+                        name = f"{push.repository}:latest"
                     else:
                         names = [f"{push.repository}:{tag}" for tag in push.tags]
 
@@ -198,7 +199,12 @@ class Config(BaseModel, extra="forbid"):
             Returns:
                 Optional[List[str]]: List of destination images
             """
-            def get_images(pushcommmit: Union[StepPushCommitDict, str, List[Union[str, StepPushCommitDict]]]) -> List[str]:
+
+            def get_images(
+                pushcommmit: Union[
+                    StepPushCommitDict, str, List[Union[str, StepPushCommitDict]]
+                ],
+            ) -> List[str]:
                 images = []
                 if isinstance(pushcommmit, StepPushCommitDict):
                     if pushcommmit.tags:
@@ -222,7 +228,9 @@ class Config(BaseModel, extra="forbid"):
                             else:
                                 images.append(f"{item.repository}:latest")
                         else:
-                            raise ValueError(f"Unknown type for step.push: {type(step.push)}")
+                            raise ValueError(
+                                f"Unknown type for step.push: {type(step.push)}"
+                            )
                 return images
 
             images = []
@@ -249,20 +257,27 @@ class Config(BaseModel, extra="forbid"):
                 step_images[step_name] = StepImagesInfo(
                     source_image=src_image,
                     dest_images=dst_images,
-                    is_multi_platform=is_multi_platform)
+                    is_multi_platform=is_multi_platform,
+                )
 
             # Iterate through each step images and check for multi-platform re-tagging
             retagged_images = []
             for step_name, step_images_info in step_images.items():
-                other_steps_images_infos = [curr_step_images_info for curr_step_name, curr_step_images_info in step_images.items() if curr_step_name != step_name]
+                other_steps_images_infos = [
+                    curr_step_images_info
+                    for curr_step_name, curr_step_images_info in step_images.items()
+                    if curr_step_name != step_name
+                ]
                 for other_step_info in other_steps_images_infos:
                     for src_image in step_images_info.source_image:
-                        if src_image in other_step_info.dest_images and other_step_info.is_multi_platform:
+                        if (
+                            src_image in other_step_info.dest_images
+                            and other_step_info.is_multi_platform
+                        ):
                             retagged_images.append(src_image)
 
             if retagged_images:
                 raise ValueError(f"{RETAG_ERROR_MESSAGE} {retagged_images}")
-
 
         def validate_multi_platform_build(mp_push_tags: Set[str]):
             """
