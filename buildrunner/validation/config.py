@@ -150,19 +150,25 @@ class Config(BaseModel, extra="forbid"):
             dockerfile_text = None
             src_image = []
             is_multi_platform = False
+            dockerfile = None
 
             # Gets the source image from build.dockerfile
-            if step.build and step.build.dockerfile:
-                if os.path.exists(step.build.dockerfile):
-                    with open(step.build.dockerfile, "r") as dockerfile:
-                        dockerfile_text = dockerfile.read()
-                else:
-                    # Dockerfile is defined as a string in the config file
-                    dockerfile_text = step.build.dockerfile
+            if step.build:
+                dockerfile = step.build.dockerfile
+                if not dockerfile and step.build.path:
+                    dockerfile = f"{step.build.path}/Dockerfile"
+
+                if dockerfile:
+                    if os.path.exists(dockerfile):
+                        with open(dockerfile, "r") as file:
+                            dockerfile_text = file.read()
+                    else:
+                        # Dockerfile is defined as a string in the config file
+                        dockerfile_text = dockerfile
 
                 if not dockerfile_text:
                     raise ValueError(
-                        f"There is an issue with the dockerfile {step.build.dockerfile}"
+                        f"There is an issue with the dockerfile {dockerfile}"
                     )
 
                 for line in dockerfile_text.splitlines():
@@ -174,7 +180,7 @@ class Config(BaseModel, extra="forbid"):
 
                 if not src_image:
                     raise ValueError(
-                        f"There is an issue with the dockerfile {step.build.dockerfile}"
+                        f"There is an issue with the dockerfile {dockerfile}"
                     )
 
             # Get the source image from step.run.image
