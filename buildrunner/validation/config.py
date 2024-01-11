@@ -18,6 +18,7 @@ from buildrunner.validation.step import Step, StepPushCommitDict
 from buildrunner.validation.step_images_info import StepImagesInfo
 
 RETAG_ERROR_MESSAGE = "Multi-platform build steps cannot re-tag images. The following images are re-tagged:"
+RUN_MP_ERROR_MESSAGE = "run is not allowed in the same step as a multi-platform build"
 
 
 class Config(BaseModel, extra="forbid"):
@@ -321,9 +322,7 @@ class Config(BaseModel, extra="forbid"):
                         )
 
                     if step.run:
-                        raise ValueError(
-                            f"run is not allowed with multi-platform build step {step_name}"
-                        )
+                        raise ValueError(f"{RUN_MP_ERROR_MESSAGE} {step_name}")
 
                     # Check for valid push section, duplicate mp tags are not allowed
                     validate_push(step.push, mp_push_tags, step_name)
