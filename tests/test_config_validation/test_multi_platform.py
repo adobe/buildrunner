@@ -9,7 +9,7 @@ def test_no_run_with_multiplatform_build():
         build-container-multi-platform:
             build:
                 dockerfile: |
-                    FROM {{ DOCKER_REGISTRY }}/busybox:latest
+                    FROM {{DOCKER_REGISTRY}}/busybox:latest
                 platforms:
                     - linux/amd64
                     - linux/arm64/v8
@@ -33,7 +33,7 @@ def test_no_run_with_single_build():
         build-container:
             build:
                 dockerfile: |
-                    FROM {{ DOCKER_REGISTRY }}/busybox:latest
+                    FROM {{DOCKER_REGISTRY}}/busybox:latest
             push:
                 repository: user1/buildrunner-test-multi-platform
                 tags: []

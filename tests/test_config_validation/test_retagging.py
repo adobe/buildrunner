@@ -29,8 +29,6 @@ def test_invalid_multiplatform_retagging_with_push():
 def test_invalid_multiplatform_retagging_latest_tag():
     # Retagging a multiplatform image is not supported
     # Tests adding 'latest' tag when left out
-
-    # Tests adding 'latest' tag to build.push
     config_yaml = """
     steps:
         build-container-multi-platform:
@@ -49,52 +47,7 @@ def test_invalid_multiplatform_retagging_latest_tag():
     """
     config = yaml.load(config_yaml, Loader=yaml.Loader)
     errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-    # Tests adding 'latest' tag to run.image
-    config_yaml = """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image:latest
-        retag-multi-platform-image:
-            run:
-                image: user1/buildrunner-multi-platform-image
-                cmd: echo "Hello World"
-            push: user1/buildrunner-multi-platform-image2
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-    # Tests adding 'latest' tag to build.push and run.image
-    config_yaml = """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image
-        retag-multi-platform-image:
-            run:
-                image: user1/buildrunner-multi-platform-image
-                cmd: echo "Hello World"
-            push: user1/buildrunner-multi-platform-image2
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
+    assert errors is None
 
 
 def test_invalid_multiplatform_retagging_with_push_empty_tags():
@@ -104,7 +57,7 @@ def test_invalid_multiplatform_retagging_with_push_empty_tags():
         build-container-multi-platform:
             build:
                 dockerfile: |
-                    FROM {{ DOCKER_REGISTRY }}/busybox:latest
+                    FROM {{DOCKER_REGISTRY}}/busybox:latest
                 platforms:
                     - linux/amd64
                     - linux/arm64/v8
@@ -159,7 +112,7 @@ def test_invalid_multiplatform_retagging_with_commit2():
         build-container-multi-platform:
             build:
                 dockerfile: |
-                    FROM {{ DOCKER_REGISTRY }}/busybox:latest
+                    FROM {{DOCKER_REGISTRY}}/busybox:latest
                 platforms:
                     - linux/amd64
                     - linux/arm64/v8
@@ -184,7 +137,7 @@ def test_valid_single_platform_retagging():
         build-container-single-platform:
             build:
                 dockerfile: |
-                    FROM {{ DOCKER_REGISTRY }}/busybox:latest
+                    FROM {{DOCKER_REGISTRY}}/busybox:latest
             push: user1/buildrunner-test-single-platform:latest
 
         retag-built-image:
@@ -210,7 +163,7 @@ def test_invalid_multiplatform_rebuild_and_push():
                 platforms:
                     - linux/amd64
                     - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image
+            push: user1/buildrunner-multi-platform-image:latest
         retag-multi-platform-image:
             build:
                 dockerfile: |
@@ -234,7 +187,7 @@ def test_invalid_multiplatform_from_dockerfile_in_filesystem():
                 platforms:
                     - linux/amd64
                     - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image
+            push: user1/buildrunner-multi-platform-image:latest
         retag-multi-platform-image:
             build:
                 dockerfile: |
@@ -255,7 +208,7 @@ def test_reusing_multi_platform_images():
         build-container-multi-platform:
             build:
                 dockerfile: |
-                    FROM {{ DOCKER_REGISTRY }}/busybox
+                    FROM {{DOCKER_REGISTRY}}/busybox
                 platforms:
                     - linux/amd64
                     - linux/arm64/v8

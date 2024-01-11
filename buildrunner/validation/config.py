@@ -111,12 +111,10 @@ class Config(BaseModel, extra="forbid"):
                 names = None
                 if isinstance(push, str):
                     name = push
-                    if ":" not in name:
-                        name = f"{name}:latest"
 
                 if isinstance(push, StepPushCommitDict):
                     if not push.tags:
-                        name = f"{push.repository}:latest"
+                        name = push.repository
                     else:
                         names = [f"{push.repository}:{tag}" for tag in push.tags]
 
@@ -138,27 +136,29 @@ class Config(BaseModel, extra="forbid"):
                 if update_mp_push_tags and name is not None:
                     mp_push_tags.add(name)
 
-        def get_source_image(step: Step) -> Optional[List[str]]:
+        def get_source_image(step: Step) -> str:
             """
-            Get the source image from the step.build and/or step.run.image
+            Get the source image from the step.build or step.run.image
 
             Args:
                 step (Step): Build step
 
             Returns:
-                Optional[str]: Source images
+                Optional[str]: source image
             """
-            dockerfile_text = None
-            src_image = []
-            is_multi_platform = False
-            dockerfile = None
 
-            # Gets the source image from build.dockerfile
-            if step.build:
-                dockerfile = step.build.dockerfile
-                if not dockerfile and step.build.path:
-                    dockerfile = f"{step.build.path}/Dockerfile"
+            def get_base_image_from_dockerfile(dockerfile: str) -> str:
+                """
+                Get the base image from a dockerfile
 
+                Args:
+                    dockerfile (str): Dockerfile
+
+                Returns:
+                    str: Base image
+                """
+                dockerfile_text = None
+                src_image = None
                 if dockerfile:
                     if os.path.exists(dockerfile):
                         with open(dockerfile, "r") as file:
@@ -167,34 +167,39 @@ class Config(BaseModel, extra="forbid"):
                         # Dockerfile is defined as a string in the config file
                         dockerfile_text = dockerfile
 
-                if not dockerfile_text:
+                if not isinstance(dockerfile_text, str):
                     raise ValueError(
                         f"There is an issue with the dockerfile {dockerfile}"
                     )
 
-                for line in dockerfile_text.splitlines():
-                    if line.startswith("FROM"):
-                        image_name = line.replace("FROM ", "").strip()
+                for line in dockerfile_text.lower().strip().splitlines():
+                    if line.startswith("from"):
+                        image_name = line.replace("from", "").strip()
                         if ":" not in image_name:
                             image_name = f"{image_name}:latest"
-                        src_image.append(image_name)
+                        src_image = image_name
 
                 if not src_image:
                     raise ValueError(
                         f"There is an issue with the dockerfile {dockerfile}"
                     )
 
-            # Get the source image from step.run.image
-            if step.run and step.run.image:
-                if ":" not in step.run.image:
-                    src_image.append(f"{step.run.image}:latest")
-                else:
-                    src_image.append(step.run.image)
+                return src_image.lower()
 
-            if step.build and step.build.platforms:
-                is_multi_platform = True
+            src_image = None
 
-            return src_image, is_multi_platform
+            # Gets the source image from build.dockerfile
+            if step.build:
+                dockerfile = step.build.dockerfile
+                if not dockerfile and step.build.path:
+                    dockerfile = f"{step.build.path}/Dockerfile"
+                src_image = get_base_image_from_dockerfile(dockerfile)
+
+            # Get the source image from step.run.image if build.dockerfile is not defined
+            elif step.run and step.run.image:
+                src_image = step.run.image
+
+            return src_image
 
         def get_destination_images(step: Step) -> Optional[List[str]]:
             """
@@ -218,12 +223,9 @@ class Config(BaseModel, extra="forbid"):
                         for tag in pushcommmit.tags:
                             images.append(f"{pushcommmit.repository}:{tag}")
                     else:
-                        images.append(f"{pushcommmit.repository}:latest")
+                        images.append(pushcommmit.repository)
                 elif isinstance(pushcommmit, str):
-                    if ":" not in pushcommmit:
-                        images.append(f"{pushcommmit}:latest")
-                    else:
-                        images.append(pushcommmit)
+                    images.append(pushcommmit)
                 elif isinstance(pushcommmit, list):
                     for item in pushcommmit:
                         if isinstance(item, str):
@@ -233,7 +235,7 @@ class Config(BaseModel, extra="forbid"):
                                 for tag in item.tags:
                                     images.append(f"{item.repository}:{tag}")
                             else:
-                                images.append(f"{item.repository}:latest")
+                                images.append(item.repository)
                         else:
                             raise ValueError(
                                 f"Unknown type for step.push: {type(step.push)}"
@@ -249,9 +251,6 @@ class Config(BaseModel, extra="forbid"):
             """
             Validate multi-platform are not re-tagged
 
-            Args:
-                mp_push_tags (Set[str]): Set of all tags used in multi-platform build steps
-
             Raises:
                 ValueError | pydantic.ValidationError: If the config file is invalid
             """
@@ -259,30 +258,31 @@ class Config(BaseModel, extra="forbid"):
 
             # Iterate through each step and get information about the images
             for step_name, step in vals.items():
-                src_image, is_multi_platform = get_source_image(step)
-                dst_images = get_destination_images(step)
+                source_image = get_source_image(step)
+                dest_images = get_destination_images(step)
                 step_images[step_name] = StepImagesInfo(
-                    source_image=src_image,
-                    dest_images=dst_images,
-                    is_multi_platform=is_multi_platform,
+                    source_image=source_image,
+                    dest_images=dest_images,
+                    is_multi_platform=step.is_multi_platform(),
                 )
 
             # Iterate through each step images and check for multi-platform re-tagging
             retagged_images = []
             for step_name, step_images_info in step_images.items():
+                if not step_images_info.dest_images:
+                    continue
+
                 other_steps_images_infos = [
                     curr_step_images_info
                     for curr_step_name, curr_step_images_info in step_images.items()
                     if curr_step_name != step_name
                 ]
                 for other_step_info in other_steps_images_infos:
-                    for src_image in step_images_info.source_image:
-                        if (
-                            src_image in other_step_info.dest_images
-                            and step_images_info.dest_images
-                            and other_step_info.is_multi_platform
-                        ):
-                            retagged_images.append(src_image)
+                    if (
+                        step_images_info.source_image in other_step_info.dest_images
+                        and other_step_info.is_multi_platform
+                    ):
+                        retagged_images.append(step_images_info.source_image)
 
             if retagged_images:
                 raise ValueError(f"{RETAG_ERROR_MESSAGE} {retagged_images}")
