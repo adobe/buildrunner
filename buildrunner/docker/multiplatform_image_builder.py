@@ -20,7 +20,7 @@ import timeout_decorator
 from python_on_whales import docker
 from retry import retry
 
-from buildrunner.utils import ConsoleLogger
+from buildrunner.loggers import ConsoleLogger
 from buildrunner.docker import get_dockerfile
 from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
 

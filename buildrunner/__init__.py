@@ -1,5 +1,5 @@
 """
-Copyright 2023 Adobe
+Copyright 2024 Adobe
 All Rights Reserved.
 
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
@@ -8,7 +8,6 @@ with the terms of the Adobe license agreement accompanying it.
 # pylint: disable=too-many-lines
 
 from collections import OrderedDict
-import errno
 import fnmatch
 import getpass
 import importlib.machinery
@@ -27,8 +26,7 @@ import requests
 
 from vcsinfo import detect_vcs, VCSUnsupported, VCSMissingRevision
 
-from buildrunner import docker
-from buildrunner import config
+from buildrunner import docker, loggers
 from buildrunner.config import (
     BuildRunnerConfig,
 )
@@ -40,10 +38,6 @@ from buildrunner.errors import (
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
 from buildrunner.steprunner.tasks.push import sanitize_tag
-from buildrunner.utils import (
-    ConsoleLogger,
-    epoch_time,
-)
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
 
 
@@ -124,16 +118,17 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
     def __init__(
         self,
-        build_dir,
-        build_results_dir=None,
+        *,
+        build_dir: str,
+        build_results_dir: str,
         global_config_file=None,
         run_config_file=None,
         run_config=None,
-        build_number=None,
+        build_time: int,
+        build_number: int,
         push=False,
         colorize_log=True,
         cleanup_images=False,
-        cleanup_step_artifacts=False,
         cleanup_cache=False,
         steps_to_run=None,
         publish_ports=False,
@@ -146,13 +141,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         """ """
         self.build_dir = build_dir
-        if build_results_dir:
-            self.build_results_dir = build_results_dir
-        else:
-            self.build_results_dir = os.path.join(self.build_dir, config.RESULTS_DIR)
+        self.build_results_dir = build_results_dir
+        self.build_time = build_time
+        self.build_number = build_number
         self.push = push
         self.cleanup_images = cleanup_images
-        self.cleanup_step_artifacts = cleanup_step_artifacts
         self.cleanup_cache = cleanup_cache
         self.generated_images = []
         # The set of images (including tag) that were committed as part of this build
@@ -175,16 +168,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.exit_code = None
         self._source_image = None
         self._source_archive = None
-        self._log_file = None
         self._log = None
-
-        # set build time
-        self.build_time = epoch_time()
-
-        # set build number
-        self.build_number = build_number
-        if not self.build_number:
-            self.build_number = self.build_time
 
         try:
             self.vcs = detect_vcs(self.build_dir)
@@ -198,10 +182,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             self.log.write(f"{err}\nMake sure you have at least one commit.\n")
             sys.exit()
 
-        # cleanup existing results dir (if needed)
-        if self.cleanup_step_artifacts and os.path.exists(self.build_results_dir):
-            shutil.rmtree(self.build_results_dir)
-
         # default environment - must come *after* VCS detection
         base_context = {}
         if push:
@@ -211,7 +191,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # load global configuration
         self.global_config = BuildRunnerConfig(
             build_dir=self.build_dir,
-            build_results_dir=self.build_results_dir,
             global_config_file=global_config_file,
             log_generated_files=self.log_generated_files,
             build_time=self.build_time,
@@ -284,36 +263,12 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             )
 
     @property
-    def log(self) -> ConsoleLogger:
+    def log(self) -> loggers.ConsoleLogger:
         """
-        create the log file and open for writing
+        Create the log file and open for writing
         """
         if self._log is None:
-            try:
-                os.makedirs(self.build_results_dir)
-            except OSError as exc:
-                if exc.errno != errno.EEXIST:
-                    sys.stderr.write(f"ERROR: {str(exc)}\n")
-                    sys.exit(os.EX_UNAVAILABLE)
-
-            try:
-                log_file_path = os.path.join(self.build_results_dir, "build.log")
-                # pylint: disable=consider-using-with
-                self._log_file = open(log_file_path, "w", encoding="utf8")
-                self._log = ConsoleLogger(self.colorize_log, self._log_file)
-
-                self.add_artifact(
-                    os.path.basename(log_file_path),
-                    {"type": "log"},
-                )
-            except Exception as exc:  # pylint: disable=broad-except
-                sys.stderr.write(
-                    f"ERROR: failed to initialize ConsoleLogger: {str(exc)}\n"
-                )
-                self._log = sys.stderr
-                if self._log_file:
-                    self._log_file.close()
-
+            self._log = loggers.ConsoleLogger(self.colorize_log)
         return self._log
 
     def get_build_server_from_alias(self, host):
@@ -572,10 +527,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             with open(artifact_manifest, "w", encoding="utf-8") as _af:
                 json.dump(artifacts, _af, indent=2)
 
-    def _exit_message_and_close_log(self, exit_explanation):
+    def _exit_message(self, exit_explanation):
         """
-        Determine the exit message, output to the log or stdout, close log if
-        open.
+        Determine the exit message and output to the log.
         """
         if self.exit_code:
             exit_message = "\nBuild ERROR."
@@ -583,13 +537,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             exit_message = "\nBuild SUCCESS."
 
         if self.log:
-            try:
-                if exit_explanation:
-                    self.log.write("\n" + exit_explanation + "\n")
-                self.log.write(exit_message + "\n")
-            finally:
-                # close the log
-                self._log_file.close()
+            if exit_explanation:
+                self.log.write("\n" + exit_explanation + "\n")
+            self.log.write(exit_message + "\n")
         else:
             if exit_explanation:
                 print(f"\n{exit_explanation}")
@@ -618,10 +568,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 ),
                 cache_to=self.global_config.get_docker_build_cache_config().get("to"),
             ) as multi_platform:
-                if not os.path.exists(self.build_results_dir):
-                    # create a new results dir
-                    os.mkdir(self.build_results_dir)
-
                 self.get_source_archive_path()
                 # run each step
                 for step_name, step_config in self.run_config["steps"].items():
@@ -763,7 +709,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 if os.path.exists(tmp_file):
                     os.remove(tmp_file)
 
-            self._exit_message_and_close_log(exit_explanation)
+            self._exit_message(exit_explanation)
 
 
 # Local Variables:

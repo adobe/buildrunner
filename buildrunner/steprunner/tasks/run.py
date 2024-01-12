@@ -26,7 +26,8 @@ from buildrunner.provisioners import create_provisioners
 from buildrunner.sshagent import DockerSSHAgentProxy
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
-from buildrunner.utils import ContainerLogger, is_dict
+from buildrunner.loggers import ContainerLogger
+from buildrunner.utils import is_dict
 
 DEFAULT_SHELL = "/bin/sh"
 SOURCE_VOLUME_MOUNT = "/source"

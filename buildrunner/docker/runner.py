@@ -28,12 +28,12 @@ from buildrunner.docker import (
     force_remove_container,
     BuildRunnerContainerError,
 )
+from buildrunner.loggers import ContainerLogger
 from buildrunner.utils import (
     acquire_flock_open_read_binary,
     acquire_flock_open_write_binary,
     release_flock,
     tempfile,
-    ContainerLogger,
 )
 
 CACHE_TIMEOUT_SECONDS = 240
