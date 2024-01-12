@@ -561,6 +561,7 @@ the run step:
         - test-step
         - validation-step
 
+      # This is not supported in the same step as a multi-platform build.
       run:
         # xfail indicates whether the run operation is expected to fail.  The
         # default is false - the operation is expected to succeed.  If xfail

@@ -12,9 +12,6 @@ steps:
       tags: [ 'latest', '0.0.1' ]
     - repository: user2/buildrunner-test-multi-platform
       tags: [ 'latest', '0.0.1' ]
-    run:
-      image: user1/buildrunner-test-multi-platform:0.0.1
-      cmd: echo "Hello World"
 
   use-built-image1:
     run:

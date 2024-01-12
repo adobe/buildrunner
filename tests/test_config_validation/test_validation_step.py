@@ -205,12 +205,16 @@ def test_duplicate_mp_tags_strings_valid():
     steps:
       build-container-multi-platform1:
         build:
+          dockerfile: |
+            FROM busybox:latest
           platforms:
             - linux/amd64
             - linux/arm64
         push: mytest-reg/buildrunner-test-multi-platform:latest
       build-container-multi-platform2:
         build:
+          dockerfile: |
+            FROM busybox:latest
           platforms:
             - linux/amd64
             - linux/arm64
