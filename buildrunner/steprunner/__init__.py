@@ -92,10 +92,14 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
             for _task_name, _task_config in self.config.items():
                 self.log.write(f"==> Running step: {self.name}:{_task_name}\n")
                 if _task_name in TASK_MAPPINGS:
-                    if self.local_images:
-                        _task_config["pull"] = False
-                    if self.platform:
-                        _task_config["platform"] = self.platform
+                    if TASK_MAPPINGS[_task_name] in [
+                        BuildBuildStepRunnerTask,
+                        RunBuildStepRunnerTask,
+                    ]:
+                        if self.local_images:
+                            _task_config["pull"] = False
+                        if self.platform:
+                            _task_config["platform"] = self.platform
                     _task = TASK_MAPPINGS[_task_name](self, _task_config)
                     _tasks.append(_task)
                     try:

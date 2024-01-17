@@ -24,6 +24,10 @@ def _get_test_args(file_name: str) -> Optional[List[str]]:
         # Override platform to amd
         return ["--platform", "linux/amd64"]
 
+    if file_name == "test-local-images-and-platform.yaml":
+        # Override platform to amd and use local images
+        return ["--local-images", "--platform", "linux/amd64"]
+
     # No additional args for this test file
     return None
 

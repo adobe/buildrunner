@@ -1,0 +1,26 @@
+steps:
+  build-container:
+    build:
+      path: .
+      dockerfile: |
+        FROM rockylinux:8
+      platforms:
+      - linux/amd64
+      - linux/arm64/v8
+    push:
+    - repository: buildrunner-test/rocky-8-packager
+      tags: [ "dev" ]
+    - repository: buildrunner-test/rocky-8-x86_64-packager
+      tags: [ "dev" ]
+  run-container:
+    run:
+      image: rockylinux:8
+      cmd: echo hello world
+  services-container:
+    run:
+      image: rockylinux:8
+      cmd: echo hello world
+      services:
+        my-service-container:
+          image: rockylinux:8
+          cmd: echo hello world
