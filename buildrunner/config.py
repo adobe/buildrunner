@@ -14,6 +14,7 @@ import datetime
 import getpass
 from graphlib import TopologicalSorter
 from io import StringIO
+import logging
 import os
 import re
 import sys
@@ -40,12 +41,14 @@ from buildrunner.validation.config import validate_config
 
 from . import fetch
 
+
 MASTER_GLOBAL_CONFIG_FILE = "/etc/buildrunner/buildrunner.yaml"
 DEFAULT_GLOBAL_CONFIG_FILES = [
     MASTER_GLOBAL_CONFIG_FILE,
     "~/.buildrunner.yaml",
 ]
 RESULTS_DIR = "buildrunner.results"
+LOGGER = logging.getLogger(__name__)
 
 
 class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
@@ -94,8 +97,8 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         buildrunner_version = None
 
         if not os.path.exists(version_file_path):
-            print(
-                f"WARNING: File {version_file_path} does not exist. This could indicate an error with "
+            LOGGER.warning(
+                f"File {version_file_path} does not exist. This could indicate an error with "
                 f"the buildrunner installation. Unable to validate version."
             )
             return

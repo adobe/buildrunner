@@ -127,12 +127,10 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         build_time: int,
         build_number: int,
         push=False,
-        colorize_log=True,
         cleanup_images=False,
         cleanup_cache=False,
         steps_to_run=None,
         publish_ports=False,
-        disable_timestamps=False,
         log_generated_files=False,
         docker_timeout=None,
         local_images=False,
@@ -152,10 +150,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         # This is used to check if images should be pulled by default or not
         self.committed_images = set()
         self.repo_tags_to_push = []
-        self.colorize_log = colorize_log
         self.steps_to_run = steps_to_run
         self.publish_ports = publish_ports
-        self.disable_timestamps = disable_timestamps
         self.log_generated_files = log_generated_files
         self.docker_timeout = docker_timeout
         self.local_images = local_images
@@ -235,7 +231,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             if run_config_file:
                 _run_config_file = self.global_config.to_abs_path(run_config_file)
             else:
-                self.log.write("looking for run configuration\n")
+                self.log.write("Looking for run configuration\n")
                 for name_to_try in DEFAULT_RUN_CONFIG_FILES:
                     _to_try = self.global_config.to_abs_path(name_to_try)
                     if os.path.exists(_to_try):
@@ -268,7 +264,13 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         Create the log file and open for writing
         """
         if self._log is None:
-            self._log = loggers.ConsoleLogger(self.colorize_log)
+            self._log = loggers.ConsoleLogger(__name__)
+            self.add_artifact(
+                os.path.basename(
+                    loggers.get_build_log_file_path(self.build_results_dir)
+                ),
+                {"type": "log"},
+            )
         return self._log
 
     def get_build_server_from_alias(self, host):
@@ -350,7 +352,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         local_files = self.global_config.get("local-files")
         if not local_files:
             self.log.write(
-                "No 'local-files' configuration in global build runner config"
+                "No 'local-files' configuration in global build runner config\n"
             )
             return None
 
@@ -594,7 +596,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                         self.log.write(
                             f"===> Pushing {multi_platform.num_built_images} multiplatform image(s)\n"
                         )
-                        multi_platform.push(self.log)
+                        multi_platform.push()
 
                     # Push single platform images
                     _docker_client = docker.new_client(timeout=self.docker_timeout)
@@ -697,7 +699,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                             force=True,
                         )
                     except Exception as _ex:  # pylint: disable=broad-except
-                        self.log.write(f"Error removing image {_image}: {str(_ex)}")
+                        self.log.write(f"Error removing image {_image}: {str(_ex)}\n")
             else:
                 self.log.write("Keeping generated images\n")
             if self._source_archive:

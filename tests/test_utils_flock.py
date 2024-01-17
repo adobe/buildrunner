@@ -5,12 +5,12 @@ from unittest import mock
 
 import pytest
 from buildrunner.utils import (
-    ContainerLogger,
     FailureToAcquireLockException,
     acquire_flock_open_read_binary,
     acquire_flock_open_write_binary,
     release_flock,
 )
+from buildrunner.loggers import ContainerLogger
 
 
 @pytest.fixture(name="mock_logger")

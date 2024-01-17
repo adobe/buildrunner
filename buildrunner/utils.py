@@ -10,6 +10,7 @@ from collections import OrderedDict
 from datetime import datetime
 import fcntl
 import io
+import logging
 import os
 import sys
 import time
@@ -23,7 +24,9 @@ from typing import Tuple
 from buildrunner import loggers
 from buildrunner.errors import BuildRunnerConfigurationError
 
+
 LOCK_TIMEOUT_SECONDS = 1800.0
+LOGGER = logging.getLogger(__name__)
 
 
 class FailureToAcquireLockException(Exception):
@@ -133,8 +136,8 @@ def checksum(*files: Tuple[str]) -> str:
     Generate a single SHA1 checksum of the list of files passed in
     """
     if not isinstance(files, tuple):
-        print(
-            f"WARNING: TypeError - Input 'files' needs to be a tuple instead of {type(files)}"
+        LOGGER.warning(
+            f"TypeError - Input 'files' needs to be a tuple instead of {type(files)}"
         )
         sys.exit()
 
@@ -143,7 +146,7 @@ def checksum(*files: Tuple[str]) -> str:
 
     for filename in sorted(files):
         if not os.path.isfile(filename):
-            print(f"WARNING: {filename} does not exist, skipping file.")
+            LOGGER.warning(f"{filename} does not exist, skipping file.")
             continue
 
         with open(filename, "rb") as open_file:
@@ -173,7 +176,7 @@ def hash_sha1(file_name_globs=None):
                         hasher.update(buf)
                         buf = open_file.read(blocksize)
             except Exception:  # pylint: disable=broad-except
-                print(f"WARNING: Error reading file: {file_name}")
+                LOGGER.warning(f"Error reading file: {file_name}")
     return hasher.hexdigest()
 
 

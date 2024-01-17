@@ -202,14 +202,14 @@ class DockerSSHAgentProxy:
                 break
             except Exception as exc:  # pylint: disable=broad-except
                 self.log.write(
-                    f"there was an issue trying to connect to container : {exc}"
+                    f"There was an issue trying to connect to container: {exc}"
                 )
             next_backoff = backoff + previous_backoff
             previous_backoff = backoff
             backoff = next_backoff
             time.sleep(backoff)
         else:
-            self.log.write(f"Unable to successfully connect to {ssh_host}")
+            self.log.write(f"Unable to successfully connect to {ssh_host}\n")
             # pylint: disable=broad-exception-raised
             raise Exception(f"Unable to successfully connect to {ssh_host}")
 

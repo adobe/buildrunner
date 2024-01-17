@@ -444,11 +444,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self.step_runner.log.write(
             f'Creating service container "{name}" from image "{_image}"\n'
         )
-        service_logger = ContainerLogger.for_service_container(
-            self.step_runner.log,
-            name,
-            timestamps=not self.step_runner.build_runner.disable_timestamps,
-        )
+        service_logger = ContainerLogger.for_service_container(name)
 
         # setup custom env variables
         _env = dict(self.step_runner.build_runner.env)
@@ -777,15 +773,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self.step_runner.log.write(
             f'Creating build container from image "{_run_image}"\n'
         )
-        container_logger = ContainerLogger.for_build_container(
-            self.step_runner.log,
-            self.step_runner.name,
-            timestamps=not self.step_runner.build_runner.disable_timestamps,
-        )
+        container_logger = ContainerLogger.for_build_container(self.step_runner.name)
         container_meta_logger = ContainerLogger.for_build_container(
-            self.step_runner.log,
-            self.step_runner.name,
-            timestamps=not self.step_runner.build_runner.disable_timestamps,
+            self.step_runner.name
         )
 
         # container defaults
@@ -993,8 +983,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                             f"Considering local cache [{cache_archive_file}] -> docker path [{key}]\n"
                         )
                 else:
-                    print(
-                        f"Warning: Type {type(value)} is not supported. "
+                    container_meta_logger.warning(
+                        f"Type {type(value)} is not supported. "
                         f"Not able to use cache functionality for {key}: {value}"
                     )
                     continue

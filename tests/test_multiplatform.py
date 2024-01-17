@@ -267,7 +267,7 @@ def test_push():
 
                 assert built_image is not None
                 built_image.add_tagged_image(repo=build_name, tags=tags)
-                mpib.push(MagicMock())
+                mpib.push()
 
                 # Make sure the image isn't in the local registry
                 docker.image.remove(build_name, force=True)
@@ -312,7 +312,7 @@ def test_push_with_dest_names():
                 assert built_image is not None
                 for dest_name in dest_names:
                     built_image.add_tagged_image(repo=dest_name, tags=tags)
-                mpib.push(MagicMock())
+                mpib.push()
 
                 # Make sure the image isn't in the local registry
                 for dest_name in dest_names:

@@ -10,7 +10,6 @@ import argparse
 import os
 import shutil
 import sys
-from collections import OrderedDict
 
 from . import (
     __version__,
@@ -20,26 +19,6 @@ from . import (
 from buildrunner import config, loggers
 from buildrunner.config import BuildRunnerConfig
 from buildrunner.utils import epoch_time
-
-
-LOGLEVEL_NAMES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-loglevel_lookup = OrderedDict()
-for ll_name, ll_val in zip(LOGLEVEL_NAMES, range(len(LOGLEVEL_NAMES))):
-    loglevel_lookup[str(ll_val)] = ll_name
-    loglevel_lookup[ll_name] = ll_name
-
-
-def loglevel_type(string):
-    """
-    :param string:
-    """
-    ll_name = string.upper()
-    if ll_name not in loglevel_lookup:
-        llevel_values = ", ".join(loglevel_lookup.keys())
-        raise argparse.ArgumentTypeError(
-            f'Value "{string}" is not a valid loglevel: {llevel_values}'
-        )
-    return loglevel_lookup[ll_name]
 
 
 def parse_args(argv):
@@ -78,14 +57,12 @@ def parse_args(argv):
         help='build configuration file (defaults to "buildrunner.yaml", then "gauntlet.yaml")',
     )
 
-    llevel_values = ", ".join(loglevel_lookup.keys())
     parser.add_argument(
-        "-l",
-        "--loglevel",
-        dest="loglevel",
-        help=f"Verbosity of output:  Allowed values are {llevel_values}",
-        type=loglevel_type,
-        default="WARNING",
+        "-x",
+        "--debug",
+        dest="debug",
+        action="store_true",
+        help="enables debug logging",
     )
 
     parser.add_argument(
@@ -276,9 +253,12 @@ def _create_results_dir(cleanup_step_artifacts: bool, build_results_dir: str) ->
 
 def initialize_br(args: argparse.Namespace) -> BuildRunner:
     _create_results_dir(not args.keep_step_artifacts, args.build_results_dir)
-    loggers.initialize_root_logger(args.loglevel, args.build_results_dir)
-    logger = loggers.get_logger(args.loglevel, "buildrunner")
-    logger.debug("Startup")
+    loggers.initialize_root_logger(
+        args.debug,
+        args.no_log_color,
+        args.disable_timestamps,
+        args.build_results_dir,
+    )
 
     # set build time
     build_time = epoch_time()
@@ -296,7 +276,6 @@ def initialize_br(args: argparse.Namespace) -> BuildRunner:
         build_time=build_time,
         build_number=build_number,
         push=args.push,
-        colorize_log=not args.no_log_color,
         cleanup_images=args.cleanup_images,
         cleanup_cache=args.clean_cache,
         steps_to_run=args.steps,

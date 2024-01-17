@@ -20,7 +20,6 @@ import timeout_decorator
 from python_on_whales import docker
 from retry import retry
 
-from buildrunner.loggers import ConsoleLogger
 from buildrunner.docker import get_dockerfile
 from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
 
@@ -91,7 +90,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._cache_from = cache_from
         self._cache_to = cache_to
         if self._cache_from or self._cache_to:
-            print(
+            LOGGER.info(
                 f'Configuring multiplatform builds to cache from {cache_from} and to {cache_to} '
                 f'for builders {", ".join(cache_builders) if cache_builders else "(all)"}'
             )
@@ -286,7 +285,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             self._platform_builders.get(platform) if self._platform_builders else None
         )
         LOGGER.debug(f"Building image {image_ref} for platform {platform}")
-        print(
+        LOGGER.info(
             f"Building image for platform {platform} with {builder or 'default'} builder"
         )
 
@@ -404,25 +403,25 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         if self._disable_multi_platform:
             platforms = [self._get_single_platform_to_build(platforms)]
-            print(
-                f"{OUTPUT_LINE}\n"
-                f"Note: Disabling multi-platform build, "
-                "this will only build a single-platform image.\n"
-                f"image: {repo} platform:{platforms[0]}\n"
-                f"{OUTPUT_LINE}"
+            LOGGER.info(OUTPUT_LINE)
+            LOGGER.info(
+                "Note: Disabling multi-platform build, this will only build a single-platform image."
             )
+            LOGGER.info(f"image: {repo} platform:{platforms[0]}")
+            LOGGER.info(OUTPUT_LINE)
         else:
-            print(
-                f"{OUTPUT_LINE}\n"
-                f"Note: Building multi-platform images can take a long time, please be patient.\n"
-                "If you are running this locally, you can speed this up by using the "
-                "'--disable-multi-platform' CLI flag "
-                "or set the 'disable-multi-platform' flag in the global config file.\n"
-                f"{OUTPUT_LINE}"
+            LOGGER.info(OUTPUT_LINE)
+            LOGGER.info(
+                "Note: Building multi-platform images can take a long time, please be patient."
             )
+            LOGGER.info(
+                "If you are running this locally, you can speed this up by using the '--disable-multi-platform' "
+                "CLI flag or set the 'disable-multi-platform' flag in the global config file."
+            )
+            LOGGER.info(OUTPUT_LINE)
 
         processes = []
-        print(
+        LOGGER.info(
             f'Starting builds for {len(platforms)} platforms in {"parallel" if do_multiprocessing else "sequence"}'
         )
 
@@ -504,10 +503,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         LOGGER.info(f"Pushing sources {src_names} to tags {tag_names}")
         docker.buildx.imagetools.create(sources=src_names, tags=tag_names)
 
-    def push(self, log: ConsoleLogger) -> None:
+    def push(self) -> None:
         """
         Pushes all built images to their tagged image counterparts.
-        :arg log: The log instance for output to the console.
         :raises TimeoutError: If the image fails to push within the specified timeout and retries
         """
         # Parameters for timeout and retries
@@ -518,16 +516,16 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         for built_image in self._built_images:
             if not built_image.tagged_images:
-                log.write(
-                    f"No tags exist for built image {built_image.id}, not pushing\n"
+                LOGGER.info(
+                    f"No tags exist for built image {built_image.id}, not pushing"
                 )
                 continue
 
             source_image_refs = [image.image_ref for image in built_image.built_images]
 
             for tagged_image in built_image.tagged_images:
-                log.write(
-                    f"Pushing {built_image.id} to {', '.join(tagged_image.image_refs)}\n"
+                LOGGER.info(
+                    f"Pushing {built_image.id} to {', '.join(tagged_image.image_refs)}"
                 )
 
                 timeout_seconds = initial_timeout_seconds

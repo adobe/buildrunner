@@ -28,7 +28,7 @@ from buildrunner.docker import (
     force_remove_container,
     BuildRunnerContainerError,
 )
-from buildrunner.loggers import ContainerLogger
+from buildrunner.loggers import ContainerLogger, DockerPullProgress
 from buildrunner.utils import (
     acquire_flock_open_read_binary,
     acquire_flock_open_write_binary,
@@ -111,16 +111,11 @@ class DockerRunner:
         if pull_image or not found_image:
             if log:
                 log.write(f"Pulling image {self.image_name}\n")
-            for data in self.docker_client.pull(
-                self.image_name, stream=True, decode=True, platform=self.platform
-            ):
-                # Unused variable (see comment below about interactive mode)
-                _ = data
-                if log:
-                    log.write(".")
-                    # If we implement an interactive mode, this could be used instead
-                    # line = data.get('progress', data.get('status')) or '...'
-                    # log.write(f'\r{line:<80}')
+            with DockerPullProgress() as docker_progress:
+                for data in self.docker_client.pull(
+                    self.image_name, stream=True, decode=True, platform=self.platform
+                ):
+                    docker_progress.status_report(data)
             if log:
                 log.write("\nImage pulled successfully\n")
 
@@ -397,8 +392,8 @@ class DockerRunner:
                         f"{actual_cache_archive_file} at the path {docker_path}\n"
                     )
 
-            except docker.errors.APIError as exception:
-                logger.write(f"WARNING: Encountered exception\n{exception}\n")
+            except docker.errors.APIError:
+                logger.exception("Encountered exception")
             finally:
                 self.shell = orig_shell
                 release_flock(file_obj, logger)

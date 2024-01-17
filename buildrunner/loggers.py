@@ -9,131 +9,161 @@ with the terms of the Adobe license agreement accompanying it.
 import logging
 import os
 import sys
-from time import strftime, gmtime
-from typing import Union
+import queue
+from typing import Optional, Union
+
+import colorlog
+from rich import progress
 
 
-def get_logger(loglevel: str, name: str) -> logging.Logger:
-    """
-    :param loglevel:
-    """
-    logger = logging.getLogger(name)
-    logger.setLevel(loglevel)
+CONSOLE_LOGGER_NAME = "buildrunner"
 
-    formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
-    console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
 
-    return logger
+class CustomColoredFormatter(colorlog.ColoredFormatter):
+    def __init__(self, fmt: str, no_color: bool, color: str = "white"):
+        super().__init__(
+            fmt, no_color=no_color, log_colors=self._get_log_level_colors(color)
+        )
+        self.fmt = fmt
+        self.color = color
+
+    def clone(
+        self, color: Optional[str] = None, no_color: Optional[bool] = None
+    ) -> "CustomColoredFormatter":
+        if color is None:
+            color = self.color
+        if no_color is None:
+            no_color = self.no_color
+        return CustomColoredFormatter(self.fmt, no_color, color)
+
+    @staticmethod
+    def _get_log_level_colors(color: str) -> dict:
+        return {
+            "DEBUG": color,
+            "INFO": color,
+            "WARNING": color,
+            "ERROR": color,
+            "CRITICAL": color,
+        }
 
 
 def get_build_log_file_path(build_results_dir: str) -> str:
     return os.path.join(build_results_dir, "build.log")
 
 
-def initialize_root_logger(loglevel: str, build_results_dir: str) -> None:
+def initialize_root_logger(
+    debug: bool, no_log_color: bool, disable_timestamps: bool, build_results_dir: str
+) -> None:
     logger = logging.getLogger()
-    logger.setLevel(loglevel)
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
-    formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
+    timestamp = "" if disable_timestamps else "%(asctime)s "
+    color_formatter = CustomColoredFormatter(
+        f"%(log_color)s{timestamp}%(levelname)-8s %(message)s",
+        no_log_color,
+    )
+    no_color_formatter = color_formatter.clone(no_color=True)
+
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
+    # Console logger should use colored output when specified by config
+    console_handler.setFormatter(color_formatter)
     file_handler = logging.FileHandler(
         get_build_log_file_path(build_results_dir), "w", encoding="utf8"
     )
-    file_handler.setFormatter(formatter)
+    # The build log should never use colored output
+    file_handler.setFormatter(no_color_formatter)
     logger.handlers.clear()
-    logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
 
 
 class ConsoleLogger:
     """
-    Class used to write decorated output to stdout while also redirecting
-    non-decorated output to one or more streams.
+    Class inherited from logger that provides backwards support for the "write" method.
+    This should be removed at some point and reimplemented with actual logging calls.
     """
 
-    def __init__(self, colorize_log, *streams):
-        self.colorize_log = colorize_log
-        self.streams = []
-        for stream in streams:
-            self.streams.append(stream)
-        self.stdout = sys.stdout
-        self.stderr = sys.stderr
+    def __init__(self, name: str):
+        self.logger = logging.getLogger(name)
 
-    def write(self, output: Union[bytes, str], color=None):
+    def write(self, output: Union[bytes, str]):
         """
         Write the given text to stdout and streams decorating output to stdout
         with color.
         """
         if not isinstance(output, str):
             output = str(output, encoding=sys.stdout.encoding, errors="replace")
-        _stdout = output
+        if output and output[-1] == "\n":
+            output = output[:-1]
+        for line in output.split("\n"):
+            self.logger.info(line)
 
-        # colorize stdout
-        if color and self.colorize_log:
-            # Colorize stdout
-            # pylint: disable=invalid-character-esc
-            _stdout = f"[01;3{color}m{_stdout}\033[00;00m"
-        self.stdout.write(_stdout)
-
-        # do not colorize output to other streams
-        for stream in self.streams:
-            try:
-                if stream.closed:
-                    self.stderr.write(
-                        f"WARNING: Attempted to write to a closed stream {stream}. "
-                        f"Not writing {output} to {stream}."
-                    )
-                else:
-                    stream.write(output)
-            except UnicodeDecodeError as ude:
-                stream.write(f"\nERROR writing to log: {str(ude)}\n")
-
-    def flush(self):
-        """
-        Flush.
-        """
-        for stream in self.streams:
-            stream.flush()
+    # Delegates all methods to the logger if they don't exist (allowing the logger methods to be used directly)
+    def __getattr__(self, item):
+        return getattr(self.logger, item)
 
 
-class ContainerLogger:
+class ColorQueue(queue.SimpleQueue):
+    def __init__(self, *colors):
+        super().__init__()
+        for color in colors:
+            self.put(color)
+
+    def next(self) -> str:
+        current = self.get()
+        self.put(current)
+        return current
+
+
+class ContainerLogger(ConsoleLogger):
     """
-    Class used to write container specific output to a ConsoleLogger.
+    Class used to write container specific output to logging.
 
     This class is not thread safe, but since each container gets its own that
     is ok.
     """
 
-    BUILD_LOG_COLORS = [3, 4]
-    SERVICE_LOG_COLORS = [5, 6, 1, 2]
+    BUILD_LOG_COLORS = ColorQueue("yellow", "blue")
+    SERVICE_LOG_COLORS = ColorQueue("purple", "cyan", "red", "green")
     LOGGERS = {}
 
-    def __init__(self, console_logger, name, color, timestamps=True):
-        self.console_logger = console_logger
-        self.name = name
-        self.line_prefix = "[" + name + "] "
-        self.color = color
-        self.timestamps = timestamps
+    def __init__(self, name: str, color: str, prefix: Optional[str] = None):
+        super().__init__(name)
+        self._set_logger_handlers(color)
+
+        self._line_prefix = f"[{prefix if prefix else name}] "
         self._buffer = []
 
-    def _get_timestamp(self):
-        if self.timestamps:
-            return "[" + strftime("%H:%M:%S", gmtime()) + "] "
-        return ""
+    def _set_logger_handlers(self, color: str) -> None:
+        """
+        Copy and modify the handlers from the root logger in order to change the color for the console logger
+        as well as push the logs to the results build log file
+        :param color: the color to set on the console handler
+        """
+        # Only override this if not already set
+        if self.logger.handlers:
+            return
+
+        self.logger.propagate = False
+        for handler in logging.getLogger().handlers:
+            if (
+                isinstance(handler, logging.StreamHandler)
+                and not isinstance(handler, logging.FileHandler)
+                and isinstance(handler.formatter, CustomColoredFormatter)
+            ):
+                new_handler = logging.StreamHandler(handler.stream)
+                new_handler.setFormatter(handler.formatter.clone(color))
+                self.logger.addHandler(new_handler)
+            else:
+                self.logger.addHandler(handler)
 
     def _write_buffer(self):
         """
         Write the contents of the buffer to the log.
         """
-        _line = f'{self._get_timestamp()}{self.line_prefix}{"".join(self._buffer)}'
+        line = f'{self._line_prefix}{"".join(self._buffer)}'
         self._buffer.clear()
-        self.console_logger.write(
-            _line,
-            color=self.color,
-        )
+        super().write(line)
 
     def write(self, output: Union[bytes, str]):
         """
@@ -152,47 +182,74 @@ class ContainerLogger:
         """
         Flush the buffer.
         """
-        self._buffer.append("\n")
-        self._write_buffer()
+        if self._buffer:
+            self._buffer.append("\n")
+            self._write_buffer()
 
     @classmethod
-    def for_build_container(cls, console_logger, name, timestamps=True):
+    def for_build_container(cls, name: str) -> "ContainerLogger":
         """
         Return a ContainerLogger for a build container.
         """
-        color = cls._cycle_colors(cls.BUILD_LOG_COLORS)
-        name_idx = f"{name}{color}"
+        color = cls.BUILD_LOG_COLORS.next()
+        name_idx = f"{name}_{color}"
         if name_idx not in cls.LOGGERS:
-            cls.LOGGERS[name_idx] = ContainerLogger(
-                console_logger,
-                name,
-                color,
-                timestamps=timestamps,
-            )
+            cls.LOGGERS[name_idx] = ContainerLogger(name_idx, color, prefix=name)
         return cls.LOGGERS[name_idx]
 
     @classmethod
-    def for_service_container(cls, console_logger, name, timestamps=True):
+    def for_service_container(cls, name: str) -> "ContainerLogger":
         """
         Return a ContainerLogger for a service container.
         """
-        color = cls._cycle_colors(cls.SERVICE_LOG_COLORS)
+        color = cls.SERVICE_LOG_COLORS.next()
         if name not in cls.LOGGERS:
-            cls.LOGGERS[name] = ContainerLogger(
-                console_logger,
-                name,
-                color,
-                timestamps=timestamps,
-            )
+            cls.LOGGERS[name] = ContainerLogger(f"service-{name}", color)
         return cls.LOGGERS[name]
 
-    @staticmethod
-    def _cycle_colors(colors):
-        """
-        Cycle through console colors.
-        """
-        current = colors[0]
-        colors[0] = colors[1]
-        colors[-1] = current
 
-        return current
+class DockerPullProgress:
+    # Inspired by https://github.com/docker/docker-py/issues/376#issuecomment-1414535176
+    tasks = {}
+
+    def __init__(self):
+        self.progress = progress.Progress()
+
+    def __enter__(self):
+        self.progress.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.progress.__exit__(exc_type, exc_val, exc_tb)
+
+    def status_report(self, data: dict) -> None:
+        if not data:
+            return
+        try:
+            status = data.get("status")
+            if status == "Downloading":
+                color = "cyan"
+            elif status == "Extracting":
+                color = "green"
+            else:
+                # Skip other statuses
+                return
+            status_id = data.get("id")
+            if not status_id or status_id == "0":
+                return
+            description = f"[{color}]{status_id}: {status}"
+
+            if status_id not in self.tasks:
+                self.tasks[status_id] = self.progress.add_task(
+                    description,
+                    total=data["progressDetail"]["total"],
+                )
+            else:
+                self.progress.update(
+                    self.tasks[status_id],
+                    completed=data["progressDetail"]["current"],
+                    description=description,
+                )
+        except Exception:
+            # Do not worry about any exceptions since it's just for helpful display purposes
+            pass
