@@ -8,7 +8,6 @@ import buildrunner.config  # noqa: E402
 from buildrunner import (  # noqa: E402
     cli,
     __version__,
-    BuildRunner,
     BuildRunnerConfigurationError,
 )
 
@@ -30,23 +29,7 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
         buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES = global_config_files
 
     try:
-        build_runner = BuildRunner(
-            args.directory,
-            global_config_file=args.global_config_file,
-            run_config_file=args.config_file,
-            build_number=args.build_number,
-            push=args.push,
-            colorize_log=not args.no_log_color,
-            cleanup_images=args.cleanup_images,
-            cleanup_step_artifacts=not args.keep_step_artifacts,
-            steps_to_run=args.steps,
-            publish_ports=args.publish_ports,
-            log_generated_files=args.log_generated_files,
-            docker_timeout=args.docker_timeout,
-            platform=args.platform,
-            build_results_dir=args.build_results_dir,
-        )
-
+        build_runner = cli.initialize_br(args)
         build_runner.run()
         if build_runner.exit_code:
             return build_runner.exit_code

@@ -163,8 +163,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
                         exit_code = 1
                         if "errorDetail" in json_msg:
                             if "message" in json_msg["errorDetail"] and console:
-                                console.write(json_msg["errorDetail"]["message"])
-                                console.write("\n")
+                                console.write(f"{json_msg['errorDetail']['message']}\n")
 
         return exit_code
 

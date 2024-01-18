@@ -7,58 +7,18 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import argparse
-from collections import OrderedDict
-import logging
 import os
+import shutil
 import sys
-
 
 from . import (
     __version__,
     BuildRunner,
     BuildRunnerConfigurationError,
 )
+from buildrunner import config, loggers
 from buildrunner.config import BuildRunnerConfig
-
-
-# All loggers should be under this one, it is used to not enable additional logging for docker, requests, etc
-BASE_LOGGER_NAME = "buildrunner"
-LOG_NAME = BASE_LOGGER_NAME
-
-
-LOGLEVEL_NAMES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-LOGLEVEL_LOOKUP = OrderedDict()
-for _ll_name, _ll_val in zip(LOGLEVEL_NAMES, range(len(LOGLEVEL_NAMES))):
-    LOGLEVEL_LOOKUP[str(_ll_val)] = _ll_name
-    LOGLEVEL_LOOKUP[_ll_name] = _ll_name
-
-
-def get_logger(loglevel):
-    """
-    :param loglevel:
-    """
-    formatter = logging.Formatter("%(asctime)s %(name)-30s %(levelname)-8s %(message)s")
-    logger = logging.getLogger(LOG_NAME)
-    logger.setLevel(loglevel)
-
-    console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    return logger
-
-
-def loglevel_type(string):
-    """
-    :param string:
-    """
-    ll_name = string.upper()
-    if ll_name not in LOGLEVEL_LOOKUP:
-        llevel_values = ", ".join(LOGLEVEL_LOOKUP.keys())
-        raise argparse.ArgumentTypeError(
-            f'Value "{string}" is not a valid loglevel: {llevel_values}'
-        )
-    return LOGLEVEL_LOOKUP[ll_name]
+from buildrunner.utils import epoch_time
 
 
 def parse_args(argv):
@@ -97,14 +57,12 @@ def parse_args(argv):
         help='build configuration file (defaults to "buildrunner.yaml", then "gauntlet.yaml")',
     )
 
-    llevel_values = ", ".join(LOGLEVEL_LOOKUP.keys())
     parser.add_argument(
-        "-l",
-        "--loglevel",
-        dest="loglevel",
-        help=f"Verbosity of output:  Allowed values are {llevel_values}",
-        type=loglevel_type,
-        default="WARNING",
+        "-x",
+        "--debug",
+        dest="debug",
+        action="store_true",
+        help="enables debug logging",
     )
 
     parser.add_argument(
@@ -253,6 +211,10 @@ def parse_args(argv):
 
     args = parser.parse_args(argv[1:])
 
+    # Set build results dir if not set
+    if not args.build_results_dir:
+        args.build_results_dir = os.path.join(args.directory, config.RESULTS_DIR)
+
     # Only absolute directories can do a mount bind
     args.directory = os.path.realpath(args.directory)
 
@@ -269,7 +231,6 @@ def clean_cache(argv):
     args = parse_args(argv)
     global_config = BuildRunnerConfig(
         build_dir=args.directory,
-        build_results_dir=args.build_results_dir,
         global_config_file=args.global_config_file,
         log_generated_files=(
             bool(args.log_generated_files or args.print_generated_files)
@@ -278,11 +239,60 @@ def clean_cache(argv):
     BuildRunner.clean_cache(global_config)
 
 
+def _create_results_dir(cleanup_step_artifacts: bool, build_results_dir: str) -> None:
+    try:
+        # cleanup existing results dir (if needed)
+        if cleanup_step_artifacts and os.path.exists(build_results_dir):
+            shutil.rmtree(build_results_dir)
+        # (re)create the build results dir
+        os.makedirs(build_results_dir, exist_ok=True)
+    except OSError as exc:
+        sys.stderr.write(f"ERROR: {str(exc)}\n")
+        sys.exit(os.EX_UNAVAILABLE)
+
+
+def initialize_br(args: argparse.Namespace) -> BuildRunner:
+    _create_results_dir(not args.keep_step_artifacts, args.build_results_dir)
+    loggers.initialize_root_logger(
+        args.debug,
+        args.no_log_color,
+        args.disable_timestamps,
+        args.build_results_dir,
+    )
+
+    # set build time
+    build_time = epoch_time()
+
+    # set build number
+    build_number = args.build_number
+    if not build_number:
+        build_number = build_time
+
+    return BuildRunner(
+        build_dir=args.directory,
+        build_results_dir=args.build_results_dir,
+        global_config_file=args.global_config_file,
+        run_config_file=args.config_file,
+        build_time=build_time,
+        build_number=build_number,
+        push=args.push,
+        cleanup_images=args.cleanup_images,
+        cleanup_cache=args.clean_cache,
+        steps_to_run=args.steps,
+        publish_ports=args.publish_ports,
+        log_generated_files=(
+            bool(args.log_generated_files or args.print_generated_files)
+        ),
+        docker_timeout=args.docker_timeout,
+        local_images=args.local_images,
+        platform=args.platform,
+        disable_multi_platform=args.disable_multi_platform,
+    )
+
+
 def main(argv):
     """Main program execution."""
     args = parse_args(argv)
-    logger = get_logger(args.loglevel)
-    logger.debug("Startup")
 
     # are we just printing the version?
     if args.print_version:
@@ -290,28 +300,7 @@ def main(argv):
         return os.EX_OK
 
     try:
-        build_runner = BuildRunner(
-            args.directory,
-            build_results_dir=args.build_results_dir,
-            global_config_file=args.global_config_file,
-            run_config_file=args.config_file,
-            build_number=args.build_number,
-            push=args.push,
-            colorize_log=not args.no_log_color,
-            cleanup_images=args.cleanup_images,
-            cleanup_step_artifacts=not args.keep_step_artifacts,
-            cleanup_cache=args.clean_cache,
-            steps_to_run=args.steps,
-            publish_ports=args.publish_ports,
-            log_generated_files=(
-                bool(args.log_generated_files or args.print_generated_files)
-            ),
-            docker_timeout=args.docker_timeout,
-            local_images=args.local_images,
-            platform=args.platform,
-            disable_multi_platform=args.disable_multi_platform,
-        )
-
+        build_runner = initialize_br(args)
         if not args.print_generated_files:
             build_runner.run()
             if build_runner.exit_code:

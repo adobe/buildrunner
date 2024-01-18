@@ -36,8 +36,8 @@ def _test_buildrunner_file(
 
         artifacts_file = f"{temp_dir}/artifacts.json"
         assert os.path.exists(artifacts_file)
-        with open(artifacts_file, "r") as artfacts_file:
-            artifacts = json.load(artfacts_file)
+        with open(artifacts_file, "r") as artifacts_file:
+            artifacts = json.load(artifacts_file)
 
             if "build.log" in artifacts.keys():
                 del artifacts["build.log"]

@@ -9,7 +9,7 @@ from unittest import mock
 
 from buildrunner import BuildRunner
 from buildrunner.docker.runner import DockerRunner
-from buildrunner.utils import ConsoleLogger, ContainerLogger
+from buildrunner.loggers import ConsoleLogger, ContainerLogger
 import pytest
 
 
@@ -44,6 +44,15 @@ def fixture_setup_runner():
     runner.cleanup()
 
 
+@pytest.fixture(name="log_output")
+def fixture_log_output():
+    with mock.patch(
+        "buildrunner.loggers.logging"
+    ) as logging_mock, io.StringIO() as stream:
+        logging_mock.getLogger().info.side_effect = lambda msg: stream.write(f"{msg}\n")
+        yield stream
+
+
 @pytest.fixture(name="tmp_dir_name")
 def fixture_setup_tmp_dir_context():
     with tempfile.TemporaryDirectory() as tmp_dir_name:
@@ -71,18 +80,17 @@ def create_test_files_in_docker(
     assert num_of_test_files != 0
     assert len(test_files) == num_of_test_files
 
-    with io.StringIO() as my_stream:
-        log = ConsoleLogger("colorize_log", my_stream)
-        for filename in test_files:
-            drunner.run(
-                f"mkdir -p {docker_path} &&"
-                f"cd {docker_path} && "
-                f"echo {filename} > {filename}",
-                console=None,
-                stream=True,
-                log=log,
-                workdir="/root/",
-            )
+    log = ConsoleLogger("colorize_log")
+    for filename in test_files:
+        drunner.run(
+            f"mkdir -p {docker_path} &&"
+            f"cd {docker_path} && "
+            f"echo {filename} > {filename}",
+            console=None,
+            stream=True,
+            log=log,
+            workdir="/root/",
+        )
 
     return test_files
 
@@ -108,7 +116,7 @@ def setup_cache_test_files(
     return test_files
 
 
-def test_restore_cache_basic(runner, tmp_dir_name, mock_logger):
+def test_restore_cache_basic(runner, tmp_dir_name, mock_logger, log_output):
     """
     Tests basic restore cache functionality
     """
@@ -128,20 +136,17 @@ def test_restore_cache_basic(runner, tmp_dir_name, mock_logger):
 
     runner.restore_caches(mock_logger, caches)
 
-    with io.StringIO() as my_stream:
-        log = ConsoleLogger("colorize_log", my_stream)
-        runner.run(
-            f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
-        )
+    log = ConsoleLogger("colorize_log")
+    runner.run(f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/")
 
-        my_stream.seek(0)
-        output = my_stream.readlines()
+    log_output.seek(0)
+    output = log_output.readlines()
 
-        for file in test_files:
-            assert f"{file}\n" in output
+    for file in test_files:
+        assert f"{file}\n" in output
 
 
-def test_restore_cache_no_cache(runner, mock_logger):
+def test_restore_cache_no_cache(runner, mock_logger, log_output):
     """
     Tests restore cache when a match is not found
     """
@@ -159,20 +164,19 @@ def test_restore_cache_no_cache(runner, mock_logger):
 
         runner.restore_caches(mock_logger, caches)
 
-        with io.StringIO() as my_stream:
-            log = ConsoleLogger("colorize_log", my_stream)
-            runner.run(
-                f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
-            )
+        log = ConsoleLogger("colorize_log")
+        runner.run(
+            f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
+        )
 
-            my_stream.seek(0)
-            output = my_stream.readlines()
+        log_output.seek(0)
+        output = log_output.readlines()
 
-            for file in test_files:
-                assert f"{file}\n" not in output
+        for file in test_files:
+            assert f"{file}\n" not in output
 
 
-def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger):
+def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger, log_output):
     """
     Tests restore cache when there is prefix matching
     """
@@ -198,23 +202,20 @@ def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger):
 
     runner.restore_caches(mock_logger, caches)
 
-    with io.StringIO() as my_stream:
-        log = ConsoleLogger("colorize_log", my_stream)
-        runner.run(
-            f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
-        )
+    log = ConsoleLogger("colorize_log")
+    runner.run(f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/")
 
-        my_stream.seek(0)
-        output = my_stream.readlines()
+    log_output.seek(0)
+    output = log_output.readlines()
 
-        for file in test_files:
-            assert f"{file}\n" not in output
+    for file in test_files:
+        assert f"{file}\n" not in output
 
-        for file in test_files_checksum:
-            assert f"{file}\n" in output
+    for file in test_files_checksum:
+        assert f"{file}\n" in output
 
 
-def test_restore_cache_prefix_timestamps(runner, tmp_dir_name, mock_logger):
+def test_restore_cache_prefix_timestamps(runner, tmp_dir_name, mock_logger, log_output):
     """
     Tests that when the cache prefix matches it chooses the most recent archive file
     """
@@ -243,23 +244,20 @@ def test_restore_cache_prefix_timestamps(runner, tmp_dir_name, mock_logger):
 
     runner.restore_caches(mock_logger, caches)
 
-    with io.StringIO() as my_stream:
-        log = ConsoleLogger("colorize_log", my_stream)
-        runner.run(
-            f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/"
-        )
+    log = ConsoleLogger("colorize_log")
+    runner.run(f"ls -1 {docker_path}", console=None, stream=True, log=log, workdir="/")
 
-        my_stream.seek(0)
-        output = my_stream.readlines()
+    log_output.seek(0)
+    output = log_output.readlines()
 
-        for file in test_files_oldest:
-            assert f"{file}\n" not in output
+    for file in test_files_oldest:
+        assert f"{file}\n" not in output
 
-        for file in test_files_middle:
-            assert f"{file}\n" not in output
+    for file in test_files_middle:
+        assert f"{file}\n" not in output
 
-        for file in test_files_newest:
-            assert f"{file}\n" in output
+    for file in test_files_newest:
+        assert f"{file}\n" in output
 
 
 def test_save_cache_basic(runner, tmp_dir_name, mock_logger):
