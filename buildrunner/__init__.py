@@ -21,6 +21,7 @@ import sys
 import tarfile
 import tempfile
 import types
+from typing import List, Optional
 
 import requests
 
@@ -121,23 +122,21 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         *,
         build_dir: str,
         build_results_dir: str,
-        global_config_file=None,
-        run_config_file=None,
-        run_config=None,
+        global_config_file: Optional[str],
+        run_config_file: Optional[str],
         build_time: int,
         build_number: int,
-        push=False,
-        cleanup_images=False,
-        cleanup_cache=False,
-        steps_to_run=None,
-        publish_ports=False,
-        log_generated_files=False,
-        docker_timeout=None,
-        local_images=False,
-        platform=None,
-        disable_multi_platform=False,
+        push: bool,
+        cleanup_images: bool,
+        cleanup_cache: bool,
+        steps_to_run: List[str],
+        publish_ports: bool,
+        log_generated_files: bool,
+        docker_timeout: int,
+        local_images: bool,
+        platform: Optional[str],
+        disable_multi_platform: bool,
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
-        """ """
         self.build_dir = build_dir
         self.build_results_dir = build_results_dir
         self.build_time = build_time
@@ -225,25 +224,20 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         # load run configuration
         _run_config_file = None
-        if run_config:
-            self.run_config = run_config
+        if run_config_file:
+            _run_config_file = self.global_config.to_abs_path(run_config_file)
         else:
-            if run_config_file:
-                _run_config_file = self.global_config.to_abs_path(run_config_file)
-            else:
-                self.log.write("Looking for run configuration\n")
-                for name_to_try in DEFAULT_RUN_CONFIG_FILES:
-                    _to_try = self.global_config.to_abs_path(name_to_try)
-                    if os.path.exists(_to_try):
-                        _run_config_file = _to_try
-                        break
+            self.log.write("Looking for run configuration\n")
+            for name_to_try in DEFAULT_RUN_CONFIG_FILES:
+                _to_try = self.global_config.to_abs_path(name_to_try)
+                if os.path.exists(_to_try):
+                    _run_config_file = _to_try
+                    break
 
-            if not _run_config_file or not os.path.exists(_run_config_file):
-                raise BuildRunnerConfigurationError(
-                    "Cannot find build configuration file"
-                )
+        if not _run_config_file or not os.path.exists(_run_config_file):
+            raise BuildRunnerConfigurationError("Cannot find build configuration file")
 
-            self.run_config = self.global_config.load_config(_run_config_file)
+        self.run_config = self.global_config.load_config(_run_config_file)
 
         if not isinstance(self.run_config, dict) or "steps" not in self.run_config:
             cfg_file = _run_config_file if _run_config_file else "provided config"
@@ -257,6 +251,15 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             raise BuildRunnerConfigurationError(
                 f'The "steps" attribute is not a non-empty dictionary in {cfg_file}'
             )
+
+        if steps_to_run:
+            missing_steps = [
+                step for step in steps_to_run if step not in self.run_config["steps"]
+            ]
+            if missing_steps:
+                raise BuildRunnerConfigurationError(
+                    f"The following steps do not exist: {', '.join(missing_steps)}"
+                )
 
     @property
     def log(self) -> loggers.ConsoleLogger:
