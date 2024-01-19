@@ -237,7 +237,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if not _run_config_file or not os.path.exists(_run_config_file):
             raise BuildRunnerConfigurationError("Cannot find build configuration file")
 
-        self.run_config = self.global_config.load_config(_run_config_file)
+        self.run_config = self.global_config.load_config(
+            cfg_file=_run_config_file, default_tag=sanitize_tag(self.build_id)
+        )
 
         if not isinstance(self.run_config, dict) or "steps" not in self.run_config:
             cfg_file = _run_config_file if _run_config_file else "provided config"
