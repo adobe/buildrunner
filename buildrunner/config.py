@@ -19,7 +19,7 @@ import os
 import re
 import sys
 import tempfile
-from typing import Optional
+from typing import Optional, Union
 
 import jinja2
 
@@ -327,7 +327,70 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
 
         return context
 
-    def load_config(self, cfg_file, ctx=None, log_file=True):
+    def _set_default_tag(self, config, default_tag) -> dict:
+        """
+        Set default tag if not set for each image
+
+        Args:
+            config (dict):  configuration
+            default_tag (str): default tag
+
+            Returns:
+                dict: configuration
+        """
+
+        def add_default_tag_to_tags(config: Union[str, dict], default_tag: str):
+            # Add default tag to tags list if not in the list already
+            if isinstance(config, dict):
+                tags = config.get("tags")
+                if not tags:
+                    tags = []
+                assert isinstance(tags, list)
+                if default_tag not in tags:
+                    tags.append(default_tag)
+
+            # Convert to dictionary and add default tag if not listed already
+            elif isinstance(config, str):
+                image_name = config.split(":")
+                step_config = dict()
+                step_config["repository"] = image_name[0]
+                step_config["tags"] = []
+
+                # Check if image name has defined a tag, if so add it to tags
+                if len(image_name) > 1:
+                    tag = image_name[1]
+                    assert tag
+                    step_config["tags"].append(tag)
+
+                # Add default tag if not in the list already
+                if default_tag not in step_config["tags"]:
+                    step_config["tags"].append(default_tag)
+
+                config = step_config
+            return config
+
+        steps = config.get("steps")
+        if isinstance(steps, dict):
+            for step_name, step in steps.items():
+                for substep_name, substep in step.items():
+                    if substep_name in ["push", "commit"]:
+                        # Add default tag to tags list if not in the list
+                        if isinstance(substep, list):
+                            curr_image_infos = []
+                            for push_config in substep:
+                                curr_image_infos.append(
+                                    add_default_tag_to_tags(push_config, default_tag)
+                                )
+                            config["steps"][step_name][substep_name] = curr_image_infos
+                        else:
+                            curr_image_info = add_default_tag_to_tags(
+                                substep, default_tag
+                            )
+                            config["steps"][step_name][substep_name] = curr_image_info
+
+        return config
+
+    def load_config(self, cfg_file, ctx=None, log_file=True, default_tag=None) -> dict:
         """
         Load a config file templating it with Jinja and parsing the YAML.
 
@@ -395,6 +458,9 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
             )
 
             config = self._reorder_dependency_steps(config)
+
+            # Always add default tag if not set
+            config = self._set_default_tag(config, default_tag)
 
             errors = validate_config(**config)
             if errors:

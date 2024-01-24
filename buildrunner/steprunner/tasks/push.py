@@ -101,10 +101,6 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             self._repos = [self._get_repo_definition(config)]
 
     def run(self, context):  # pylint: disable=too-many-branches
-        # Determine internal tag based on source control information and build number
-        # Note: do not log sanitization as it would need to happen almost every time
-        default_tag = sanitize_tag(self.step_runner.build_runner.build_id)
-
         # Tag multi-platform images
         built_image = context.get("mp_built_image")
         if built_image:
@@ -118,8 +114,6 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             ]
 
             for repo in self._repos:
-                # Always add default tag and then add it to the built image info
-                repo.tags.append(default_tag)
                 tagged_image = built_image.add_tagged_image(repo.repository, repo.tags)
 
                 # Add tagged image refs to committed images for use in determining if pull should be true/false
@@ -166,9 +160,6 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.build_runner.generated_images.append(image_to_use)
 
             for repo in self._repos:
-                # Always add default tag
-                repo.tags.append(default_tag)
-
                 if self._commit_only:
                     self.step_runner.log.write(
                         f'Committing resulting image as "{repo.repository}" with tags {", ".join(repo.tags)}.\n'
