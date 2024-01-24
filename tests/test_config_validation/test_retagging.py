@@ -245,7 +245,7 @@ def test_reusing_multi_platform_images():
 
 @mock.patch("buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES", [])
 @mock.patch("buildrunner.detect_vcs")
-def test_valid_retagging_jinja_template(detect_vcs_mock):
+def test_valid_config_with_buildrunner_build_tag(detect_vcs_mock):
     # Tests that "BUILDRUNNER_BUILD_DOCKER_TAG" is replaced with id_string-build_number
 
     config_yaml = """
@@ -307,11 +307,10 @@ def test_valid_retagging_jinja_template(detect_vcs_mock):
                 assert False, f"Unexpected exception raised: {e}"
 
 
-@mock.patch("buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES", [])
-@mock.patch("buildrunner.detect_vcs")
-def test_invalid_retagging_jinja_template_explicit(detect_vcs_mock):
-    # Tests that BUILDRUNNER_BUILD_DOCKER_TAG is replaced and fails for re-tagging
-    config_yaml = """
+@pytest.mark.parametrize(
+    "config_json",
+    [
+        """
     steps:
         build-container-multi-platform:
             build:
@@ -331,50 +330,8 @@ def test_invalid_retagging_jinja_template_explicit(detect_vcs_mock):
             push:
                 repository: user1/buildrunner-test-multi-platform2
                 tags: [ 'latest' ]
-    """
-    id_string = "main-921.ie02ed8.m1705616822"
-    build_number = 342
-    type(detect_vcs_mock.return_value).id_string = mock.PropertyMock(
-        return_value=id_string
-    )
-
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        with tempfile.NamedTemporaryFile(
-            dir=tmpdirname, mode="w", delete=False
-        ) as tmpfile:
-            tmpfile.write(config_yaml)
-            tmpfile.close()
-            with pytest.raises(BuildRunnerConfigurationError) as excinfo:
-                BuildRunner(
-                    build_dir=tmpdirname,
-                    build_results_dir=tmpdirname,
-                    global_config_file=None,
-                    run_config_file=tmpfile.name,
-                    build_time=0,
-                    build_number=build_number,
-                    push=False,
-                    cleanup_images=False,
-                    cleanup_cache=False,
-                    steps_to_run=None,
-                    publish_ports=False,
-                    log_generated_files=False,
-                    docker_timeout=30,
-                    local_images=False,
-                    platform=None,
-                    disable_multi_platform=False,
-                )
-            assert RETAG_ERROR_MESSAGE in excinfo.value.args[0]
-            assert (
-                f"user1/buildrunner-test-multi-platform:{id_string}-{build_number}"
-                in excinfo.value.args[0]
-            )
-
-
-@mock.patch("buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES", [])
-@mock.patch("buildrunner.detect_vcs")
-def test_invalid_retagging_jinja_template_implied(detect_vcs_mock):
-    # Tests that BUILDRUNNER_BUILD_DOCKER_TAG is added to push tags abd fails for re-tagging
-    config_yaml = """
+    """,
+        """
     steps:
         build-container-multi-platform:
             build:
@@ -392,7 +349,14 @@ def test_invalid_retagging_jinja_template_implied(detect_vcs_mock):
                 image: user1/buildrunner-test-multi-platform:{{ BUILDRUNNER_BUILD_DOCKER_TAG }}
                 cmd: echo "Hello World"
             push: user1/buildrunner-test-multi-platform2
-    """
+    """,
+    ],
+    ids=["buildrunnder_build_tag_explict", "buildrunnder_build_tag_implied"],
+)
+@mock.patch("buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES", [])
+@mock.patch("buildrunner.detect_vcs")
+def test_invalid_retagging_with_buildrunner_build_tag(detect_vcs_mock, config_json):
+    # Tests that BUILDRUNNER_BUILD_DOCKER_TAG is added to push tags and fails for re-tagging
     id_string = "main-921.ie02ed8.m1705616822"
     build_number = 342
     type(detect_vcs_mock.return_value).id_string = mock.PropertyMock(
@@ -403,7 +367,7 @@ def test_invalid_retagging_jinja_template_implied(detect_vcs_mock):
         with tempfile.NamedTemporaryFile(
             dir=tmpdirname, mode="w", delete=False
         ) as tmpfile:
-            tmpfile.write(config_yaml)
+            tmpfile.write(config_json)
             tmpfile.close()
             with pytest.raises(BuildRunnerConfigurationError) as excinfo:
                 BuildRunner(
