@@ -243,30 +243,57 @@ def test_reusing_multi_platform_images():
     assert errors is None
 
 
+@pytest.mark.parametrize(
+    "config_yaml",
+    [
+        # Tests that "BUILDRUNNER_BUILD_DOCKER_TAG" is replaced with id_string-build_number
+        """
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: |
+                        FROM {{ DOCKER_REGISTRY }}/busybox
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    - repository: user1/buildrunner-test-multi-platform
+                      tags: [ 'latest', '0.0.1', {{ BUILDRUNNER_BUILD_DOCKER_TAG }} ]
+    
+            use-built-image1:
+                run:
+                    image: user1/buildrunner-test-multi-platform
+                    cmd: echo "Hello World"
+    """,
+        """
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: |
+                        FROM {{ DOCKER_REGISTRY }}/busybox
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    - repository: user1/buildrunner-test-multi-platform
+                      tags: [ 'latest', '0.0.1', {{ BUILDRUNNER_BUILD_DOCKER_TAG }} ]
+    
+            use-built-image1:
+                build:
+                    dockerfile: |
+                        FROM user1/buildrunner-test-multi-platform:latest
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    repository: user1/buildrunner-test-multi-platform2
+                    tags: [ 'latest' ]
+    """,
+    ],
+)
 @mock.patch("buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES", [])
 @mock.patch("buildrunner.detect_vcs")
-def test_valid_config_with_buildrunner_build_tag(detect_vcs_mock):
-    # Tests that "BUILDRUNNER_BUILD_DOCKER_TAG" is replaced with id_string-build_number
-
-    config_yaml = """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM {{ DOCKER_REGISTRY }}/busybox
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push:
-                - repository: user1/buildrunner-test-multi-platform
-                  tags: [ 'latest', '0.0.1', {{ BUILDRUNNER_BUILD_DOCKER_TAG }} ]
-
-        use-built-image1:
-            run:
-                image: user1/buildrunner-test-multi-platform
-                cmd: echo "Hello World"
-    """
-
+def test_valid_config_with_buildrunner_build_tag(detect_vcs_mock, config_yaml):
     id_string = "main-921.ie02ed8.m1705616822"
     build_number = 342
     type(detect_vcs_mock.return_value).id_string = mock.PropertyMock(
