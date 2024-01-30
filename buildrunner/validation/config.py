@@ -269,7 +269,12 @@ class Config(BaseModel, extra="forbid"):
             # Iterate through each step images and check for multi-platform re-tagging
             retagged_images = []
             for step_name, step_images_info in step_images.items():
-                if not step_images_info.dest_images:
+                if (
+                    # Ignore steps that do not push images
+                    not step_images_info.dest_images
+                    # Ignore steps that are also multi-platform, as re-tagging will work in this case
+                    or step_images_info.is_multi_platform
+                ):
                     continue
 
                 other_steps_images_infos = [
