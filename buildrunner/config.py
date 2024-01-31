@@ -342,12 +342,11 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
         def add_default_tag_to_tags(config: Union[str, dict], default_tag: str):
             # Add default tag to tags list if not in the list already
             if isinstance(config, dict):
-                tags = config.get("tags")
-                if not tags:
-                    tags = []
-                assert isinstance(tags, list)
-                if default_tag not in tags:
-                    tags.append(default_tag)
+                if not config.get("tags"):
+                    config["tags"] = []
+                assert isinstance(config.get("tags"), list)
+                if default_tag not in config.get("tags"):
+                    config.get("tags").append(default_tag)
 
             # Convert to dictionary and add default tag if not listed already
             elif isinstance(config, str):
