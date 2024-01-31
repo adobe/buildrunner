@@ -249,7 +249,7 @@ def test_reusing_multi_platform_images():
         # Tests that "BUILDRUNNER_BUILD_DOCKER_TAG" is replaced with id_string-build_number
         """
         steps:
-            build-container-multi-platform:
+            build-container:
                 build:
                     dockerfile: |
                         FROM {{ DOCKER_REGISTRY }}/busybox
@@ -259,7 +259,7 @@ def test_reusing_multi_platform_images():
                 push:
                     - repository: user1/buildrunner-test-multi-platform
                       tags: [ 'latest', '0.0.1', {{ BUILDRUNNER_BUILD_DOCKER_TAG }} ]
-    
+
             use-built-image1:
                 run:
                     image: user1/buildrunner-test-multi-platform
@@ -267,7 +267,7 @@ def test_reusing_multi_platform_images():
     """,
         """
         steps:
-            build-container-multi-platform:
+            build-container:
                 build:
                     dockerfile: |
                         FROM {{ DOCKER_REGISTRY }}/busybox
@@ -277,7 +277,7 @@ def test_reusing_multi_platform_images():
                 push:
                     - repository: user1/buildrunner-test-multi-platform
                       tags: [ 'latest', '0.0.1', {{ BUILDRUNNER_BUILD_DOCKER_TAG }} ]
-    
+
             use-built-image1:
                 build:
                     dockerfile: |
@@ -288,6 +288,27 @@ def test_reusing_multi_platform_images():
                 push:
                     repository: user1/buildrunner-test-multi-platform2
                     tags: [ 'latest' ]
+    """,
+        """
+        steps:
+            build-container:
+                build:
+                    dockerfile: |
+                        FROM {{ DOCKER_REGISTRY }}/nginx:latest
+                        RUN printf '{{ BUILDRUNNER_BUILD_NUMBER }}' > /usr/share/nginx/html/index.html
+                push:
+                    repository: docker-xeng-release.dr.corp.adobe.com/xeng/gauntlet/tracer-bullet
+                    tags: []
+    """,
+        """
+        steps:
+            build-container:
+                build:
+                    dockerfile: |
+                        FROM {{ DOCKER_REGISTRY }}/nginx:latest
+                        RUN printf '{{ BUILDRUNNER_BUILD_NUMBER }}' > /usr/share/nginx/html/index.html
+                push:
+                    repository: docker-xeng-release.dr.corp.adobe.com/xeng/gauntlet/tracer-bullet
     """,
     ],
 )
@@ -327,9 +348,11 @@ def test_valid_config_with_buildrunner_build_tag(detect_vcs_mock, config_yaml):
                 )
                 config = runner.run_config
                 assert isinstance(config, dict)
-                assert f"{id_string}-{build_number}" in config.get("steps").get(
-                    "build-container-multi-platform"
-                ).get("push")[0].get("tags")
+                push_info = config.get("steps").get("build-container").get("push")
+                if isinstance(push_info, list):
+                    assert f"{id_string}-{build_number}" in push_info[0].get("tags")
+                else:
+                    assert f"{id_string}-{build_number}" in push_info.get("tags")
             except Exception as e:
                 assert False, f"Unexpected exception raised: {e}"
 
