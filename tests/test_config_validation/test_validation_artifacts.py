@@ -1,9 +1,11 @@
-import yaml
-from buildrunner.validation.config import validate_config, Errors
+import pytest
 
 
-def test_step_remote_artifacts_valid():
-    config_yaml = """
+@pytest.mark.parametrize(
+    "config_yaml, error_matches",
+    [
+        (
+            """
     steps:
       build-remote:
         remote:
@@ -13,14 +15,11 @@ def test_step_remote_artifacts_valid():
             bogus/path/to/artifacts/*:
               type: tar
               compression: lzma
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_step_run_artifacts_valid():
-    config_yaml = """
+    """,
+            [],
+        ),
+        (
+            """
     steps:
       build-run:
         run:
@@ -28,15 +27,12 @@ def test_step_run_artifacts_valid():
             bogus/path/to/artifacts/*:
               type: zip
               compression: lzma
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    print(errors)
-    assert errors is None
-
-
-def test_step_artifacts_valid_compression():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Valid compression
+        (
+            """
     steps:
       build-remote:
         remote:
@@ -46,100 +42,84 @@ def test_step_artifacts_valid_compression():
             bogus/path/to/artifacts/*:
               type: tar
               compression: gz
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_step_run_format_valid():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Valid run format
+        (
+            """
     steps:
       build-run:
         run:
           artifacts:
             bogus/path/to/artifacts/*:
               format: uncompressed
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_step_type_valid():
-    #  Checks zip type
-    config_yaml = """
+    """,
+            [],
+        ),
+        #  Checks zip type
+        (
+            """
     steps:
       build-run:
         run:
           artifacts:
             bogus/path/to/artifacts/*:
               type: zip
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-    # Checks tar type
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Checks tar type
+        (
+            """
     steps:
       build-run:
         run:
           artifacts:
             bogus/path/to/artifacts/*:
               type: tar
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_push_invalid():
-    #  Push must be a boolean
-    config_yaml = """
+    """,
+            [],
+        ),
+        #  Push must be a boolean
+        (
+            """
     steps:
       build-run:
         run:
           artifacts:
             bogus/path/to/artifacts/*:
               push: bogus
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_valid_artifacts_blank_string():
-    config_yaml = """
+    """,
+            ["Input should be a valid boolean"],
+        ),
+        # Artifact may be a blank string
+        (
+            """
     steps:
       build-run:
         run:
           artifacts:
             bogus/path/to/artifacts/*: ''
             bogus/path/to/this_thing: ''
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_push_valid():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Valid push
+        (
+            """
     steps:
       build-run:
         run:
           artifacts:
             bogus/path/to/artifacts/*:
               push: True
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_valid_extra_properties():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Valid extra properties
+        (
+            """
     steps:
       build-run:
         run:
@@ -149,7 +129,12 @@ def test_valid_extra_properties():
               something_else: awesome data
               something_else2: True
               something_else3: 123
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
+    """,
+            [],
+        ),
+    ],
+)
+def test_config_data(
+    config_yaml, error_matches, assert_generate_and_validate_config_errors
+):
+    assert_generate_and_validate_config_errors(config_yaml, error_matches)

@@ -37,7 +37,7 @@ from buildrunner.utils import (
     load_config,
 )
 
-from buildrunner.validation.config import validate_config
+from buildrunner.validation.config import generate_and_validate_config
 
 from . import fetch
 
@@ -461,7 +461,7 @@ class BuildRunnerConfig:  # pylint: disable=too-many-instance-attributes
             # Always add default tag if not set
             config = self._set_default_tag(config, default_tag)
 
-            errors = validate_config(**config)
+            _, errors = generate_and_validate_config(**config)
             if errors:
                 raise BuildRunnerConfigurationError(
                     f"Invalid configuration, {errors.count()} error(s) found:"

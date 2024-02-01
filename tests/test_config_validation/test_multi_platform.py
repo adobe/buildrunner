@@ -1,10 +1,16 @@
-import yaml
-from buildrunner.validation.config import validate_config, Errors, RUN_MP_ERROR_MESSAGE
+import pytest
+
+from buildrunner.validation.config import (
+    RUN_MP_ERROR_MESSAGE,
+)
 
 
-def test_no_run_with_multiplatform_build():
-    # Run in multi platform build is not supported
-    config_yaml = """
+@pytest.mark.parametrize(
+    "config_yaml, error_matches",
+    [
+        # Run in multiplatform build is not supported
+        (
+            """
     steps:
         build-container-multi-platform:
             build:
@@ -19,16 +25,14 @@ def test_no_run_with_multiplatform_build():
             run:
                 image: user1/buildrunner-test-multi-platform
                 cmd: echo "Hello World"
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_no_run_with_single_build():
-    # Run in single platform build is supported
-    config_yaml = """
+    """,
+            [
+                "run is not allowed in the same step as a multi-platform build step build-container-multi-platform"
+            ],
+        ),
+        # Run in single platform build is supported
+        (
+            """
     steps:
         build-container:
             build:
@@ -40,15 +44,12 @@ def test_no_run_with_single_build():
             run:
                 image: user1/buildrunner-test-multi-platform
                 cmd: echo "Hello World"
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_invalid_post_build():
-    # Post build is not supported for multi platform builds
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Post build is not supported for multiplatform builds
+        (
+            """
     steps:
         build-container-multi-platform:
             build:
@@ -59,17 +60,12 @@ def test_invalid_post_build():
                     - linux/arm64/v8
             run:
                 post-build: path/to/build/context
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-    assert RUN_MP_ERROR_MESSAGE in errors.errors[0].message
-
-
-def test_valid_post_build():
-    # Post build is supported for single platform builds
-    config_yaml = """
+    """,
+            [RUN_MP_ERROR_MESSAGE],
+        ),
+        # Post build is supported for single platform builds
+        (
+            """
     steps:
         build-container-single-platform:
             build:
@@ -77,7 +73,12 @@ def test_valid_post_build():
                     FROM busybox:latest
             run:
                 post-build: path/to/build/context
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
+    """,
+            [],
+        ),
+    ],
+)
+def test_config_data(
+    config_yaml, error_matches, assert_generate_and_validate_config_errors
+):
+    assert_generate_and_validate_config_errors(config_yaml, error_matches)

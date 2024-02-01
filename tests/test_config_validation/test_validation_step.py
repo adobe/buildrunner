@@ -1,10 +1,12 @@
-import yaml
-from buildrunner.validation.config import validate_config, Errors
+import pytest
 
 
-def test_platform_and_platforms_invalid():
-    # Invalid to have platform and platforms
-    config_yaml = """
+@pytest.mark.parametrize(
+    "config_yaml, error_matches",
+    [
+        # Invalid to have platform and platforms
+        (
+            """
     steps:
       build-container-multi-platform:
         build:
@@ -19,16 +21,12 @@ def test_platform_and_platforms_invalid():
           repository: mytest-reg/buildrunner-test-multi-platform
           tags:
             - latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_platforms_invalid():
-    # Invalid to have platforms as a string, it should be a list
-    config_yaml = """
+    """,
+            ["Cannot specify both platform"],
+        ),
+        # Invalid to have platforms as a string, it should be a list
+        (
+            """
     steps:
       build-container-multi-platform:
         build:
@@ -40,16 +38,12 @@ def test_platforms_invalid():
           repository: mytest-reg/buildrunner-test-multi-platform
           tags:
             - latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 2
-
-
-def test_cache_from_invalid():
-    # Invalid to have cache_from specified with platforms
-    config_yaml = """
+    """,
+            ["Input should be a valid list", "Input should be a valid string"],
+        ),
+        # Invalid to have cache_from specified with platforms
+        (
+            """
     steps:
       build-container-multi-platform:
         build:
@@ -64,27 +58,21 @@ def test_cache_from_invalid():
           repository: mytest-reg/buildrunner-test-multi-platform
           tags:
             - latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-    assert "cache_from" in str(errors)
-
-
-def test_build_is_path():
-    config_yaml = """
+    """,
+            ["cache_from"],
+        ),
+        # Build is a path
+        (
+            """
     steps:
       build-is-path:
         build: .
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_valid_platforms():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Valid platforms
+        (
+            """
     steps:
       build-container-multi-platform:
         build:
@@ -98,14 +86,12 @@ def test_valid_platforms():
           repository: mytest-reg/buildrunner-test-multi-platform
           tags:
             - latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_valid_platforms_no_cache():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Platforms with no-cache
+        (
+            """
     steps:
       build-container-multi-platform:
         build:
@@ -120,15 +106,12 @@ def test_valid_platforms_no_cache():
           repository: mytest-reg/buildrunner-test-multi-platform
           tags:
             - latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_duplicate_mp_tags_dictionary_invalid():
-    # Invalid to have duplicate multi-platform tag
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Invalid to have duplicate multi-platform tag
+        (
+            """
     steps:
       build-container-multi-platform1:
         build:
@@ -148,38 +131,14 @@ def test_duplicate_mp_tags_dictionary_invalid():
           repository: mytest-reg/buildrunner-test-multi-platform
           tags:
             - latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_duplicate_mp_tags_strings_invalid():
-    # Invalid to have duplicate multi-platform tag
-    # Testing with both string format, one inferred 'latest' the other explicit 'latest'
-    config_yaml = """
-    steps:
-      build-container-multi-platform1:
-        build:
-          platforms:
-            - linux/amd64
-            - linux/arm64
-        push: mytest-reg/buildrunner-test-multi-platform
-      build-container-multi-platform2:
-        build:
-          platforms:
-            - linux/amd64
-            - linux/arm64
-        push: mytest-reg/buildrunner-test-multi-platform:latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-    # Indentical tags in same string format
-    config_yaml = """
+    """,
+            [
+                "Cannot specify duplicate tag mytest-reg/buildrunner-test-multi-platform:latest in build step"
+            ],
+        ),
+        # Identical tags in same string format
+        (
+            """
     steps:
       build-container-multi-platform1:
         build:
@@ -193,15 +152,14 @@ def test_duplicate_mp_tags_strings_invalid():
             - linux/amd64
             - linux/arm64
         push: mytest-reg/buildrunner-test-multi-platform:latest
-    """
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_duplicate_mp_tags_strings_valid():
-    #  Same string format but different MP tags
-    config_yaml = """
+    """,
+            [
+                "Cannot specify duplicate tag mytest-reg/buildrunner-test-multi-platform:latest in build step"
+            ],
+        ),
+        #  Same string format but different MP tags
+        (
+            """
     steps:
       build-container-multi-platform1:
         build:
@@ -219,35 +177,33 @@ def test_duplicate_mp_tags_strings_valid():
             - linux/amd64
             - linux/arm64
         push: mytest-reg/buildrunner-test-multi-platform:not-latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_duplicate_mp_tags_platform_platforms_invalid():
-    # Invalid to have duplicate multi-platform tag and single platform tag
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Invalid to have duplicate multi-platform tag and single platform tag
+        (
+            """
     steps:
       build-container-multi-platform1:
         build:
+          path: .
           platforms:
             - linux/amd64
             - linux/arm64
         push: mytest-reg/buildrunner-test-multi-platform:latest
       build-container-single-platform:
         build:
+          path: .
           platform: linux/arm64
         push: mytest-reg/buildrunner-test-multi-platform:latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_step_remote_valid():
-    config_yaml = """
+    """,
+            [
+                "Cannot specify duplicate tag mytest-reg/buildrunner-test-multi-platform:latest in build step"
+            ],
+        ),
+        # Valid remote step
+        (
+            """
     steps:
       build-remote:
         remote:
@@ -257,27 +213,22 @@ def test_step_remote_valid():
             bogus/path/to/artifacts/*:
               type: tar
               compression: lzma
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_step_remote_missing_cmd():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Remote missing command
+        (
+            """
     steps:
       build-remote:
         remote:
           host: myserver.ut1
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_commit():
-    config_yaml = """
+    """,
+            ["Field required"],
+        ),
+        # Valid commit
+        (
+            """
     steps:
       step1:
         build:
@@ -294,14 +245,12 @@ def test_commit():
           dockerfile: Dockerfile
           pull: false
         commit: mytest-reg/image1
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_pypi_push():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Valid pypi push
+        (
+            """
     steps:
       pypi1:
         run:
@@ -323,14 +272,12 @@ def test_pypi_push():
           repository: https://artifactory.example.com/artifactory/api/pypi/pypi-myownrepo
           username: myuser
           password: mypass
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_invalid_mp_import():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Invalid multiplatform import
+        (
+            """
     steps:
       build-container-multi-platform:
         build:
@@ -340,29 +287,24 @@ def test_invalid_mp_import():
             - linux/amd64
             - linux/arm64
           import: mytest-reg/buildrunner-test-multi-platform:latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert isinstance(errors, Errors)
-    assert errors.count() == 1
-
-
-def test_valid_import():
-    config_yaml = """
+    """,
+            ["import is not allowed in multi-platform build step"],
+        ),
+        # Valid import
+        (
+            """
     steps:
       build-container-multi-platform:
         build:
           path: .
           dockerfile: Dockerfile
           import: mytest-reg/buildrunner-test-multi-platform:latest
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_services():
-    config_yaml = """
+    """,
+            [],
+        ),
+        # Valid services
+        (
+            """
     steps:
       my-build-step:
         run:
@@ -491,7 +433,12 @@ def test_services():
               # also.  This isn't enabled by default as there is the theoretical
               # (though unlikely) possibility that a this access could be exploited.
               inject-ssh-agent: true
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
+    """,
+            [],
+        ),
+    ],
+)
+def test_config_data(
+    config_yaml, error_matches, assert_generate_and_validate_config_errors
+):
+    assert_generate_and_validate_config_errors(config_yaml, error_matches)

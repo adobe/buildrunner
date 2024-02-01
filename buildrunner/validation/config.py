@@ -7,7 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import os
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 # pylint: disable=no-name-in-module
 from pydantic import BaseModel, Field, field_validator, ValidationError
@@ -327,7 +327,7 @@ class Config(BaseModel, extra="forbid"):
                         )
 
                     if step.run:
-                        raise ValueError(f"{RUN_MP_ERROR_MESSAGE} {step_name}")
+                        raise ValueError(f"{RUN_MP_ERROR_MESSAGE} step {step_name}")
 
                     # Check for valid push section, duplicate mp tags are not allowed
                     validate_push(step.push, mp_push_tags, step_name)
@@ -359,16 +359,15 @@ class Config(BaseModel, extra="forbid"):
         return vals
 
 
-def validate_config(**kwargs) -> Errors:
+def generate_and_validate_config(**kwargs) -> Tuple[Optional[Config], Optional[Errors]]:
     """
-    Check if the config file is valid
+    Check if the config file is valid and return the config instance or validation errors.
 
-    Raises:
-        ValueError | pydantic.ValidationError : If the config file is invalid
+    Returns:
+        errors.Errors : If the config file is invalid
+        Config : If the config file is valid
     """
-    errors = None
     try:
-        Config(**kwargs)
+        return Config(**kwargs), None
     except ValidationError as exc:
-        errors = get_validation_errors(exc)
-    return errors
+        return None, get_validation_errors(exc)

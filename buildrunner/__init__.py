@@ -129,7 +129,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         push: bool,
         cleanup_images: bool,
         cleanup_cache: bool,
-        steps_to_run: List[str],
+        steps_to_run: Optional[List[str]],
         publish_ports: bool,
         log_generated_files: bool,
         docker_timeout: int,
@@ -409,7 +409,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             cache_name = f"{project_name}-{cache_name}"
 
         caches_root = self.global_config.get("caches-root", DEFAULT_CACHES_ROOT)
-        local_cache_archive_file = None
         try:
             local_cache_archive_file = get_filename(caches_root, cache_name)
         except Exception as exc:  # pylint: disable=broad-except
