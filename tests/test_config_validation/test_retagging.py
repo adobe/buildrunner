@@ -297,7 +297,7 @@ def test_reusing_multi_platform_images():
                         FROM {{ DOCKER_REGISTRY }}/nginx:latest
                         RUN printf '{{ BUILDRUNNER_BUILD_NUMBER }}' > /usr/share/nginx/html/index.html
                 push:
-                    repository: docker-xeng-release.dr.corp.adobe.com/xeng/gauntlet/tracer-bullet
+                    repository:  user1/buildrunner-test-image
                     tags: []
     """,
         """
@@ -308,7 +308,7 @@ def test_reusing_multi_platform_images():
                         FROM {{ DOCKER_REGISTRY }}/nginx:latest
                         RUN printf '{{ BUILDRUNNER_BUILD_NUMBER }}' > /usr/share/nginx/html/index.html
                 push:
-                    repository: docker-xeng-release.dr.corp.adobe.com/xeng/gauntlet/tracer-bullet
+                    repository: user1/buildrunner-test-image
     """,
     ],
 )
