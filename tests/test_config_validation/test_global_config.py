@@ -1,11 +1,11 @@
-import yaml
-
-from buildrunner.validation.config import validate_config
-from buildrunner.validation.errors import Errors
+import pytest
 
 
-def test_global_config():
-    config_yaml = """
+@pytest.mark.parametrize(
+    "config_yaml, error_matches",
+    [
+        (
+            """
     # The 'env' global configuration may be used to set environment variables
     # available to all buildrunner runs that load this config file. Env vars do
     # not need to begin with a prefix to be included in this list (i.e.
@@ -70,24 +70,18 @@ def test_global_config():
     # Setting the TMP, TMPDIR, or TEMP env vars should do the same thing,
     # but on some systems it may be necessary to use this instead.
     temp-dir: /my/tmp/dir
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_global_config_ssh_key_file():
-    config_yaml = """
+        """,
+            [],
+        ),
+        (
+            """
     ssh-keys:
       - file: /path/to/ssh/private/key.pem
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    assert errors is None
-
-
-def test_global_config_ssh_invalid():
-    config_yaml = """
+        """,
+            [],
+        ),
+        (
+            """
     ssh-keys:
       key: |
         -----INLINE KEY-----
@@ -98,9 +92,12 @@ def test_global_config_ssh_invalid():
       aliases:
         - 'my-github-key'
       bogus-attribute: 'bogus'
-    """
-    config = yaml.load(config_yaml, Loader=yaml.Loader)
-    errors = validate_config(**config)
-    print(errors)
-    assert isinstance(errors, Errors)
-    assert errors.count() > 0
+        """,
+            ["Extra inputs are not permitted", "Input should be a valid list"],
+        ),
+    ],
+)
+def test_config_data(
+    config_yaml, error_matches, assert_generate_and_validate_config_errors
+):
+    assert_generate_and_validate_config_errors(config_yaml, error_matches)
