@@ -10,7 +10,7 @@ import os
 import base64
 import requests
 
-from ..errors import (
+from ...errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProtocolError,
 )
@@ -74,7 +74,7 @@ def v3_fetch_file(parsed_url, config):
     return contents
 
 
-def fetch_file(parsed_url, config):
+def fetch_file(parsed_url, config: dict):
     """
     Fetch a file from Github.
     """

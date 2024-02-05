@@ -2,7 +2,8 @@ import os
 from unittest import mock
 import pytest
 from buildrunner import BuildRunner
-from buildrunner.validation.config import (
+from buildrunner.config import BuildRunnerConfig
+from buildrunner.config.validation import (
     RETAG_ERROR_MESSAGE,
 )
 from buildrunner.errors import BuildRunnerConfigurationError
@@ -313,7 +314,7 @@ def test_valid_config_with_buildrunner_build_tag(
 
     buildrunner_path = tmp_path / "buildrunner.yaml"
     buildrunner_path.write_text(config_yaml)
-    runner = BuildRunner(
+    BuildRunner(
         build_dir=str(tmp_path),
         build_results_dir=str(tmp_path / "buildrunner.results"),
         global_config_file=None,
@@ -331,13 +332,10 @@ def test_valid_config_with_buildrunner_build_tag(
         platform=None,
         disable_multi_platform=False,
     )
-    config = runner.run_config
-    assert isinstance(config, dict)
-    push_info = config.get("steps").get("build-container").get("push")
-    if isinstance(push_info, list):
-        assert f"{id_string}-{build_number}" in push_info[0].get("tags")
-    else:
-        assert f"{id_string}-{build_number}" in push_info.get("tags")
+    buildrunner_config = BuildRunnerConfig.get_instance()
+    push_info = buildrunner_config.run_config.steps["build-container"].push
+    assert isinstance(push_info, list)
+    assert f"{id_string}-{build_number}" in push_info[0].tags
 
 
 @pytest.mark.parametrize(

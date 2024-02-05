@@ -7,9 +7,10 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import codecs
+from typing import Optional
 
 
-def fetch_file(parsed_url, config):  # pylint: disable=unused-argument
+def fetch_file(parsed_url, _: Optional[dict]):
     """
     Pull files from the local file system.
     """

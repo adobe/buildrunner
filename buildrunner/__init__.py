@@ -31,6 +31,7 @@ from buildrunner import docker, loggers
 from buildrunner.config import (
     BuildRunnerConfig,
 )
+from buildrunner.config.models import DEFAULT_CACHES_ROOT
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
@@ -57,9 +58,6 @@ try:
 except Exception:  # pylint: disable=broad-except
     pass
 
-DEFAULT_CACHES_ROOT = "~/.buildrunner/caches"
-DEFAULT_RUN_CONFIG_FILES = ["buildrunner.yaml", "gauntlet.yaml"]
-
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), "SourceDockerfile")
 
 
@@ -76,7 +74,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         "GAUNTLET_",
     ]
 
-    def _get_config_context(self, ctx=None, global_env=None):
+    def _get_config_context(self, ctx=None, global_env=None) -> dict:
         """
         Generate the Jinja configuration context for substitution
 
@@ -135,7 +133,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         docker_timeout: int,
         local_images: bool,
         platform: Optional[str],
-        disable_multi_platform: bool,
+        disable_multi_platform: Optional[bool],
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         self.build_dir = build_dir
         self.build_results_dir = build_results_dir
@@ -184,32 +182,31 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.env = self._get_config_context(base_context)
 
         # load global configuration
-        self.global_config = BuildRunnerConfig(
+        BuildRunnerConfig.initialize_instance(
             build_dir=self.build_dir,
             global_config_file=global_config_file,
+            run_config_file=run_config_file,
             log_generated_files=self.log_generated_files,
             build_time=self.build_time,
             env=self.env,
-            log=self.log,
+            default_tag=sanitize_tag(self.build_id),
         )
+        buildrunner_config = BuildRunnerConfig.get_instance()
 
         # load environment again, considering the global config env vars
         # this ends up generating the context twice, but the first is needed to load
         #   the global config object
         self.env = self._get_config_context(
-            base_context, self.global_config.get("env", {})
+            base_context, buildrunner_config.global_config.env
         )
         # assign back to the global config env for loading files
-        self.global_config.env = self.env
+        buildrunner_config.global_config.env = self.env
 
-        self.disable_multi_platform = self.global_config.get(
-            "disable-multi-platform", False
+        self.disable_multi_platform = (
+            buildrunner_config.global_config.disable_multi_platform
         )
-        if disable_multi_platform:
-            if disable_multi_platform == "true":
-                self.disable_multi_platform = True
-            elif disable_multi_platform == "false":
-                self.disable_multi_platform = False
+        if disable_multi_platform is not None:
+            self.disable_multi_platform = disable_multi_platform
 
         # print out env vars
         # pylint: disable=consider-iterating-dictionary
@@ -220,39 +217,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         # cleanup local cache
         if self.cleanup_cache:
-            self.clean_cache(self.global_config)
-
-        # load run configuration
-        _run_config_file = None
-        if run_config_file:
-            _run_config_file = self.global_config.to_abs_path(run_config_file)
-        else:
-            self.log.write("Looking for run configuration\n")
-            for name_to_try in DEFAULT_RUN_CONFIG_FILES:
-                _to_try = self.global_config.to_abs_path(name_to_try)
-                if os.path.exists(_to_try):
-                    _run_config_file = _to_try
-                    break
-
-        if not _run_config_file or not os.path.exists(_run_config_file):
-            raise BuildRunnerConfigurationError("Cannot find build configuration file")
-
-        self.run_config = self.global_config.load_config(
-            cfg_file=_run_config_file, default_tag=sanitize_tag(self.build_id)
-        )
-
-        if not isinstance(self.run_config, dict) or "steps" not in self.run_config:
-            cfg_file = _run_config_file if _run_config_file else "provided config"
-            raise BuildRunnerConfigurationError(
-                f'Could not find a "steps" attribute in {cfg_file}'
-            )
-        if not self.run_config["steps"] or not isinstance(
-            self.run_config["steps"], dict
-        ):
-            cfg_file = _run_config_file if _run_config_file else "provided config"
-            raise BuildRunnerConfigurationError(
-                f'The "steps" attribute is not a non-empty dictionary in {cfg_file}'
-            )
+            self.clean_cache()
 
         if steps_to_run:
             missing_steps = [
@@ -278,22 +243,6 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
             )
         return self._log
 
-    def get_build_server_from_alias(self, host):
-        """
-        Given a host alias string determine the actual build server host value
-        to use by checking the global configuration.
-        """
-        build_servers = self.global_config.get("build-servers")
-        # if no build servers configuration in global config just return host
-        if not build_servers:
-            return host
-
-        for _host, _host_aliases in build_servers.items():
-            if host in _host_aliases:
-                return _host
-
-        return host
-
     def get_ssh_keys_from_aliases(self, key_aliases):  # pylint: disable=too-many-branches
         """
         Given a list of key aliases return Paramiko key objects based on keys
@@ -302,7 +251,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         ssh_keys = []
         if not key_aliases:
             return ssh_keys
-        ssh_keys = self.global_config.get("ssh-keys")
+        ssh_keys = BuildRunnerConfig.get_instance().global_config.ssh_keys
         if not ssh_keys:
             raise BuildRunnerConfigurationError(
                 "SSH key aliases specified but no 'ssh-keys' "
@@ -354,7 +303,8 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         """
         if not file_alias:
             return None
-        local_files = self.global_config.get("local-files")
+        buildrunner_config = BuildRunnerConfig.get_instance()
+        local_files = buildrunner_config.global_config.local_files
         if not local_files:
             self.log.write(
                 "No 'local-files' configuration in global build runner config\n"
@@ -373,7 +323,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 # pylint: disable=consider-using-with
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=self.global_config.get_temp_dir(),
+                    dir=buildrunner_config.global_config.temp_dir,
                 )
                 _fileobj.write(local_file)
                 tmp_path = os.path.realpath(_fileobj.name)
@@ -408,11 +358,11 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         if project_name != "":
             cache_name = f"{project_name}-{cache_name}"
 
-        caches_root = self.global_config.get("caches-root", DEFAULT_CACHES_ROOT)
+        caches_root = BuildRunnerConfig.get_instance().global_config.caches_root
         try:
             local_cache_archive_file = get_filename(caches_root, cache_name)
         except Exception as exc:  # pylint: disable=broad-except
-            # Intentinally catch all exceptions here since we don't want to fail the build
+            # Intentionally catch all exceptions here since we don't want to fail the build
             LOGGER.warning(f"There was an issue with {caches_root}: {str(exc)}")
             local_cache_archive_file = get_filename(DEFAULT_CACHES_ROOT, cache_name)
             LOGGER.warning(f"Using {DEFAULT_CACHES_ROOT} for the cache directory")
@@ -420,13 +370,12 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         return local_cache_archive_file
 
     @staticmethod
-    def clean_cache(global_config):
+    def clean_cache():
         """
         Clean cache dir
         """
-        cache_dir = os.path.expanduser(
-            global_config.get("caches-root", DEFAULT_CACHES_ROOT)
-        )
+        global_config = BuildRunnerConfig.get_instance().global_config
+        cache_dir = os.path.expanduser(global_config.caches_root)
         if os.path.exists(cache_dir):
             global_config.log.write(f'Cleaning cache dir "{cache_dir}"\n')
             shutil.rmtree(f"{cache_dir}/")
@@ -469,7 +418,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 # pylint: disable=consider-using-with
                 _fileobj = tempfile.NamedTemporaryFile(
                     delete=False,
-                    dir=self.global_config.get_temp_dir(),
+                    dir=BuildRunnerConfig.get_instance().global_config.temp_dir,
                 )
                 with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
                     tfile.add(self.build_dir, arcname="", filter=_exclude_working_dir)
@@ -481,8 +430,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
     def get_source_image(self):
         """
-        Get and/or create the base image source containers will be created
-        from.
+        Get and/or create the base image source containers will be created from.
         """
         if not self._source_image:
             self.log.write("Creating source image\n")
@@ -491,11 +439,12 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
                 source_archive_path: "source.tar",
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
+            buildrunner_config = BuildRunnerConfig.get_instance()
             source_builder = DockerBuilder(
-                temp_dir=self.global_config.get_temp_dir(),
+                temp_dir=buildrunner_config.global_config.temp_dir,
                 inject=inject,
                 timeout=self.docker_timeout,
-                docker_registry=self.global_config.get_docker_registry(),
+                docker_registry=buildrunner_config.global_config.docker_registry,
             )
             exit_code = source_builder.build(
                 nocache=True,
@@ -559,24 +508,24 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         self.exit_code = None
 
         exit_explanation = None
+        buildrunner_config = BuildRunnerConfig.get_instance()
         try:  # pylint: disable=too-many-nested-blocks
             with MultiplatformImageBuilder(
-                docker_registry=self.global_config.get_docker_registry(),
-                build_registry=self.global_config.get_build_registry(),
-                temp_dir=self.global_config.get_temp_dir(),
+                docker_registry=buildrunner_config.global_config.docker_registry,
+                build_registry=buildrunner_config.global_config.build_registry,
+                temp_dir=buildrunner_config.global_config.temp_dir,
                 disable_multi_platform=self.disable_multi_platform,
-                platform_builders=self.global_config.get("platform-builders"),
-                cache_builders=self.global_config.get_docker_build_cache_config().get(
-                    "builders"
-                ),
-                cache_from=self.global_config.get_docker_build_cache_config().get(
-                    "from"
-                ),
-                cache_to=self.global_config.get_docker_build_cache_config().get("to"),
+                platform_builders=buildrunner_config.global_config.platform_builders,
+                cache_builders=buildrunner_config.global_config.docker_build_cache.builders,
+                cache_from=buildrunner_config.global_config.docker_build_cache.from_config,
+                cache_to=buildrunner_config.global_config.docker_build_cache.to_config,
             ) as multi_platform:
                 self.get_source_archive_path()
                 # run each step
-                for step_name, step_config in self.run_config["steps"].items():
+                for (
+                    step_name,
+                    step_config,
+                ) in buildrunner_config.run_config.steps.items():
                     if not self.steps_to_run or step_name in self.steps_to_run:
                         image_config = BuildStepRunner.ImageConfig(
                             self.local_images, self.platform

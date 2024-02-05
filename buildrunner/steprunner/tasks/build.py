@@ -11,6 +11,8 @@ import os
 import re
 
 import buildrunner.docker
+from buildrunner.config import BuildRunnerConfig
+from buildrunner.config.models_step import StepBuild
 from buildrunner.docker.importer import DockerImporter
 from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
@@ -18,7 +20,6 @@ from buildrunner.errors import (
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
-from buildrunner.utils import is_dict
 
 
 class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many-instance-attributes
@@ -31,122 +32,83 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
     def __init__(
         self,
         step_runner,
-        config,
+        step: StepBuild,
         image_to_prepend_to_dockerfile=None,
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
-        super().__init__(step_runner, config)
+        super().__init__(step_runner, step)
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
-        self.path = None
-        self.dockerfile = None
         self.to_inject = {}
         self.image_to_prepend_to_dockerfile = image_to_prepend_to_dockerfile
-        self.nocache = False
-        self.cache_from = []
-        self.buildargs = {}
-        self._import = None
-        self.platform = None
-        self.platforms = None
 
-        pull_from_config = None
-        if not is_dict(self.config):
-            self.path = self.config
-            self.config = {}
-        else:
-            self._import = self.config.get("import", self._import)
-            self.path = self.config.get("path", self.path)
-            self.dockerfile = self.config.get("dockerfile", self.dockerfile)
-            self.nocache = self.config.get("no-cache", self.nocache)
-            pull_from_config = self.config.get("pull")
-            self.platform = self.config.get("platform", self.platform)
-            self.platforms = self.config.get("platforms", self.platforms)
+        self._import = step.import_param
+        self.path = step.path
+        self.dockerfile = step.dockerfile
+        self.nocache = step.no_cache
+        self.platform = step.platform
+        self.platforms = step.platforms
+        self.buildargs = step.buildargs
+        self.cache_from = step.cache_from
 
-            if not is_dict(self.config.get("buildargs", self.buildargs)):
+        buildrunner_config = BuildRunnerConfig.get_instance()
+
+        for cache_from_image in self.cache_from:
+            try:
+                self._docker_client.pull(cache_from_image, platform=self.platform)
+                # If the pull is successful, add the image to be cleaned up at the end of the script
+                self.step_runner.build_runner.generated_images.append(cache_from_image)
+                self.step_runner.log.write(
+                    f"Using cache_from image: {cache_from_image}\n"
+                )
+            except Exception:  # pylint: disable=broad-except
+                self.step_runner.log.write(
+                    f"WARNING: Unable to pull the cache_from image: {cache_from_image}\n"
+                )
+
+        for src_glob, dest_path in (step.inject or {}).items():
+            if not dest_path:
+                dest_path = ""
+            _src_glob = buildrunner_config.to_abs_path(src_glob)
+            xsglob = glob.glob(_src_glob)
+            if not xsglob:
+                # Failed to resolve the glob
                 raise BuildRunnerConfigurationError(
-                    f"Step {self.step_runner}:build:buildargs must be a collection/map/dictionary"
+                    f"Unable to expand inject glob: {_src_glob}"
                 )
-
-            self.buildargs = self.config.get("buildargs", self.buildargs)
-
-            if not isinstance(self.config.get("cache_from", self.cache_from), list):
-                raise BuildRunnerConfigurationError(
-                    f"Step {self.step_runner}:build:cache_from must be a list"
-                )
-
-            self.cache_from = self.config.get("cache_from", self.cache_from)
-
-            for cache_from_image in self.cache_from:
-                try:
-                    self._docker_client.pull(cache_from_image, platform=self.platform)
-                    # If the pull is successful, add the image to be cleaned up at the end of the script
-                    self.step_runner.build_runner.generated_images.append(
-                        cache_from_image
+            if len(xsglob) == 1:
+                # Only one source - destination may be directory or filename - check for a trailing
+                # '/' and treat it accordingly.
+                source_file = xsglob[0]
+                if dest_path and (
+                    dest_path[-1] == "/" or os.path.split(dest_path)[-1] in (".", "..")
+                ):
+                    self.to_inject[source_file] = os.path.normpath(
+                        os.path.join(".", dest_path, os.path.basename(source_file))
                     )
-                    self.step_runner.log.write(
-                        f"Using cache_from image: {cache_from_image}\n"
-                    )
-                except Exception:  # pylint: disable=broad-except
-                    self.step_runner.log.write(
-                        f"WARNING: Unable to pull the cache_from image: {cache_from_image}\n"
-                    )
-
-            if not is_dict(self.config.get("inject", {})):
-                raise BuildRunnerConfigurationError(
-                    f"Step {self.step_runner}:build:inject must be a collection/map/dictionary"
-                )
-
-            for src_glob, dest_path in self.config.get("inject", {}).items():
-                if not dest_path:
-                    dest_path = ""
-                _src_glob = self.step_runner.build_runner.global_config.to_abs_path(
-                    src_glob
-                )
-                xsglob = glob.glob(_src_glob)
-                if not xsglob:
-                    # Failed to resolve the glob
-                    raise BuildRunnerConfigurationError(
-                        f"Unable to expand inject glob: {_src_glob}"
-                    )
-                if len(xsglob) == 1:
-                    # Only one source - destination may be directory or filename - check for a trailing
-                    # '/' and treat it accordingly.
-                    source_file = xsglob[0]
-                    if dest_path and (
-                        dest_path[-1] == "/"
-                        or os.path.split(dest_path)[-1] in (".", "..")
-                    ):
-                        self.to_inject[source_file] = os.path.normpath(
-                            os.path.join(".", dest_path, os.path.basename(source_file))
-                        )
-                    else:
-                        self.to_inject[source_file] = os.path.normpath(
-                            os.path.join(".", dest_path)
-                        )
                 else:
-                    # Multiple sources - destination *must* be a directory - add the source basename
-                    # to the dest_dir name.
-                    for source_file in xsglob:
-                        self.to_inject[source_file] = os.path.normpath(
-                            os.path.join(
-                                ".",
-                                dest_path,
-                                os.path.basename(source_file),
-                            )
+                    self.to_inject[source_file] = os.path.normpath(
+                        os.path.join(".", dest_path)
+                    )
+            else:
+                # Multiple sources - destination *must* be a directory - add the source basename
+                # to the dest_dir name.
+                for source_file in xsglob:
+                    self.to_inject[source_file] = os.path.normpath(
+                        os.path.join(
+                            ".",
+                            dest_path,
+                            os.path.basename(source_file),
                         )
+                    )
 
-            if not self._import and not any(
-                (self.path, self.dockerfile, self.to_inject)
-            ):
-                raise BuildRunnerConfigurationError(
-                    "Docker build context must specify a "
-                    '"path", "dockerfile", or "inject" attribute'
-                )
+        if not self._import and not any((self.path, self.dockerfile, self.to_inject)):
+            raise BuildRunnerConfigurationError(
+                'Docker build context must specify a "path", "dockerfile", or "inject" attribute'
+            )
 
         if self.path:
-            self.path = self.step_runner.build_runner.global_config.to_abs_path(
-                self.path
-            )
+            self.path = buildrunner_config.to_abs_path(self.path)
 
         if self.path and not os.path.exists(self.path):
             raise BuildRunnerConfigurationError(
@@ -167,10 +129,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
         dockerfile_image = None
         if self.dockerfile:
-            _dockerfile_abs_path = (
-                self.step_runner.build_runner.global_config.to_abs_path(
-                    self.dockerfile,
-                )
+            _dockerfile_abs_path = buildrunner_config.to_abs_path(
+                self.dockerfile,
             )
             if os.path.exists(_dockerfile_abs_path):
                 self.dockerfile = _dockerfile_abs_path
@@ -195,8 +155,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     dockerfile_image = match.group(1)
 
         # Set the pull attribute based on configuration or the image itself
-        if pull_from_config is not None:
-            self.pull = pull_from_config
+        if step.pull is not None:
+            self.pull = step.pull
             self.step_runner.log.write(
                 f"Pulling image was overridden via config to {self.pull}\n"
             )
@@ -233,9 +193,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 "Cannot find a Dockerfile in the given path " "or inject configurations"
             )
 
-        docker_registry = (
-            self.step_runner.build_runner.global_config.get_docker_registry()
-        )
+        docker_registry = BuildRunnerConfig.get_instance().global_config.docker_registry
         self.step_runner.log.write("Running docker build\n")
         builder = DockerBuilder(
             self.path,

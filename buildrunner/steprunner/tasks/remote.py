@@ -12,10 +12,11 @@ from io import StringIO
 from fabric import Connection
 
 from buildrunner.errors import (
-    BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
+from buildrunner.config import BuildRunnerConfig
+from buildrunner.config.models_step import StepRemote
 
 
 class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
@@ -23,26 +24,14 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
     Class used to manage "remote" build tasks.
     """
 
-    def __init__(self, step_runner, config):
-        super().__init__(step_runner, config)
+    def __init__(self, step_runner, step: StepRemote):
+        super().__init__(step_runner, step)
 
-        # must have a 'host' attribute
-        if "host" not in self.config:
-            raise BuildRunnerConfigurationError(
-                f'Step "{self.step_runner.name}" has a "remote" configuration without a "host" attribute\n'
-            )
-        self.host = self.step_runner.build_runner.get_build_server_from_alias(
-            self.config["host"],
+        self.host = BuildRunnerConfig.get_instance().get_build_server_from_alias(
+            step.host,
         )
-
-        # must specify the cmd to run
-        if "cmd" not in self.config:
-            raise BuildRunnerConfigurationError(
-                f'Step "{self.step_runner.name}" has a "remote" configuration without a "cmd" attribute\n'
-            )
-        self.cmd = self.config["cmd"]
-
-        self.artifacts = self.config.get("artifacts", {})
+        self.cmd = step.cmd
+        self.artifacts = step.artifacts
 
     def run(self, context):  # pylint: disable=unused-argument,too-many-branches,too-many-locals
         self.step_runner.log.write(f"Building on remote host {self.host}\n\n")
