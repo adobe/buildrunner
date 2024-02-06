@@ -377,6 +377,9 @@ def load_global_config_files(
                         )
                 current_context["local-files"] = scrubbed_local_files
 
+            # Merge local-files from each file
+            if "local-files" in context and "local-files" in current_context:
+                context["local-files"].update(current_context.pop("local-files"))
             context.update(current_context)
 
     return context

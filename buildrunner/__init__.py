@@ -9,7 +9,6 @@ with the terms of the Adobe license agreement accompanying it.
 
 from collections import OrderedDict
 import fnmatch
-import getpass
 import importlib.machinery
 import inspect
 import json
@@ -37,7 +36,6 @@ from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
-from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.steprunner import BuildStepRunner
 from buildrunner.steprunner.tasks.push import sanitize_tag
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
@@ -190,6 +188,7 @@ class BuildRunner:
             build_time=self.build_time,
             env=self.env,
             default_tag=sanitize_tag(self.build_id),
+            tmp_files=self.tmp_files,
         )
         buildrunner_config = BuildRunnerConfig.get_instance()
 
@@ -244,95 +243,6 @@ class BuildRunner:
                 {"type": "log"},
             )
         return self._log
-
-    def get_ssh_keys_from_aliases(self, key_aliases):  # pylint: disable=too-many-branches
-        """
-        Given a list of key aliases return Paramiko key objects based on keys
-        registered in the global config.
-        """
-        ssh_keys = []
-        if not key_aliases:
-            return ssh_keys
-        ssh_keys = BuildRunnerConfig.get_instance().global_config.ssh_keys
-        if not ssh_keys:
-            raise BuildRunnerConfigurationError(
-                "SSH key aliases specified but no 'ssh-keys' configuration in global build runner config"
-            )
-
-        _keys = []
-        _matched_aliases = []
-        for key_info in ssh_keys:
-            if "aliases" not in key_info or not key_info["aliases"]:
-                continue
-
-            _password = None
-            _prompt_for_password = False
-            if "password" in key_info:
-                _password = key_info["password"]
-            else:
-                _prompt_for_password = key_info.get("prompt-password", False)
-
-            for alias in key_aliases:
-                if alias in key_info["aliases"]:
-                    _matched_aliases.append(alias)
-
-                    # Prompt for password if necessary.  Only once per key
-                    if _prompt_for_password:
-                        _password = getpass.getpass(f"Password for SSH Key ({alias}): ")
-                        _prompt_for_password = False
-
-                    if "file" in key_info:
-                        _key_file = os.path.realpath(
-                            os.path.expanduser(os.path.expandvars(key_info["file"]))
-                        )
-
-                        _keys.append(load_ssh_key_from_file(_key_file, _password))
-                    elif "key" in key_info:
-                        _keys.append(load_ssh_key_from_str(key_info["key"], _password))
-
-        for alias in key_aliases:
-            if alias not in _matched_aliases:
-                raise BuildRunnerConfigurationError(
-                    f"Could not find valid SSH key matching alias '{alias}'"
-                )
-
-        return _keys
-
-    def get_local_files_from_alias(self, file_alias):
-        """
-        Given a file alias lookup the local file path from the global config.
-        """
-        if not file_alias:
-            return None
-        buildrunner_config = BuildRunnerConfig.get_instance()
-        local_files = buildrunner_config.global_config.local_files
-        if not local_files:
-            self.log.write(
-                "No 'local-files' configuration in global build runner config\n"
-            )
-            return None
-
-        for local_alias, local_file in local_files.items():
-            if file_alias == local_alias:
-                local_path = os.path.realpath(
-                    os.path.expanduser(os.path.expandvars(local_file))
-                )
-                if os.path.exists(local_path):
-                    return local_path
-
-                # need to put the contents in a tmp file and return the path
-                # pylint: disable=consider-using-with
-                _fileobj = tempfile.NamedTemporaryFile(
-                    delete=False,
-                    dir=buildrunner_config.global_config.temp_dir,
-                )
-                _fileobj.write(local_file)
-                tmp_path = os.path.realpath(_fileobj.name)
-                _fileobj.close()
-                self.tmp_files.append(tmp_path)
-                return tmp_path
-
-        return None
 
     @staticmethod
     def get_cache_archive_ext():

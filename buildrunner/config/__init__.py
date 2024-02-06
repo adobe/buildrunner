@@ -6,11 +6,14 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
+import getpass
 import logging
 import os
-from typing import Optional
+import tempfile
+from typing import List, Optional
 
 from buildrunner.errors import BuildRunnerConfigurationError
+from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.utils import (
     epoch_time,
 )
@@ -49,14 +52,17 @@ class BuildRunnerConfig:
         log_generated_files: bool,
         build_time: int,
         env: dict,
+        # May be passed in to add temporary files to this list as they are created
+        tmp_files: Optional[List[str]] = None,
     ):  # pylint: disable=too-many-arguments
         self.build_dir = build_dir
+        self.default_tag = default_tag
         self.log_generated_files = log_generated_files
         self.build_time = build_time
         if not self.build_time:
             self.build_time = epoch_time()
         self.env = env
-        self.default_tag = default_tag
+        self.tmp_files = tmp_files
 
         self.global_config = self._load_global_config(global_config_file)
         self.run_config = self._load_run_config(run_config_file)
@@ -160,3 +166,92 @@ class BuildRunnerConfig:
                 return _host
 
         return host
+
+    def get_ssh_keys_from_aliases(self, key_aliases: List[str]) -> list:
+        """
+        Given a list of key aliases return key objects based on keys registered in the global config.
+        """
+        if not key_aliases:
+            return []
+        if not self.global_config.ssh_keys:
+            raise BuildRunnerConfigurationError(
+                "SSH key aliases specified but no 'ssh-keys' configuration in global build runner config"
+            )
+
+        _keys = []
+        _matched_aliases = []
+        for key_info in self.global_config.ssh_keys:
+            if not key_info.aliases:
+                continue
+
+            _password = None
+            _prompt_for_password = False
+            if key_info.password:
+                _password = key_info.password
+            else:
+                _prompt_for_password = key_info.prompt_password
+
+            for alias in key_aliases:
+                if alias in key_info.aliases:
+                    _matched_aliases.append(alias)
+
+                    # Prompt for password if necessary.  Only once per key
+                    if _prompt_for_password:
+                        _password = getpass.getpass(f"Password for SSH Key ({alias}): ")
+                        _prompt_for_password = False
+
+                    if key_info.file:
+                        _key_file = os.path.realpath(
+                            os.path.expanduser(os.path.expandvars(key_info.file))
+                        )
+
+                        _keys.append(load_ssh_key_from_file(_key_file, _password))
+                    elif key_info.key:
+                        _keys.append(load_ssh_key_from_str(key_info.key, _password))
+
+        for alias in key_aliases:
+            if alias not in _matched_aliases:
+                raise BuildRunnerConfigurationError(
+                    f"Could not find valid SSH key matching alias '{alias}'"
+                )
+
+        return _keys
+
+    def get_local_files_from_alias(self, file_alias: str) -> Optional[str]:
+        """
+        Given a file alias lookup the local file path from the global config.
+        """
+        if not file_alias:
+            return None
+        if not self.global_config.local_files:
+            LOGGER.info("No 'local-files' configuration in global build runner config")
+            return None
+
+        for local_alias, local_file in self.global_config.local_files.items():
+            if file_alias == local_alias:
+                local_path = os.path.realpath(
+                    os.path.expanduser(os.path.expandvars(local_file))
+                )
+                if os.path.exists(local_path):
+                    return local_path
+
+                # This secondary code will create the file in the location specified and put the contents
+                # from the config value into the file for usage in a container. This may ONLY be used in the master
+                # global config file.
+                # pylint: disable=consider-using-with
+                _fileobj = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    dir=self.global_config.temp_dir,
+                )
+                _fileobj.write(
+                    local_file.encode("utf8")
+                    if isinstance(local_file, str)
+                    else local_file
+                )
+                tmp_path = os.path.realpath(_fileobj.name)
+                _fileobj.close()
+                if self.tmp_files is not None:
+                    self.tmp_files.append(tmp_path)
+                return tmp_path
+
+        return None

@@ -1,4 +1,16 @@
+import os
 import pytest
+
+from buildrunner.config import loader
+
+
+@pytest.fixture(name="override_master_config_file")
+def fixture_override_master_config_file(tmp_path):
+    original = loader.MASTER_GLOBAL_CONFIG_FILE
+    file_path = tmp_path / "file1"
+    loader.MASTER_GLOBAL_CONFIG_FILE = str(file_path)
+    yield file_path
+    loader.MASTER_GLOBAL_CONFIG_FILE = original
 
 
 @pytest.mark.parametrize(
@@ -84,3 +96,38 @@ def test_config_data(
     config_yaml, error_matches, assert_generate_and_validate_global_config_errors
 ):
     assert_generate_and_validate_global_config_errors(config_yaml, error_matches)
+
+
+def test_local_files_merged(override_master_config_file, tmp_path):
+    file_path1 = __file__
+    file_path2 = os.path.dirname(__file__)
+    file_path3 = os.path.dirname(file_path2)
+    override_master_config_file.write_text(
+        f"""
+    local-files:
+      key1: {file_path1}
+      key2: |
+        The contents of the file...
+      key3: {file_path2}
+    """
+    )
+    file2 = tmp_path / "file2"
+    file2.write_text(
+        f"""
+    local-files:
+      key3: {file_path1}
+      key4: {file_path3}
+    """
+    )
+    config = loader.load_global_config_files(
+        env={},
+        build_time=123,
+        global_config_files=[str(override_master_config_file), str(file2)],
+    )
+    assert "local-files" in config
+    assert config.get("local-files") == {
+        "key1": file_path1,
+        "key2": "The contents of the file...\n",
+        "key3": file_path1,
+        "key4": file_path3,
+    }

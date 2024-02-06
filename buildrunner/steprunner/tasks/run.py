@@ -416,6 +416,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Start a service container.
         """
+        buildrunner_config = BuildRunnerConfig.get_instance()
         _image = None
         # see if we need to build an image
         if service.build:
@@ -546,9 +547,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if service.files:
             for f_alias, f_path in service.files.items():
                 # lookup file from alias
-                f_local = self.step_runner.build_runner.get_local_files_from_alias(
-                    f_alias,
-                )
+                f_local = buildrunner_config.get_local_files_from_alias(f_alias)
                 if not f_local or not os.path.exists(f_local):
                     raise BuildRunnerConfigurationError(
                         f"Cannot find valid local file for alias '{f_alias}'"
@@ -801,7 +800,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 buildrunner_config.global_config.docker_registry,
             )
             self._sshagent.start(
-                self.step_runner.build_runner.get_ssh_keys_from_aliases(
+                buildrunner_config.get_ssh_keys_from_aliases(
                     self.step.ssh_keys,
                 )
             )
@@ -908,7 +907,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.step.files:
             for f_alias, f_path in self.step.files.items():
                 # lookup file from alias
-                f_local = self.step_runner.build_runner.get_local_files_from_alias(
+                f_local = buildrunner_config.get_local_files_from_alias(
                     f_alias,
                 )
                 if not f_local:

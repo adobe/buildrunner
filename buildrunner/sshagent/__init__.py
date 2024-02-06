@@ -215,7 +215,7 @@ class DockerSSHAgentProxy:
 
     def stop(self):
         """
-        Stops the custom agent thread, kills the persistant ssh connection to
+        Stops the custom agent thread, kills the persistent ssh connection to
         the remote container, and kills the container.
         """
         # kill ssh connection thread
@@ -235,10 +235,10 @@ class DockerSSHAgentProxy:
                 self.log.write(f"Error stopping ssh-agent connection: {_ex}\n")
 
         # kill container
-        self.log.write(
-            f"Destroying ssh-agent container {self._ssh_agent_container:.10}\n"
-        )
         if self._ssh_agent_container:
+            self.log.write(
+                f"Destroying ssh-agent container {self._ssh_agent_container:.10}\n"
+            )
             self.docker_client.remove_container(
                 self._ssh_agent_container,
                 force=True,
