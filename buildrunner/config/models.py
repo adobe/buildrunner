@@ -103,7 +103,7 @@ class Config(BaseModel, extra="forbid"):
         Validate the config file
 
         Raises:
-            ValueError | pydantic.ValidationError : If the config file is invalid
+            ValueError : If the config file is invalid
         """
 
         if not vals:

@@ -466,7 +466,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # see if there are any provisioners defined
         _provisioners = None
-        if service.provisions:
+        if service.provisioners:
             _provisioners = create_provisioners(
                 service.provisioners,
                 service_logger,
@@ -508,7 +508,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # wait for ports on this container to be listening
         # before moving on
-        _wait_for = service.wait_for
+        _wait_for = []
         if service.wait_for:
             _wait_for = service.wait_for
 
@@ -564,8 +564,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # instantiate and start the runner
         image_config = DockerRunner.ImageConfig(
             _image,
-            service.pull if service.pull is not None else True,
-            service.platform,
+            self.step.pull if service.pull is not None else True,
+            self.step.platform,
         )
         service_runner = DockerRunner(
             image_config,

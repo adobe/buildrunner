@@ -11,35 +11,41 @@ import copy
 import datetime
 import re
 from io import StringIO
+from typing import Callable
 
 import jinja2
 
 from buildrunner.utils import load_config
 
 
-def read_yaml_file(self, filename):
+def read_yaml_file(
+    env: dict,
+    log_generated_file_method: Callable[[bool, str, str], None],
+    log_file: bool,
+    filename: str,
+):
     """
-    Reads a file in the local workspace as Jinja-templated
-    YAML and returns the contents.
+    Reads a file in the local workspace as Jinja-templated YAML and returns the contents.
     Throws an error on failure.
     """
     with codecs.open(filename, "r", encoding="utf-8") as _file:
         jtemplate = jinja2.Template(_file.read())
-    context = copy.deepcopy(self.env)
+    context = copy.deepcopy(env)
     file_contents = jtemplate.render(context)
-    self._log_generated_file(filename, file_contents)
+    log_generated_file_method(log_file, filename, file_contents)
     return load_config(StringIO(file_contents), filename)
 
 
-def strftime(self, _format="%Y-%m-%d", _ts=None):
+def strftime(_build_time: int, _format="%Y-%m-%d", _ts=None):
     """
     Format the provided timestamp. If no timestamp is provided, build_time is used
+    :param _build_time: The build timestamp. This is bound with functools.partial and is not required to pass in.
     :param _format: Format string - default "%Y-%m-%d"
     :param _ts: Timestamp to format - default self.build_time
     :return: Formatted date/time string
     """
     if _ts is None:
-        _ts = self.build_time
+        _ts = _build_time
     _date = datetime.datetime.fromtimestamp(_ts)
     return _date.strftime(_format)
 

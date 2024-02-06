@@ -95,7 +95,7 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
                 if not task_data:
                     continue
                 self.log.write(f"==> Running step: {self.name}:{task_name}\n")
-                if isinstance(task_data, StepBuild | StepRun):
+                if isinstance(task_data, (StepBuild, StepRun)):
                     if self.local_images:
                         task_data.pull = False
                     if self.platform:

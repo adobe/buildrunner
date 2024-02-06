@@ -185,7 +185,7 @@ def validate_multiplatform_are_not_retagged(steps: Dict[str, Step]):
     Validate multi-platform are not re-tagged
 
     Raises:
-        ValueError | pydantic.ValidationError: If the config file is invalid
+        ValueError: If the config file is invalid
     """
     step_images = {}
 
@@ -237,7 +237,7 @@ def validate_multiplatform_build(
         mp_push_tags (Set[str]): Set of all tags used in multi-platform build steps
 
     Raises:
-        ValueError | pydantic.ValidationError: If the config file is invalid
+        ValueError: If the config file is invalid
     """
     # Iterate through each step and validate multi-platform multi-platform steps
     for step_name, step in steps.items():

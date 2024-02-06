@@ -71,7 +71,11 @@ class BuildRunnerConfig:
         LOGGER.info("")
         LOGGER.info(f"Global configuration is from: {', '.join(abs_gc_files)}")
         global_config, errors = generate_and_validate_global_config(
-            **load_global_config_files(self.env, abs_gc_files)
+            **load_global_config_files(
+                env=self.env,
+                build_time=self.build_time,
+                global_config_files=abs_gc_files,
+            )
         )
         if errors:
             errors_str = "\n".join(errors)
@@ -98,6 +102,7 @@ class BuildRunnerConfig:
         run_config, errors = generate_and_validate_config(
             **load_run_file(
                 global_config=self.global_config,
+                build_time=self.build_time,
                 env=self.env,
                 run_config_file=_run_config_file,
                 log_file=self.log_generated_files,

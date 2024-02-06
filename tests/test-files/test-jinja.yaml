@@ -1,0 +1,31 @@
+{%- if not BUILDRUNNER_IS_TEST %}
+{%- do raise('The BUILDRUNNER_IS_TEST env var is not set') %}
+{%- elif not env.get('IS_BR_TEST') %}
+{%- do raise('The IS_BR_TEST env var is not set') %}
+{%- endif %}
+{%- set test_file = read_yaml_file(CONFIG_FILE.replace("jinja", "general")) %}
+{%- if not CONFIG_FILE.startswith(CONFIG_DIR) %}
+{%- do raise('The CONFIG_FILE or CONFIG_DIR template parameters are incorrect') %}
+{%- endif %}
+{%- if not env %}
+{%- do raise('The env template parameter is missing') %}
+{%- endif %}
+
+steps:
+  test:
+    run:
+        image: {{ DOCKER_REGISTRY }}/busybox:latest
+        env:
+          LOCAL_VAR1: 'value1'
+          LOCAL_FROM_GLOBAL_VAR1: "{{ GLOBAL_VAR1 }}"
+        cmds:
+        - test "{{ 'hello' | re_sub('l', '_') }}" == "he__o"
+        - test "{{ 'hello' | re_split('el') | join('-') }}" == "h-lo"
+        - test "$LOCAL_VAR1" == "value1" -a "$LOCAL_FROM_GLOBAL_VAR1" == "value1"
+        - test "{{ strftime() }}" == "$(date +"%Y-%m-%d")"
+        {%- if 'steps' in test_file %}
+        - echo "Test file loaded successfully"
+        {%- else %}
+        - echo "Test file failed to load: {{ test_file }}"; exit 1
+        {%- endif %}
+

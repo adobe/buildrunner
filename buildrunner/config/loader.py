@@ -9,6 +9,7 @@ with the terms of the Adobe license agreement accompanying it.
 import base64
 from collections import OrderedDict
 import copy
+import functools
 import getpass
 from graphlib import TopologicalSorter
 from io import StringIO
@@ -213,6 +214,7 @@ def _reorder_dependency_steps(config: dict) -> dict:
 def _fetch_template(
     *,
     env: dict,
+    build_time: int,
     cfg_file: str,
     global_config: Optional[GlobalConfig] = None,
     ctx: Optional[dict] = None,
@@ -248,9 +250,11 @@ def _fetch_template(
             {
                 "CONFIG_FILE": cfg_file,
                 "CONFIG_DIR": os.path.dirname(cfg_file),
-                "read_yaml_file": jinja_context.read_yaml_file,
+                "read_yaml_file": functools.partial(
+                    jinja_context.read_yaml_file, env, _log_generated_file, log_file
+                ),
                 "raise": jinja_context.raise_exception_jinja,
-                "strftime": jinja_context.strftime,
+                "strftime": functools.partial(jinja_context.strftime, build_time),
                 "env": os.environ,
                 # This is stored after the initial env is set
                 "DOCKER_REGISTRY": global_config.docker_registry
@@ -263,8 +267,7 @@ def _fetch_template(
             config_context.update(ctx)
 
         config_contents = jtemplate.render(config_context)
-        if log_file:
-            _log_generated_file(log_file, cfg_file, config_contents)
+        _log_generated_file(log_file, cfg_file, config_contents)
         config = load_config(StringIO(config_contents), cfg_file)
 
         if not config:
@@ -287,6 +290,7 @@ def load_run_file(
     *,
     global_config: GlobalConfig,
     env: dict,
+    build_time: int,
     run_config_file: str,
     log_file: bool,
     default_tag: Optional[str] = None,
@@ -294,6 +298,7 @@ def load_run_file(
     config_data = _fetch_template(
         global_config=global_config,
         env=env,
+        build_time=build_time,
         cfg_file=run_config_file,
         log_file=log_file,
     )
@@ -308,28 +313,27 @@ def load_run_file(
 
 
 def load_global_config_files(
+    *,
     env: dict,
-    cfg_files: List[str],
+    build_time: int,
+    global_config_files: List[str],
 ) -> dict:
     """
-    Load config files templating them with Jinja and parsing the YAML.
-
-    Args:
-        env (list):  The environment to use for templates
-        cfg_files (list):  List of configuration files
+    Load global config files templating them with Jinja and parsing the YAML.
 
     Returns:
-      multi-structure: configuration keys and values
+      A dictionary of configuration
     """
     username = getpass.getuser()
     homedir = os.path.expanduser("~")
 
     context = {}
-    for cfg in cfg_files:
+    for cfg in global_config_files:
         cfg_path = os.path.realpath(os.path.expanduser(cfg))
         if os.path.exists(cfg_path):
             current_context = _fetch_template(
                 env=env,
+                build_time=build_time,
                 cfg_file=cfg_path,
                 ctx=context,
                 log_file=False,

@@ -61,7 +61,7 @@ except Exception:  # pylint: disable=broad-except
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), "SourceDockerfile")
 
 
-class BuildRunner:  # pylint: disable=too-many-instance-attributes
+class BuildRunner:
     """
     Class used to manage running a build.
     """
@@ -221,7 +221,9 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
 
         if steps_to_run:
             missing_steps = [
-                step for step in steps_to_run if step not in self.run_config["steps"]
+                step
+                for step in steps_to_run
+                if step not in buildrunner_config.run_config.steps
             ]
             if missing_steps:
                 raise BuildRunnerConfigurationError(
@@ -254,8 +256,7 @@ class BuildRunner:  # pylint: disable=too-many-instance-attributes
         ssh_keys = BuildRunnerConfig.get_instance().global_config.ssh_keys
         if not ssh_keys:
             raise BuildRunnerConfigurationError(
-                "SSH key aliases specified but no 'ssh-keys' "
-                "configuration in global build runner config"
+                "SSH key aliases specified but no 'ssh-keys' configuration in global build runner config"
             )
 
         _keys = []
