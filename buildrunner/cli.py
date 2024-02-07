@@ -229,14 +229,23 @@ def parse_args(argv):
 def clean_cache(argv):
     """Cache cleanup"""
     args = parse_args(argv)
-    global_config = BuildRunnerConfig(
+    BuildRunnerConfig.initialize_instance(
+        push=False,
+        build_number=1,
+        build_id="",
+        vcs=None,
+        steps_to_run=[],
         build_dir=args.directory,
         global_config_file=args.global_config_file,
+        run_config_file=args.config_file,
+        build_time=epoch_time(),
         log_generated_files=(
             bool(args.log_generated_files or args.print_generated_files)
         ),
+        # Do not attempt to load run configuration, just global configuration
+        load_run_config=False,
     )
-    BuildRunner.clean_cache(global_config)
+    BuildRunner.clean_cache()
 
 
 def _create_results_dir(cleanup_step_artifacts: bool, build_results_dir: str) -> None:
@@ -286,7 +295,9 @@ def initialize_br(args: argparse.Namespace) -> BuildRunner:
         docker_timeout=args.docker_timeout,
         local_images=args.local_images,
         platform=args.platform,
-        disable_multi_platform=args.disable_multi_platform,
+        disable_multi_platform=None
+        if args.disable_multi_platform is None
+        else args.disable_multi_platform == "true",
     )
 
 

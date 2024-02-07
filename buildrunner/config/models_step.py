@@ -1,5 +1,5 @@
 """
-Copyright 2023 Adobe
+Copyright 2024 Adobe
 All Rights Reserved.
 
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
@@ -8,7 +8,14 @@ with the terms of the Adobe license agreement accompanying it.
 
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    Field,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from typing_extensions import Annotated
 
 
@@ -21,12 +28,19 @@ def _validate_artifact_type(value) -> Any:
 AnnotatedArtifact = Annotated[Any, BeforeValidator(_validate_artifact_type)]
 
 
-class StepPypiPush(BaseModel, extra="forbid"):
+class StepTask(BaseModel, extra="forbid"):
+    """
+    Used for type checking.
+    """
+
+
+class StepPypiPush(StepTask):
     """Step pypi push model"""
 
     repository: str
-    username: str
-    password: str
+    username: Optional[str] = None
+    password: Optional[str] = None
+    skip_existing: bool = False
 
 
 class Artifact(BaseModel):
@@ -39,7 +53,7 @@ class Artifact(BaseModel):
     push: Optional[bool] = None
 
 
-class StepBuild(BaseModel, extra="forbid"):
+class StepBuild(StepTask):
     """Build model within a step"""
 
     path: Optional[str] = None
@@ -55,10 +69,9 @@ class StepBuild(BaseModel, extra="forbid"):
     import_param: Optional[str] = Field(alias="import", default=None)
 
 
-class RunAndServicesBase(BaseModel):
+class RunAndServicesBase(StepTask):
     """
-    Base model for Run and Service
-    which has several common fields
+    Base model for Run and Service which has several common fields
     """
 
     image: Optional[str] = None
@@ -82,18 +95,35 @@ class RunAndServicesBase(BaseModel):
     caches: Optional[Dict[str, Union[str, List[str]]]] = None
 
 
-class Service(RunAndServicesBase, extra="forbid"):
-    """Service model"""
-
-    build: Optional[Union[StepBuild, str]] = None
+class Service(RunAndServicesBase):
+    build: Optional[StepBuild] = None
     wait_for: Optional[List[Any]] = None
     inject_ssh_agent: Optional[bool] = Field(alias="inject-ssh-agent", default=None)
     # Not sure if this is valid, but it is in a test file
     # Didn't use StepRun because of the potential to have a infinitely nested model
     run: Optional[Any] = None
 
+    @field_validator("build", mode="before")
+    @classmethod
+    def transform_build(cls, val) -> Optional[dict]:
+        if not isinstance(val, str):
+            return val
+        return {
+            "path": val,
+        }
 
-class StepRun(RunAndServicesBase, extra="forbid"):
+    @model_validator(mode="after")
+    def validate_image_or_build(self):
+        if not self.build and not self.image:
+            raise ValueError("Service must specify an image or docker build context")
+        if self.build and self.image:
+            raise ValueError(
+                "Service must specify either an image or docker build context, not both"
+            )
+        return self
+
+
+class StepRun(RunAndServicesBase):
     """Run model within a step"""
 
     xfail: Optional[bool] = None
@@ -102,49 +132,92 @@ class StepRun(RunAndServicesBase, extra="forbid"):
     ssh_keys: Optional[List[str]] = Field(alias="ssh-keys", default=None)
     artifacts: Optional[Dict[str, Optional[AnnotatedArtifact]]] = None
     platform: Optional[str] = None
-    cap_add: Optional[Union[str, List[str]]] = None
+    cap_add: Optional[List[str]] = None
     privileged: Optional[bool] = None
-    post_build: Optional[Union[str, Dict[str, Any]]] = Field(
-        alias="post-build", default=None
-    )
+    post_build: Optional[StepBuild] = Field(alias="post-build", default=None)
     no_cache: Optional[bool] = Field(alias="no-cache", default=None)
 
+    @field_validator("post_build", mode="before")
+    @classmethod
+    def transform_post_build(cls, val) -> Optional[dict]:
+        if not isinstance(val, str):
+            return val
+        return {
+            "path": val,
+        }
 
-class StepRemote(BaseModel, extra="forbid"):
+    @field_validator("cap_add", mode="before")
+    @classmethod
+    def transform_cap_add(cls, val) -> Optional[List[str]]:
+        if not isinstance(val, str):
+            return val
+        return [val]
+
+
+class StepRemote(StepTask):
     """Remote model within a step"""
 
-    # Not sure if host is optional or required
-    host: Optional[str] = None
+    host: str
     cmd: str
     artifacts: Optional[Dict[str, Optional[AnnotatedArtifact]]] = None
 
 
-class StepPushCommitDict(BaseModel, extra="forbid"):
+class StepPushCommit(StepTask):
     """Push model within a step"""
 
     repository: str
     tags: Optional[List[str]] = None
+    push: bool
 
 
 class Step(BaseModel, extra="forbid"):
     """Step model"""
 
-    build: Optional[Union[StepBuild, str]] = None
-    push: Optional[
-        Union[StepPushCommitDict, List[Union[str, StepPushCommitDict]], str]
-    ] = None
-    commit: Optional[
-        Union[StepPushCommitDict, List[Union[str, StepPushCommitDict]], str]
-    ] = None
+    # A build specified as a string is handled in the field validator
+    build: Optional[StepBuild] = None
+    push: Optional[List[StepPushCommit]] = None
+    commit: Optional[List[StepPushCommit]] = None
     remote: Optional[StepRemote] = None
     run: Optional[StepRun] = None
     depends: Optional[List[str]] = None
-    pypi_push: Optional[Union[StepPypiPush, str]] = Field(
-        alias="pypi-push", default=None
-    )
+    pypi_push: Optional[StepPypiPush] = Field(alias="pypi-push", default=None)
+
+    @field_validator("build", mode="before")
+    @classmethod
+    def transform_build(cls, val) -> Optional[dict]:
+        if not isinstance(val, str):
+            return val
+        return {
+            "path": val,
+        }
+
+    @field_validator("pypi_push", mode="before")
+    @classmethod
+    def transform_pypi_push(cls, val) -> Optional[dict]:
+        if not isinstance(val, str):
+            return val
+        return {
+            "repository": val,
+        }
+
+    @field_validator("commit", "push", mode="before")
+    @classmethod
+    def transform_commit_push(cls, vals, info: ValidationInfo) -> Optional[List[dict]]:
+        if not vals:
+            return vals
+        if not isinstance(vals, list):
+            vals = [vals]
+        for index, val in enumerate(vals):
+            if not val:
+                raise ValueError(f"{info.field_name}.{index} must be a valid value")
+            if isinstance(val, str):
+                vals[index] = {"repository": val}
+            # Set the push field dynamically based on the top level field name
+            vals[index]["push"] = info.field_name == "push"
+        return vals
 
     def is_multi_platform(self):
         """
         Check if the step is a multi-platform build step
         """
-        return isinstance(self.build, StepBuild) and self.build.platforms is not None
+        return self.build and self.build.platforms is not None

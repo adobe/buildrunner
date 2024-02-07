@@ -16,6 +16,8 @@ import time
 import uuid
 
 import buildrunner.docker
+from buildrunner.config import BuildRunnerConfig
+from buildrunner.config.models_step import RunAndServicesBase, StepRun, Service
 from buildrunner.docker.daemon import DockerDaemonProxy
 from buildrunner.docker.runner import DockerRunner
 from buildrunner.errors import (
@@ -27,7 +29,6 @@ from buildrunner.sshagent import DockerSSHAgentProxy
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
 from buildrunner.loggers import ContainerLogger
-from buildrunner.utils import is_dict
 
 DEFAULT_SHELL = "/bin/sh"
 SOURCE_VOLUME_MOUNT = "/source"
@@ -58,8 +59,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         "z": "-Z",
     }
 
-    def __init__(self, step_runner, config):
-        super().__init__(step_runner, config)
+    def __init__(self, step_runner, step: StepRun):
+        super().__init__(step_runner, step)
+        self.step = step
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
@@ -126,16 +128,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         a host volume). It also appropriately sets file ownership of the
         archived artifacts to the user running the buildrunner process.
         """
-        self.step_runner.log.write("Gathering artifacts\n")
-        if not self.config["artifacts"]:
+        if not self.step.artifacts:
             return
+        self.step_runner.log.write("Gathering artifacts\n")
 
         # use a small busybox image to list the files matching the glob
         artifact_lister = None
         try:
             image_config = DockerRunner.ImageConfig(
-                f"{self.step_runner.build_runner.global_config.get_docker_registry()}/"
-                f"{self.ARTIFACT_LISTER_DOCKER_IMAGE}",
+                f"{BuildRunnerConfig.get_instance().global_config.docker_registry}/{self.ARTIFACT_LISTER_DOCKER_IMAGE}",
                 pull_image=False,
             )
             artifact_lister = DockerRunner(
@@ -153,7 +154,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 shell="/bin/sh",
             )
 
-            for pattern, properties in self.config["artifacts"].items():
+            for pattern, properties in self.step.artifacts.items():
                 # query files for each artifacts pattern, capturing the output
                 # for parsing
                 stat_output_file = f"{str(uuid.uuid4())}.out"
@@ -411,34 +412,24 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
 
     # pylint: disable=too-many-statements,too-many-branches,too-many-locals
-    def _start_service_container(self, name, config):
+    def _start_service_container(self, name, service: Service):
         """
         Start a service container.
         """
-        # validate that we have an 'image' or 'build' config
-        if not ("image" in config or "build" in config):
-            raise BuildRunnerConfigurationError(
-                f'Step "{self.step_runner.name}", service "{name}" must specify an image or docker build context'
-            )
-        if "image" in config and "build" in config:
-            raise BuildRunnerConfigurationError(
-                f'Step "{self.step_runner.name}", service "{name}" must specify '
-                f"either an image or docker build context, not both"
-            )
-
+        buildrunner_config = BuildRunnerConfig.get_instance()
         _image = None
         # see if we need to build an image
-        if "build" in config:
+        if service.build:
             build_image_task = BuildBuildStepRunnerTask(
                 self.step_runner,
-                config["build"],
+                service.build,
             )
             _build_context = {}
             build_image_task.run(_build_context)
             _image = _build_context.get("image", None)
 
-        if "image" in config:
-            _image = config["image"]
+        if service.image:
+            _image = service.image
         assert _image
 
         self.step_runner.log.write(
@@ -447,7 +438,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         service_logger = ContainerLogger.for_service_container(name)
 
         # setup custom env variables
-        _env = dict(self.step_runner.build_runner.env)
+        _env = dict(buildrunner_config.env)
         _env["BUILDRUNNER_INVOKE_USER"] = pwd.getpwuid(os.getuid())
         _env["BUILDRUNNER_INVOKE_UID"] = os.getuid()
         _env["BUILDRUNNER_INVOKE_GROUP"] = grp.getgrgid(os.getgid())
@@ -455,88 +446,77 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # do we need to change to a given dir when running
         # a cmd or script?
-        _cwd = None
-        if "cwd" in config:
-            _cwd = config["cwd"]
+        _cwd = service.cwd
 
         # need to expose any ports?
-        _ports = None
-        if "ports" in config:
-            _ports = config["ports"]
+        _ports = service.ports
 
         # default to a container that runs the default
         # image command
         _shell = None
 
         # do we need to run an explicit cmd?
-        if "cmd" in config:
+        if service.cmd:
             # if so we need to run the cmd within a default
             # shell--specify it here
             _shell = DEFAULT_SHELL
 
         # if a shell is specified use it
-        if "shell" in config:
-            _shell = config["shell"]
+        if service.shell:
+            _shell = service.shell
 
         # see if there are any provisioners defined
         _provisioners = None
-        if "provisioners" in config:
+        if service.provisioners:
             _provisioners = create_provisioners(
-                config["provisioners"],
+                service.provisioners,
                 service_logger,
             )
 
         # determine if a user is specified
-        _user = None
-        if "user" in config:
-            _user = config["user"]
+        _user = service.user
 
         # determine if a hostname is specified
-        _hostname = None
-        if "hostname" in config:
-            _hostname = config["hostname"]
+        _hostname = service.hostname
 
         # determine if a dns host is specified
         _dns = None
-        if "dns" in config:
+        if service.dns:
             # If the dns host is set to a string and that string is a reference to a running service
             # container, pull the ip address out of the service container.
-            _dns = [self._resolve_service_ip(config["dns"])]
+            _dns = [self._resolve_service_ip(service.dns)]
 
         # determine if a dns_search domain is specified
-        _dns_search = None
-        if "dns_search" in config:
-            _dns_search = config["dns_search"]
+        _dns_search = service.dns_search
 
         # determine if any extra hosts were provided
         _extra_hosts = None
-        if "extra_hosts" in config:
-            _extra_hosts = {}
-            for extra_host, extra_host_ip in config["extra_hosts"].items():
-                _extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
+        if service.extra_hosts:
+            _extra_hosts = {
+                extra_host: self._resolve_service_ip(extra_host_ip)
+                for extra_host, extra_host_ip in service.extra_hosts.items()
+            }
 
         # set service specific environment variables
         _env["BUILDRUNNER_STEP_ID"] = self.step_runner.id
         _env["BUILDRUNNER_STEP_NAME"] = self.step_runner.name
-        if "env" in config:
-            for key, value in config["env"].items():
+        if service.env:
+            for key, value in service.env.items():
                 _env[key] = value
 
         # make buildrunner aware of spawned containers
-        _containers = None
-        if "containers" in config:
-            _containers = config["containers"]
+        _containers = service.containers
 
         # wait for ports on this container to be listening
         # before moving on
         _wait_for = []
-        if "wait_for" in config:
-            _wait_for = config["wait_for"]
+        if service.wait_for:
+            _wait_for = service.wait_for
 
         _volumes_from = [self._get_source_container()]
 
         # attach the ssh agent to the service container
-        if self._sshagent and config.get("inject-ssh-agent", False):
+        if self._sshagent and service.inject_ssh_agent:
             ssh_container, ssh_env = self._sshagent.get_info()
             if ssh_container:
                 _volumes_from.append(ssh_container)
@@ -553,10 +533,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 _env[_var] = _val
 
         # see if we need to map any service container volumes
-        if "volumes_from" in config:
+        if service.volumes_from:
             _volumes_from.extend(
                 self._process_volumes_from(
-                    config["volumes_from"],
+                    service.volumes_from,
                 )
             )
 
@@ -564,12 +544,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.build_runner.build_results_dir: ARTIFACTS_VOLUME_MOUNT
             + ":ro",
         }
-        if "files" in config:
-            for f_alias, f_path in config["files"].items():
+        if service.files:
+            for f_alias, f_path in service.files.items():
                 # lookup file from alias
-                f_local = self.step_runner.build_runner.get_local_files_from_alias(
-                    f_alias,
-                )
+                f_local = buildrunner_config.get_local_files_from_alias(f_alias)
                 if not f_local or not os.path.exists(f_local):
                     raise BuildRunnerConfigurationError(
                         f"Cannot find valid local file for alias '{f_alias}'"
@@ -585,8 +563,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # instantiate and start the runner
         image_config = DockerRunner.ImageConfig(
             _image,
-            config.get("pull", True),
-            config.get("platform", None),
+            self.step.pull if service.pull is not None else True,
+            self.step.platform,
         )
         service_runner = DockerRunner(
             image_config,
@@ -610,22 +588,22 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             extra_hosts=_extra_hosts,
             working_dir=_cwd,
             containers=_containers,
-            systemd=self.is_systemd(config, _image, service_logger),
+            systemd=self.is_systemd(service, _image, service_logger),
         )
         self._service_links[cont_name] = name
 
         def attach_to_service():
             """Function to attach to service in a separate thread."""
             # if specified, run a command
-            if "cmd" in config:
+            if service.cmd:
                 exit_code = service_runner.run(
-                    config["cmd"],
+                    service.cmd,
                     console=service_logger,
                     # log=self.step_runner.log,
                 )
                 if exit_code != 0:
                     service_logger.write(
-                        f'Service command "{config["cmd"]}" exited with code {exit_code}\n'
+                        f'Service command "{service.cmd}" exited with code {exit_code}\n'
                     )
             else:
                 service_runner.attach_until_finished(service_logger)
@@ -692,7 +670,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             nc_tester = None
             try:
                 image_config = DockerRunner.ImageConfig(
-                    f"{self.step_runner.build_runner.global_config.get_docker_registry()}/{self.NC_DOCKER_IMAGE}",
+                    f"{BuildRunnerConfig.get_instance().global_config.docker_registry}/{self.NC_DOCKER_IMAGE}",
                     pull_image=False,
                 )
                 nc_tester = DockerRunner(
@@ -737,18 +715,20 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 rval = ipaddr
         return rval
 
-    def run(self, context):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
+    def run(self, context: dict):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
+        buildrunner_config = BuildRunnerConfig.get_instance()
+
         # Set pull attribute based on configured image
         # Default to configuration
-        if self.config.get("pull") is not None:
-            pull_image = self.config.get("pull")
+        if self.step.pull is not None:
+            pull_image = self.step.pull
             self.step_runner.log.write(
                 f"Pulling image was overridden via config to {pull_image}\n"
             )
         else:
             # Default to pulling, but check if image was committed by buildrunner and set to false if so
             pull_image = True
-            config_image = self.config.get("image")
+            config_image = self.step.image
             if config_image:
                 pull_image = (
                     config_image not in self.step_runner.build_runner.committed_images
@@ -757,11 +737,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     f"Pull was not specified in configuration, defaulting to {pull_image}\n"
                 )
 
-        _run_image = self.config.get("image", context.get("image", None))
+        _run_image = self.step.image
+        if not _run_image:
+            _run_image = context.get("image")
         if not _run_image:
             raise BuildRunnerConfigurationError(
-                'Docker run context must specify a "image" attribute or '
-                "be preceded by a build context"
+                'Docker run context must specify a "image" attribute or be preceded by a build context'
             )
         _lrun_image = _run_image.lower()
         if _lrun_image != _run_image:
@@ -781,7 +762,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # container defaults
         _source_container = self._get_source_container()
         _container_name = str(uuid.uuid4())
-        _env_defaults = dict(self.step_runner.build_runner.env)
+        _env_defaults = dict(buildrunner_config.env)
         _env_defaults.update(
             {
                 "BUILDRUNNER_SOURCE_CONTAINER": _source_container,
@@ -813,15 +794,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         caches = OrderedDict()
 
         # see if we need to inject ssh keys
-        if "ssh-keys" in self.config:
+        if self.step.ssh_keys:
             self._sshagent = DockerSSHAgentProxy(
                 self._docker_client,
                 self.step_runner.log,
-                self.step_runner.build_runner.global_config.get_docker_registry(),
+                buildrunner_config.global_config.docker_registry,
             )
             self._sshagent.start(
-                self.step_runner.build_runner.get_ssh_keys_from_aliases(
-                    self.config["ssh-keys"],
+                buildrunner_config.get_ssh_keys_from_aliases(
+                    self.step.ssh_keys,
                 )
             )
 
@@ -829,80 +810,80 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._dockerdaemonproxy = DockerDaemonProxy(
             self._docker_client,
             self.step_runner.log,
-            self.step_runner.build_runner.global_config.get_docker_registry(),
+            buildrunner_config.global_config.docker_registry,
         )
         self._dockerdaemonproxy.start()
 
         # start any service containers
-        if "services" in self.config:
-            for _name, _config in self.config["services"].items():
-                self._start_service_container(_name, _config)
+        if self.step.services:
+            for _name, _service in self.step.services.items():
+                self._start_service_container(_name, _service)
 
         # determine if there is a command to run
         _cmds = []
-        if "cmd" in self.config:
+        if self.step.cmd:
             container_args["shell"] = DEFAULT_SHELL
-            _cmds.append(self.config["cmd"])
-        if "cmds" in self.config:
+            _cmds.append(self.step.cmd)
+        if self.step.cmds:
             container_args["shell"] = DEFAULT_SHELL
-            _cmds.extend(self.config["cmds"])
+            _cmds.extend(self.step.cmds)
 
-        if "provisioners" in self.config:
+        if self.step.provisioners:
             container_args["shell"] = DEFAULT_SHELL
             container_args["provisioners"] = create_provisioners(
-                self.config["provisioners"],
+                self.step.provisioners,
                 container_logger,
             )
 
         # if a shell is specified use it
-        if "shell" in self.config:
-            container_args["shell"] = self.config["shell"]
+        if self.step.shell:
+            container_args["shell"] = self.step.shell
 
         # determine the working dir the build should be run in
-        if "cwd" in self.config:
-            container_args["working_dir"] = self.config["cwd"]
+        if self.step.cwd:
+            container_args["working_dir"] = self.step.cwd
 
         # determine if a user is specified
-        if "user" in self.config:
-            container_args["user"] = self.config["user"]
+        if self.step.user:
+            container_args["user"] = self.step.user
 
         # determine if a hostname is specified
-        if "hostname" in self.config:
-            container_args["hostname"] = self.config["hostname"]
+        if self.step.hostname:
+            container_args["hostname"] = self.step.hostname
 
         # determine if a dns host is specified
-        if "dns" in self.config:
+        if self.step.dns:
             # If the dns host is set to a string and that string is a reference to a running service
             # container, pull the ip address out of the service container.
-            container_args["dns"] = [self._resolve_service_ip(self.config["dns"])]
+            container_args["dns"] = [self._resolve_service_ip(self.step.dns)]
 
         # determine if a dns_search domain is specified
-        if "dns_search" in self.config:
-            container_args["dns_search"] = self.config["dns_search"]
+        if self.step.dns_search:
+            container_args["dns_search"] = self.step.dns_search
 
         # determine additional hosts to add
-        if "extra_hosts" in self.config:
+        if self.step.extra_hosts:
             extra_hosts = {}
-            for extra_host, extra_host_ip in self.config["extra_hosts"].items():
+            for extra_host, extra_host_ip in self.step.extra_hosts.items():
                 extra_hosts[extra_host] = self._resolve_service_ip(extra_host_ip)
             container_args["extra_hosts"] = extra_hosts
 
         # set step specific environment variables
         container_args["environment"]["BUILDRUNNER_STEP_ID"] = self.step_runner.id
         container_args["environment"]["BUILDRUNNER_STEP_NAME"] = self.step_runner.name
-        if "env" in self.config:
-            for key, value in self.config["env"].items():
+        if self.step.env:
+            for key, value in self.step.env.items():
                 container_args["environment"][key] = value
 
         # make buildrunner aware of spawned containers
-        if "containers" in self.config:
-            container_args["containers"] = self.config["containers"]
+        if self.step.containers:
+            container_args["containers"] = self.step.containers
 
         # see if we need to map any service container volumes
-        if "volumes_from" in self.config:
+        if self.step.volumes_from:
             container_args["volumes_from"].extend(
                 self._process_volumes_from(
-                    self.config["volumes_from"],
+                    self.step.volumes_from,
                 )
             )
 
@@ -924,10 +905,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 container_args["environment"][_var] = _val
 
         # see if we need to inject any files
-        if "files" in self.config:
-            for f_alias, f_path in self.config["files"].items():
+        if self.step.files:
+            for f_alias, f_path in self.step.files.items():
                 # lookup file from alias
-                f_local = self.step_runner.build_runner.get_local_files_from_alias(
+                f_local = buildrunner_config.get_local_files_from_alias(
                     f_alias,
                 )
                 if not f_local:
@@ -957,14 +938,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                 container_meta_logger.write(f"Mounting {f_local} -> {f_path}\n")
 
-        if "caches" in self.config:
-            for key, value in self.config["caches"].items():
+        if self.step.caches:
+            for key, value in self.step.caches.items():
                 if isinstance(value, str):
                     # get the cache location from the main BuildRunner class
                     cache_archive_file = (
                         self.step_runner.build_runner.get_cache_archive_file(
                             cache_name=key,
-                            project_name=self.step_runner.build_runner.vcs.name,
+                            project_name=buildrunner_config.vcs.name,
                         )
                     )
                     caches[cache_archive_file] = value
@@ -990,18 +971,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     continue
 
         # add any capabilities when the container runs
-        if "cap_add" in self.config:
-            if not isinstance(self.config["cap_add"], list):
-                self.config["cap_add"] = [self.config["cap_add"]]
-            container_args["cap_add"] = self.config["cap_add"]
+        if self.step.cap_add:
+            container_args["cap_add"] = self.step.cap_add
 
         # allow privileged containers (used sparingly)
-        if "privileged" in self.config:
-            container_args["privileged"] = self.config.get("privileged", False)
+        if self.step.privileged:
+            container_args["privileged"] = self.step.privileged
 
         # only expose ports for a run step if the flag is set
-        if self.step_runner.build_runner.publish_ports and "ports" in self.config:
-            container_args["ports"] = self.config["ports"]
+        if self.step_runner.build_runner.publish_ports and self.step.ports:
+            container_args["ports"] = self.step.ports
 
         exit_code = None
         try:
@@ -1009,7 +988,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             image_config = DockerRunner.ImageConfig(
                 _run_image,
                 pull_image=pull_image,
-                platform=self.config.get("platform", None),
+                platform=self.step.platform,
             )
             self.runner = DockerRunner(
                 image_config,
@@ -1017,7 +996,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
             # Figure out if we should be running systemd.  Has to happen after docker pull
             container_args["systemd"] = self.is_systemd(
-                self.config, _run_image, self.step_runner.log
+                self.step, _run_image, self.step_runner.log
             )
 
             container_id = self.runner.start(
@@ -1063,8 +1042,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 container_meta_logger.cleanup()
 
         # gather artifacts to results dir even if run has bad exit code
-        if "artifacts" in self.config:
-            self._retrieve_artifacts(container_logger)
+        self._retrieve_artifacts(container_logger)
 
         # if we have an unsuccessful exit code abort
         if exit_code != 0:
@@ -1072,7 +1050,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         context["run_runner"] = self.runner
 
-        if "post-build" in self.config:
+        if self.step.post_build:
             self._run_post_build(context)
 
     def _run_post_build(self, context):
@@ -1081,14 +1059,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         image to the Dockerfile.
         """
         self.step_runner.log.write("Running post-build processing\n")
-        config = self.config["post-build"]
+        post_build = self.step.post_build
         # post build always uses the image hash--can't pull
-        if not is_dict(config):
-            config = {"path": config}
-        config["pull"] = False
+        post_build.pull = False
         build_image_task = BuildBuildStepRunnerTask(
             self.step_runner,
-            config,
+            post_build,
             image_to_prepend_to_dockerfile=self.runner.commit(
                 self.step_runner.log,
             ),
@@ -1126,14 +1102,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 v=True,
             )
 
-    def is_systemd(self, config, image, logger):
+    def is_systemd(self, run_service: RunAndServicesBase, image, logger):
         """Check if an image runs systemd"""
         # Unused argument
         _ = logger
 
         rval = False
-        if "systemd" in config:
-            rval = config.get("systemd", False)
+        if run_service.systemd:
+            rval = run_service.systemd
         else:
             labels = (
                 self._docker_client.inspect_image(image)

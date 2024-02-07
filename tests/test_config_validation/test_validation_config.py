@@ -5,11 +5,17 @@ import pytest
     "config_data, error_matches",
     [
         #  Invalid version
-        ({"version": "string"}, ["Input should be a valid number"]),
+        (
+            {"version": "string"},
+            [
+                "Input should be a valid number",
+                "steps:  Field required",
+            ],
+        ),
         #  Valid version
-        ({"version": 2.0, "steps": {}}, []),
+        ({"version": 2.0, "steps": {}}, ['The "steps" configuration was not provided']),
         # Optional version
-        ({"steps": {}}, []),
+        ({"steps": {}}, ['The "steps" configuration was not provided']),
         # Sample valid config, but not exhaustive
         (
             """
@@ -186,31 +192,6 @@ import pytest
             'target/docs/*':
     """,
             [],
-        ),
-        # Valid github config
-        (
-            """
-    github:
-      company_github:
-        endpoint: 'https://git.company.com/api'
-        version: 'v3'
-        username: 'USERNAME'
-        app_token: 'APP_TOKEN'
-    """,
-            [],
-        ),
-        # Invalid github config
-        (
-            """
-    github:
-      company_github:
-        endpoint: 'https://git.company.com/api'
-        version: 'v3'
-        username: 'USERNAME'
-        app_token: 'APP_TOKEN'
-        bogus: 'bogus'
-    """,
-            ["Extra inputs are not permitted"],
         ),
     ],
 )

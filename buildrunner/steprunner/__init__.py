@@ -11,7 +11,8 @@ import traceback
 import uuid
 
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
-from buildrunner.errors import BuildRunnerConfigurationError, BuildRunnerError
+from buildrunner.config.models_step import Step, StepBuild, StepRun
+from buildrunner.errors import BuildRunnerError
 from buildrunner.steprunner.tasks.build import BuildBuildStepRunnerTask
 from buildrunner.steprunner.tasks.push import (
     CommitBuildStepRunnerTask,
@@ -49,7 +50,7 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         self,  # pylint: disable=too-many-arguments
         build_runner,
         step_name,
-        step_config,
+        step: Step,
         image_config,
         multi_platform: MultiplatformImageBuilder,
     ):
@@ -59,7 +60,7 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         local_images = image_config.local_images
         platform = image_config.platform
         self.name = step_name
-        self.config = step_config
+        self.step = step
         self.local_images = local_images
         self.platform = platform
 
@@ -89,34 +90,27 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         _tasks = []
         _context = {}
         try:
-            for _task_name, _task_config in self.config.items():
-                self.log.write(f"==> Running step: {self.name}:{_task_name}\n")
-                if _task_name in TASK_MAPPINGS:
-                    if TASK_MAPPINGS[_task_name] in [
-                        BuildBuildStepRunnerTask,
-                        RunBuildStepRunnerTask,
-                    ]:
-                        if self.local_images:
-                            _task_config["pull"] = False
-                        if self.platform:
-                            _task_config["platform"] = self.platform
-                    _task = TASK_MAPPINGS[_task_name](self, _task_config)
-                    _tasks.append(_task)
-                    try:
-                        _task.run(_context)
-                    except BuildRunnerError as err:
-                        if not isinstance(_task_config, dict) or not _task_config.get(
-                            "xfail", False
-                        ):
-                            raise
+            for task_name, task_class in TASK_MAPPINGS.items():
+                task_data = getattr(self.step, task_name.replace("-", "_"))
+                if not task_data:
+                    continue
+                self.log.write(f"==> Running step: {self.name}:{task_name}\n")
+                if isinstance(task_data, (StepBuild, StepRun)):
+                    if self.local_images:
+                        task_data.pull = False
+                    if self.platform:
+                        task_data.platform = self.platform
+                _task = task_class(self, task_data)
+                _tasks.append(_task)
+                try:
+                    _task.run(_context)
+                except BuildRunnerError as err:
+                    if not isinstance(task_data, StepRun) or not task_data.xfail:
+                        raise
 
-                        self.log.write(
-                            f'Step "{self.name}" failed with exception: {err}\n    '
-                            f"Ignoring due to XFAIL\n"
-                        )
-                else:
-                    raise BuildRunnerConfigurationError(
-                        f'Step "{self.name}" contains an unknown task "{_task_name}"\n'
+                    self.log.write(
+                        f'Step "{self.name}" failed with exception: {err}\n    '
+                        f"Ignoring due to XFAIL\n"
                     )
         finally:
             for _task in _tasks:

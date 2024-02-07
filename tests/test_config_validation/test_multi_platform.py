@@ -1,6 +1,6 @@
 import pytest
 
-from buildrunner.validation.config import (
+from buildrunner.config.validation import (
     RUN_MP_ERROR_MESSAGE,
 )
 

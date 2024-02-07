@@ -5,32 +5,20 @@ All Rights Reserved.
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
+import logging
 import os
-import re
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import buildrunner.docker
+from buildrunner.config.models_step import StepPushCommit
 from buildrunner.errors import (
-    BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
+from buildrunner.utils import sanitize_tag
 
 
-def sanitize_tag(tag, log=None):
-    """
-    Sanitize a tag to remove illegal characters.
-
-    :param tag: The tag to sanitize.
-    :param log: Optional log to write warnings to.
-    :return: The sanitized tag.
-    """
-    _tag = re.sub(r"[^-_\w.]+", "-", tag.lower())
-    if _tag != tag and log:
-        log.write(
-            f"Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}\n"
-        )
-    return _tag
+LOGGER = logging.getLogger(__name__)
 
 
 class RepoDefinition:
@@ -40,24 +28,21 @@ class RepoDefinition:
 
     def __init__(
         self,
-        log,
         repository: str,
         tags: Optional[List[str]] = None,
-        insecure_registry: Optional[bool] = None,
     ):
         # Force a lower-case repo
         repo_lower = repository.lower()
         if repo_lower != repository:
-            log.write(
-                f"Forcing repository to lowercase: {repository} => {repo_lower}\n"
+            LOGGER.info(
+                f"Forcing repository to lowercase: {repository} => {repo_lower}"
             )
         self.repository = repo_lower
 
         if tags:
-            self.tags = [sanitize_tag(tag, log=log) for tag in tags]
+            self.tags = [sanitize_tag(tag) for tag in tags]
         else:
             self.tags = []
-        self.insecure_registry = insecure_registry
 
         # if there is a tag in the repository value, strip it off and add the tag to the list of tags
         tag_index = self.repository.find(":")
@@ -75,30 +60,19 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
     given registry/repository.
     """
 
-    def _get_repo_definition(self, config: Union[dict, str]) -> RepoDefinition:
-        if isinstance(config, dict):
-            if "repository" not in config:
-                raise BuildRunnerConfigurationError(
-                    'Docker push configuration must at least specify a "repository" attribute'
-                )
-            return RepoDefinition(
-                self.step_runner.log,
-                config["repository"],
-                config.get("tags"),
-                config.get("insecure_registry"),
-            )
-        return RepoDefinition(self.step_runner.log, config)
-
-    def __init__(self, step_runner, config, commit_only=False):
-        super().__init__(step_runner, config)
+    def __init__(self, step_runner, pushes: List[StepPushCommit], commit_only=False):
+        super().__init__(step_runner, pushes[0])
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
         self._commit_only = commit_only
-        if isinstance(config, list):
-            self._repos = [self._get_repo_definition(item) for item in config]
-        else:
-            self._repos = [self._get_repo_definition(config)]
+        self._repos = [
+            RepoDefinition(
+                push.repository,
+                push.tags,
+            )
+            for push in pushes
+        ]
 
     def run(self, context):  # pylint: disable=too-many-branches
         # Tag multi-platform images
@@ -185,7 +159,8 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                         self.step_runner.build_runner.repo_tags_to_push.append(
                             (
                                 f"{repo.repository}:{tag}",
-                                repo.insecure_registry,
+                                # Used to be insecure registry, but this is now deprecated/removed
+                                False,
                             )
                         )
 
@@ -209,11 +184,6 @@ class CommitBuildStepRunnerTask(PushBuildStepRunnerTask):
     tag matching the given registry/repository.
     """
 
-    def __init__(self, step_runner, config):
+    def __init__(self, step_runner, commits: List[StepPushCommit]):
         # Subclasses the push task, just set commit only to true
-        super().__init__(step_runner, config, commit_only=True)
-
-
-# Local Variables:
-# fill-column: 100
-# End:
+        super().__init__(step_runner, commits, commit_only=True)

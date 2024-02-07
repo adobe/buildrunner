@@ -55,3 +55,18 @@ steps:
           [ -c /test_file ]
           echo foo >/test_file
           [ -z "$(cat /test_file)" ] && echo EMPTY
+
+
+  # This test ensures that local-files are merged between the different config files, since newly created files can
+  # only be created in the master global config file.
+  test-alias_dir_mount-new_file:
+    run:
+      image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+      files:
+        # Test file alias specified in global config files (config-files/etc-buildrunner.yaml)
+        new_file: /test_file
+      cmds:
+        - |
+          set -eux
+          ls -l /test_file
+          [ "$(cat /test_file)" = "new_file contents" ]

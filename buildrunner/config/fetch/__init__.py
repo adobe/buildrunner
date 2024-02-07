@@ -7,13 +7,14 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import urllib.parse
+from typing import Optional
 
 from . import github
 from . import http
 from . import file
 
 
-def fetch_file(url, config):
+def fetch_file(url: str, config: Optional[dict]) -> str:
     """
     Fetch a file from a provider.
     """
@@ -23,23 +24,26 @@ def fetch_file(url, config):
     # config) => bool)
 
     parsed_url = urllib.parse.urlparse(url)
+    scheme = parsed_url.scheme
+    if isinstance(scheme, bytes):
+        scheme = scheme.decode("utf8")
 
-    if parsed_url.scheme == "github":
+    if scheme == "github":
         file_contents = github.fetch_file(parsed_url, config)
 
-    elif parsed_url.scheme == "file" or (
-        parsed_url.scheme == "" and parsed_url.netloc == ""
+    elif scheme == "file" or (
+        scheme == "" and (parsed_url.netloc == "" or parsed_url.netloc == b"")
     ):
         purl = list(parsed_url)
         purl[0] = "file"
         parsed_url = urllib.parse.ParseResult(*purl)
         file_contents = file.fetch_file(parsed_url, config)
 
-    elif parsed_url.scheme in ("http", "https"):
+    elif scheme in ("http", "https"):
         file_contents = http.fetch_file(parsed_url, config)
 
     else:
-        raise NotImplementedError(f"Unknown fetch backend: {parsed_url.scheme}")
+        raise NotImplementedError(f"Unknown fetch backend: {scheme}")
 
     return file_contents
 

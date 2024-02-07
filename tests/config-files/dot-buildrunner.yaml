@@ -9,11 +9,11 @@ ssh-keys:
 - file: ~/.ssh/adobe_rsa
   prompt-password: True
   aliases:
-    - 'adobe-github'
-    - 'adobe-dma'
+  - 'adobe-github'
+  - 'adobe-dma'
 - file: ~/.ssh/buildrunner-deploy-id_rsa
   aliases:
-    - 'buildrunner-deploy'
+  - 'buildrunner-deploy'
 
 local-files:
   tests: ./tests

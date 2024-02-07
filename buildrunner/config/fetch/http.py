@@ -7,7 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 
-def fetch_file(parsed_url, config):
+def fetch_file(parsed_url, config: dict):
     """
     Fetch files using HTTP.
     """

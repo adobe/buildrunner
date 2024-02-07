@@ -17,7 +17,7 @@ PROVISIONERS = {
 }
 
 
-def create_provisioners(provisioners_config, logger):
+def create_provisioners(provisioners_config: dict, logger):
     """
     Given provisioners config return a list of provisioner objects.
     """

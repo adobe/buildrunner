@@ -1,3 +1,7 @@
 build-servers:
   gauntlet@localhost:
-    - localhost
+  - localhost
+
+# Master config file can create new files
+local-files:
+  new_file: new_file contents
