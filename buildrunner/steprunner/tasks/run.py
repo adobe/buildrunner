@@ -438,7 +438,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         service_logger = ContainerLogger.for_service_container(name)
 
         # setup custom env variables
-        _env = dict(self.step_runner.build_runner.env)
+        _env = dict(buildrunner_config.env)
         _env["BUILDRUNNER_INVOKE_USER"] = pwd.getpwuid(os.getuid())
         _env["BUILDRUNNER_INVOKE_UID"] = os.getuid()
         _env["BUILDRUNNER_INVOKE_GROUP"] = grp.getgrgid(os.getgid())
@@ -716,6 +716,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         return rval
 
     def run(self, context: dict):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
+        buildrunner_config = BuildRunnerConfig.get_instance()
+
         # Set pull attribute based on configured image
         # Default to configuration
         if self.step.pull is not None:
@@ -760,7 +762,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # container defaults
         _source_container = self._get_source_container()
         _container_name = str(uuid.uuid4())
-        _env_defaults = dict(self.step_runner.build_runner.env)
+        _env_defaults = dict(buildrunner_config.env)
         _env_defaults.update(
             {
                 "BUILDRUNNER_SOURCE_CONTAINER": _source_container,
@@ -792,7 +794,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         caches = OrderedDict()
 
         # see if we need to inject ssh keys
-        buildrunner_config = BuildRunnerConfig.get_instance()
         if self.step.ssh_keys:
             self._sshagent = DockerSSHAgentProxy(
                 self._docker_client,
@@ -944,7 +945,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     cache_archive_file = (
                         self.step_runner.build_runner.get_cache_archive_file(
                             cache_name=key,
-                            project_name=self.step_runner.build_runner.vcs.name,
+                            project_name=buildrunner_config.vcs.name,
                         )
                     )
                     caches[cache_archive_file] = value

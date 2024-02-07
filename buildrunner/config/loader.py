@@ -314,7 +314,6 @@ def load_run_file(
 
 def load_global_config_files(
     *,
-    env: dict,
     build_time: int,
     global_config_files: List[str],
 ) -> dict:
@@ -332,7 +331,7 @@ def load_global_config_files(
         cfg_path = os.path.realpath(os.path.expanduser(cfg))
         if os.path.exists(cfg_path):
             current_context = _fetch_template(
-                env=env,
+                env={},
                 build_time=build_time,
                 cfg_file=cfg_path,
                 ctx=context,

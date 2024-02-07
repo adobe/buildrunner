@@ -14,7 +14,6 @@ import inspect
 import json
 import logging
 import os
-import platform as python_platform
 import shutil
 import sys
 import tarfile
@@ -37,7 +36,6 @@ from buildrunner.errors import (
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner import BuildStepRunner
-from buildrunner.steprunner.tasks.push import sanitize_tag
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
 
 
@@ -63,55 +61,6 @@ class BuildRunner:
     """
     Class used to manage running a build.
     """
-
-    CONTEXT_ENV_PREFIXES = [
-        "ARTIFACTORY_",
-        "BUILDRUNNER_",
-        "VCSINFO_",
-        "PACKAGER_",
-        "GAUNTLET_",
-    ]
-
-    def _get_config_context(self, ctx=None, global_env=None) -> dict:
-        """
-        Generate the Jinja configuration context for substitution
-
-        Args:
-          global_env (dict): Env vars to set from the global config file.
-          ctx (dict): A dictionary of key/values to be merged over the default, generated context.
-
-        Returns:
-          dict: A dictionary of key/values to be substituted
-        """
-
-        context = {
-            "BUILDRUNNER_PLATFORM": str(python_platform.machine()),
-            "BUILDRUNNER_BUILD_NUMBER": str(self.build_number),
-            "BUILDRUNNER_BUILD_ID": str(self.build_id),
-            "BUILDRUNNER_BUILD_DOCKER_TAG": str(sanitize_tag(self.build_id)),
-            "BUILDRUNNER_BUILD_TIME": str(self.build_time),
-            "VCSINFO_NAME": str(self.vcs.name),
-            "VCSINFO_BRANCH": str(self.vcs.branch),
-            "VCSINFO_NUMBER": str(self.vcs.number),
-            "VCSINFO_ID": str(self.vcs.id),
-            "VCSINFO_SHORT_ID": str(self.vcs.id)[:7],
-            "VCSINFO_MODIFIED": str(self.vcs.modified),
-            "VCSINFO_RELEASE": str(self.vcs.release),
-            "BUILDRUNNER_STEPS": self.steps_to_run,
-        }
-
-        # Add the global env vars before any other context vars
-        if global_env:
-            context.update(global_env)
-        if ctx:
-            context.update(ctx)
-
-        for env_name, env_value in os.environ.items():
-            for prefix in self.CONTEXT_ENV_PREFIXES:
-                if env_name.startswith(prefix):
-                    context[env_name] = env_value
-
-        return context
 
     def __init__(
         self,
@@ -162,8 +111,8 @@ class BuildRunner:
         self._log = None
 
         try:
-            self.vcs = detect_vcs(self.build_dir)
-            self.build_id = f"{self.vcs.id_string}-{self.build_number}"
+            vcs = detect_vcs(self.build_dir)
+            self.build_id = f"{vcs.id_string}-{self.build_number}"
         except VCSUnsupported as err:
             self.log.write(
                 f"{err}\nPlease verify you have a VCS set up for this project.\n"
@@ -173,46 +122,27 @@ class BuildRunner:
             self.log.write(f"{err}\nMake sure you have at least one commit.\n")
             sys.exit()
 
-        # default environment - must come *after* VCS detection
-        base_context = {}
-        if push:
-            base_context["BUILDRUNNER_DO_PUSH"] = 1
-        self.env = self._get_config_context(base_context)
-
-        # load global configuration
+        # load global configuration - must come *after* VCS detection
         BuildRunnerConfig.initialize_instance(
+            push=push,
+            build_number=self.build_number,
+            build_id=self.build_id,
+            vcs=vcs,
+            steps_to_run=self.steps_to_run,
             build_dir=self.build_dir,
             global_config_file=global_config_file,
             run_config_file=run_config_file,
             log_generated_files=self.log_generated_files,
             build_time=self.build_time,
-            env=self.env,
-            default_tag=sanitize_tag(self.build_id),
             tmp_files=self.tmp_files,
         )
         buildrunner_config = BuildRunnerConfig.get_instance()
-
-        # load environment again, considering the global config env vars
-        # this ends up generating the context twice, but the first is needed to load
-        #   the global config object
-        self.env = self._get_config_context(
-            base_context, buildrunner_config.global_config.env
-        )
-        # assign back to the global config env for loading files
-        buildrunner_config.global_config.env = self.env
 
         self.disable_multi_platform = (
             buildrunner_config.global_config.disable_multi_platform
         )
         if disable_multi_platform is not None:
             self.disable_multi_platform = disable_multi_platform
-
-        # print out env vars
-        # pylint: disable=consider-iterating-dictionary
-        key_len = max(len(key) for key in self.env.keys())
-        for key in sorted(self.env.keys()):
-            val = self.env[key]
-            LOGGER.debug(f"Environment: {key!s:>{key_len}}: {val}")
 
         # cleanup local cache
         if self.cleanup_cache:
@@ -288,11 +218,11 @@ class BuildRunner:
         global_config = BuildRunnerConfig.get_instance().global_config
         cache_dir = os.path.expanduser(global_config.caches_root)
         if os.path.exists(cache_dir):
-            global_config.log.write(f'Cleaning cache dir "{cache_dir}"\n')
+            LOGGER.info(f'Cleaning cache dir "{cache_dir}"')
             shutil.rmtree(f"{cache_dir}/")
-            global_config.log.write(f'Cleaned cache dir "{cache_dir}"\n')
+            LOGGER.info(f'Cleaned cache dir "{cache_dir}"')
         else:
-            global_config.log.write(f'Cache dir "{cache_dir}" is already clean\n')
+            LOGGER.info(f'Cache dir "{cache_dir}" is already clean')
 
     def add_artifact(self, artifact_file, properties):
         """

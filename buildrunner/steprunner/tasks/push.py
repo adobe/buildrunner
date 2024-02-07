@@ -7,7 +7,6 @@ with the terms of the Adobe license agreement accompanying it.
 """
 import logging
 import os
-import re
 from typing import List, Optional
 
 import buildrunner.docker
@@ -16,25 +15,10 @@ from buildrunner.errors import (
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
+from buildrunner.utils import sanitize_tag
 
 
 LOGGER = logging.getLogger(__name__)
-
-
-def sanitize_tag(tag):
-    """
-    Sanitize a tag to remove illegal characters.
-
-    :param tag: The tag to sanitize.
-    :param log: Optional log to write warnings to.
-    :return: The sanitized tag.
-    """
-    _tag = re.sub(r"[^-_\w.]+", "-", tag.lower())
-    if _tag != tag:
-        LOGGER.debug(
-            f"Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}"
-        )
-    return _tag
 
 
 class RepoDefinition:

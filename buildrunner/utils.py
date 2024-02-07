@@ -12,6 +12,7 @@ import fcntl
 import io
 import logging
 import os
+import re
 import sys
 import time
 import uuid
@@ -98,6 +99,22 @@ def load_config(stream, cfg_file):
             f"The {cfg_file} file contains malformed yaml, "
             f"please check the syntax and try again: {err}"
         ) from err
+
+
+def sanitize_tag(tag):
+    """
+    Sanitize a tag to remove illegal characters.
+
+    :param tag: The tag to sanitize.
+    :param log: Optional log to write warnings to.
+    :return: The sanitized tag.
+    """
+    _tag = re.sub(r"[^-_\w.]+", "-", tag.lower())
+    if _tag != tag:
+        LOGGER.debug(
+            f"Forcing tag to lowercase and removing illegal characters: {tag} => {_tag}"
+        )
+    return _tag
 
 
 def is_dict(obj):

@@ -19,10 +19,12 @@ steps:
           LOCAL_VAR1: 'value1'
           LOCAL_FROM_GLOBAL_VAR1: "{{ GLOBAL_VAR1 }}"
         cmds:
-        - test "{{ 'hello' | re_sub('l', '_') }}" == "he__o"
-        - test "{{ 'hello' | re_split('el') | join('-') }}" == "h-lo"
-        - test "$LOCAL_VAR1" == "value1" -a "$LOCAL_FROM_GLOBAL_VAR1" == "value1"
-        - test "{{ strftime() }}" == "$(date +"%Y-%m-%d")"
+        - test "{{ 'hello' | re_sub('l', '_') }}" = "he__o"
+        - test "{{ 'hello' | re_split('el') | join('-') }}" = "h-lo"
+        - test "$LOCAL_VAR1" = "value1" -a "$LOCAL_FROM_GLOBAL_VAR1" = "value1"
+        # Only match the year since the date may be different in the container since it's UTC time
+        # Note: This may fail on December 31st after 5pm in America/Denver
+        - test "{{ strftime("%Y") }}" = "$(date +"%Y")"
         {%- if 'steps' in test_file %}
         - echo "Test file loaded successfully"
         {%- else %}

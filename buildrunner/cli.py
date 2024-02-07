@@ -230,15 +230,20 @@ def clean_cache(argv):
     """Cache cleanup"""
     args = parse_args(argv)
     BuildRunnerConfig.initialize_instance(
+        push=False,
+        build_number=1,
+        build_id="",
+        vcs=None,
+        steps_to_run=[],
         build_dir=args.directory,
-        default_tag="",
         global_config_file=args.global_config_file,
         run_config_file=args.config_file,
         build_time=epoch_time(),
         log_generated_files=(
             bool(args.log_generated_files or args.print_generated_files)
         ),
-        env={},
+        # Do not attempt to load run configuration, just global configuration
+        load_run_config=False,
     )
     BuildRunner.clean_cache()
 

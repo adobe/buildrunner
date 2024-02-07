@@ -120,7 +120,6 @@ def test_local_files_merged(override_master_config_file, tmp_path):
     """
     )
     config = loader.load_global_config_files(
-        env={},
         build_time=123,
         global_config_files=[str(override_master_config_file), str(file2)],
     )

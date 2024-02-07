@@ -9,13 +9,17 @@ with the terms of the Adobe license agreement accompanying it.
 import getpass
 import logging
 import os
+import platform
 import tempfile
 from typing import List, Optional
+
+import vcsinfo
 
 from buildrunner.errors import BuildRunnerConfigurationError
 from buildrunner.sshagent import load_ssh_key_from_file, load_ssh_key_from_str
 from buildrunner.utils import (
     epoch_time,
+    sanitize_tag,
 )
 from .loader import MASTER_GLOBAL_CONFIG_FILE, load_global_config_files, load_run_file
 from .models import (
@@ -40,32 +44,57 @@ class BuildRunnerConfig:
     Class used to manage buildrunner config.
     """
 
+    CONTEXT_ENV_PREFIXES = [
+        "ARTIFACTORY_",
+        "BUILDRUNNER_",
+        "VCSINFO_",
+        "PACKAGER_",
+        "GAUNTLET_",
+    ]
+    PUSH_ENV_VAR_NAME = "BUILDRUNNER_DO_PUSH"
+
     _INSTANCE: "BuildRunnerConfig" = None
 
     def __init__(
         self,
         *,
+        # These are required for the env
+        push: bool,
+        build_number: int,
+        build_id: str,
+        vcs: Optional[vcsinfo.VCS],
+        steps_to_run: Optional[List[str]],
+        # These are for the config itself
         build_dir: str,
-        default_tag: str,
         global_config_file: Optional[str],
         run_config_file: Optional[str],
         log_generated_files: bool,
         build_time: int,
-        env: dict,
         # May be passed in to add temporary files to this list as they are created
         tmp_files: Optional[List[str]] = None,
+        # Used only from CLI commands that do not need a run config
+        load_run_config: bool = True,
     ):  # pylint: disable=too-many-arguments
+        self.vcs = vcs
         self.build_dir = build_dir
-        self.default_tag = default_tag
+        self.default_tag = sanitize_tag(build_id)
         self.log_generated_files = log_generated_files
         self.build_time = build_time
         if not self.build_time:
             self.build_time = epoch_time()
-        self.env = env
         self.tmp_files = tmp_files
 
         self.global_config = self._load_global_config(global_config_file)
-        self.run_config = self._load_run_config(run_config_file)
+        self.env = self._load_env(
+            push,
+            build_number=build_number,
+            build_id=build_id,
+            vcs=vcs,
+            steps_to_run=steps_to_run,
+        )
+        self.run_config = (
+            self._load_run_config(run_config_file) if load_run_config else None
+        )
 
     def _load_global_config(self, global_config_file: Optional[str]) -> GlobalConfig:
         # load global configuration
@@ -78,7 +107,6 @@ class BuildRunnerConfig:
         LOGGER.info(f"Global configuration is from: {', '.join(abs_gc_files)}")
         global_config, errors = generate_and_validate_global_config(
             **load_global_config_files(
-                env=self.env,
                 build_time=self.build_time,
                 global_config_files=abs_gc_files,
             )
@@ -122,6 +150,74 @@ class BuildRunnerConfig:
             )
 
         return run_config
+
+    def _get_config_context(
+        self,
+        *,
+        contexts: List[dict],
+        build_number: int,
+        build_id: str,
+        vcs: Optional[vcsinfo.VCS],
+        steps_to_run: Optional[List[str]],
+    ) -> dict:
+        """
+        Generate the Jinja configuration context for substitution
+
+        Args:
+          global_env (dict): Env vars to set from the global config file.
+          ctx (dict): A dictionary of key/values to be merged over the default, generated context.
+
+        Returns:
+          dict: A dictionary of key/values to be substituted
+        """
+
+        context = {
+            "BUILDRUNNER_PLATFORM": str(platform.machine()),
+            "BUILDRUNNER_BUILD_NUMBER": str(build_number),
+            "BUILDRUNNER_BUILD_ID": str(build_id),
+            "BUILDRUNNER_BUILD_DOCKER_TAG": str(self.default_tag),
+            "BUILDRUNNER_BUILD_TIME": str(self.build_time),
+            "BUILDRUNNER_STEPS": steps_to_run,
+        }
+        if vcs:
+            context.update(
+                {
+                    "VCSINFO_NAME": str(vcs.name),
+                    "VCSINFO_BRANCH": str(vcs.branch),
+                    "VCSINFO_NUMBER": str(vcs.number),
+                    "VCSINFO_ID": str(vcs.id),
+                    "VCSINFO_SHORT_ID": str(vcs.id)[:7],
+                    "VCSINFO_MODIFIED": str(vcs.modified),
+                    "VCSINFO_RELEASE": str(vcs.release),
+                }
+            )
+
+        # Add the global env vars before any other context vars
+        for cur_context in contexts:
+            if cur_context:
+                context.update(cur_context)
+
+        for env_name, env_value in os.environ.items():
+            for prefix in self.CONTEXT_ENV_PREFIXES:
+                if env_name.startswith(prefix):
+                    context[env_name] = env_value
+
+        return context
+
+    def _load_env(self, push: bool, **kwargs) -> dict:
+        base_context = {}
+        if push:
+            base_context[self.PUSH_ENV_VAR_NAME] = 1
+        env = self._get_config_context(
+            contexts=[base_context, self.global_config.env], **kwargs
+        )
+        # print out env vars
+        # pylint: disable=consider-iterating-dictionary
+        key_len = max(len(key) for key in env.keys())
+        for key in sorted(env.keys()):
+            val = env[key]
+            LOGGER.debug(f"Environment: {key!s:>{key_len}}: {val}")
+        return env
 
     @classmethod
     def initialize_instance(cls, *args, **kwargs) -> None:
