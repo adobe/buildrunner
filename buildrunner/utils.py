@@ -106,7 +106,6 @@ def sanitize_tag(tag):
     Sanitize a tag to remove illegal characters.
 
     :param tag: The tag to sanitize.
-    :param log: Optional log to write warnings to.
     :return: The sanitized tag.
     """
     _tag = re.sub(r"[^-_\w.]+", "-", tag.lower())
