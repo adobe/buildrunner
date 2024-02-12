@@ -1,5 +1,5 @@
 """
-Copyright 2021 Adobe
+Copyright 2024 Adobe
 All Rights Reserved.
 
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
@@ -196,7 +196,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 "Cannot find a Dockerfile in the given path " "or inject configurations"
             )
 
-        docker_registry = BuildRunnerConfig.get_instance().global_config.docker_registry
+        buildrunner_config = BuildRunnerConfig.get_instance()
+        docker_registry = buildrunner_config.global_config.docker_registry
         self.step_runner.log.write("Running docker build\n")
         builder = DockerBuilder(
             self.path,
@@ -218,7 +219,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
                 num_platforms = len(self.platforms)
 
-                if self.step_runner.multi_platform.disable_multi_platform:
+                if buildrunner_config.global_config.disable_multi_platform:
                     num_platforms = 1
 
                 num_built_platforms = len(built_image.platforms)

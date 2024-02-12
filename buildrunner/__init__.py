@@ -80,7 +80,7 @@ class BuildRunner:
         docker_timeout: int,
         local_images: bool,
         platform: Optional[str],
-        disable_multi_platform: Optional[bool],
+        global_config_overrides: dict,
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         self.build_dir = build_dir
         self.build_results_dir = build_results_dir
@@ -135,14 +135,9 @@ class BuildRunner:
             log_generated_files=self.log_generated_files,
             build_time=self.build_time,
             tmp_files=self.tmp_files,
+            global_config_overrides=global_config_overrides,
         )
         buildrunner_config = BuildRunnerConfig.get_instance()
-
-        self.disable_multi_platform = (
-            buildrunner_config.global_config.disable_multi_platform
-        )
-        if disable_multi_platform is not None:
-            self.disable_multi_platform = disable_multi_platform
 
         # cleanup local cache
         if self.cleanup_cache:
@@ -355,7 +350,6 @@ class BuildRunner:
                 docker_registry=buildrunner_config.global_config.docker_registry,
                 build_registry=buildrunner_config.global_config.build_registry,
                 temp_dir=buildrunner_config.global_config.temp_dir,
-                disable_multi_platform=self.disable_multi_platform,
                 platform_builders=buildrunner_config.global_config.platform_builders,
                 cache_builders=buildrunner_config.global_config.docker_build_cache.builders,
                 cache_from=buildrunner_config.global_config.docker_build_cache.from_config,

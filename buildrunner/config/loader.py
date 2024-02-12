@@ -312,10 +312,25 @@ def load_run_file(
     return config_data
 
 
+def _deep_merge_dicts(a_dict: dict, b_dict: dict, path=None) -> dict:
+    if path is None:
+        path = []
+    for key in b_dict:
+        if key in a_dict:
+            if isinstance(a_dict[key], dict) and isinstance(b_dict[key], dict):
+                _deep_merge_dicts(a_dict[key], b_dict[key], path + [str(key)])
+            elif a_dict[key] != b_dict[key]:
+                a_dict[key] = b_dict[key]
+        else:
+            a_dict[key] = b_dict[key]
+    return a_dict
+
+
 def load_global_config_files(
     *,
     build_time: int,
     global_config_files: List[str],
+    global_config_overrides: dict,
 ) -> dict:
     """
     Load global config files templating them with Jinja and parsing the YAML.
@@ -376,9 +391,6 @@ def load_global_config_files(
                         )
                 current_context["local-files"] = scrubbed_local_files
 
-            # Merge local-files from each file
-            if "local-files" in context and "local-files" in current_context:
-                context["local-files"].update(current_context.pop("local-files"))
-            context.update(current_context)
+            _deep_merge_dicts(context, current_context)
 
-    return context
+    return _deep_merge_dicts(context, global_config_overrides)

@@ -70,6 +70,7 @@ class BuildRunnerConfig:
         run_config_file: Optional[str],
         log_generated_files: bool,
         build_time: int,
+        global_config_overrides: dict,
         # May be passed in to add temporary files to this list as they are created
         tmp_files: Optional[List[str]] = None,
         # Used only from CLI commands that do not need a run config
@@ -84,7 +85,9 @@ class BuildRunnerConfig:
             self.build_time = epoch_time()
         self.tmp_files = tmp_files
 
-        self.global_config = self._load_global_config(global_config_file)
+        self.global_config = self._load_global_config(
+            global_config_file, global_config_overrides
+        )
         self.env = self._load_env(
             push,
             build_number=build_number,
@@ -96,7 +99,9 @@ class BuildRunnerConfig:
             self._load_run_config(run_config_file) if load_run_config else None
         )
 
-    def _load_global_config(self, global_config_file: Optional[str]) -> GlobalConfig:
+    def _load_global_config(
+        self, global_config_file: Optional[str], global_config_overrides: dict
+    ) -> GlobalConfig:
         # load global configuration
         gc_files = DEFAULT_GLOBAL_CONFIG_FILES[:]
         gc_files.append(global_config_file or f"{self.build_dir}/.buildrunner.yaml")
@@ -109,6 +114,7 @@ class BuildRunnerConfig:
             **load_global_config_files(
                 build_time=self.build_time,
                 global_config_files=abs_gc_files,
+                global_config_overrides=global_config_overrides,
             )
         )
         if errors:
