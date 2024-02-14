@@ -86,7 +86,7 @@ def _add_default_tag_to_tags(config: Union[str, dict], default_tag: str) -> dict
     return config
 
 
-def _set_default_tag(config, default_tag) -> dict:
+def _set_default_tag(config: dict, default_tag: str) -> dict:
     """
     Set default tag if not set for each image
 

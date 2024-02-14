@@ -323,18 +323,22 @@ class BuildRunner:
         Determine the exit message and output to the log.
         """
         if self.exit_code:
-            exit_message = "\nBuild ERROR."
+            exit_message = "Build ERROR."
+            log_method = self.log.error
         else:
-            exit_message = "\nBuild SUCCESS."
+            exit_message = "Build SUCCESS."
+            log_method = self.log.info
 
         if self.log:
             if exit_explanation:
-                self.log.write("\n" + exit_explanation + "\n")
-            self.log.write(exit_message + "\n")
+                self.log.info("")
+                log_method(exit_explanation)
+            self.log.info("")
+            log_method(exit_message)
         else:
             if exit_explanation:
                 print(f"\n{exit_explanation}")
-            print(exit_message)
+            print(f"\n{exit_message}")
 
     def run(self):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
         """
@@ -443,15 +447,12 @@ class BuildRunner:
                     self.log.write("\nPush not requested\n")
 
         except BuildRunnerConfigurationError as brce:
-            print("config error")
             exit_explanation = str(brce)
             self.exit_code = os.EX_CONFIG
         except BuildRunnerProcessingError as brpe:
-            print("processing error")
             exit_explanation = str(brpe)
             self.exit_code = 1
         except requests.exceptions.ConnectionError as rce:
-            print("connection error")
             print(str(rce))
             exit_explanation = (
                 "Error communicating with the remote host.\n\tCheck that the "
