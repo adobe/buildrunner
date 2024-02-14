@@ -51,7 +51,13 @@ class SecurityScanConfig(BaseModel, extra="forbid"):
     enabled: bool = False
     scanner: str = "trivy"
     version: str = "latest"
-    config: dict = {}
+    # The local cache directory for the scanner (used if supported by the scanner)
+    cache_dir: Optional[str] = None
+    config: dict = {
+        "timeout": "20m",
+        # Do not error on vulnerabilities by default
+        "exit-code": 0,
+    }
     max_score_threshold: Optional[float] = Field(None, alias="max-score-threshold")
 
 

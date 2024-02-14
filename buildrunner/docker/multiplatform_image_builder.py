@@ -314,6 +314,23 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         image_digest = self._get_image_digest(image_ref)
         queue.put((image_ref, image_digest))
 
+    @staticmethod
+    def get_native_platform():
+        """
+        Retrieves the native platform for the current machine or a name that is similar
+        to the native platform used by Docker.
+        """
+        host_system = python_platform.system()
+        host_machine = python_platform.machine()
+
+        if host_system.lower() in ("darwin", "linux"):
+            host_system = "linux"
+        if host_machine.lower() == "x86_64":
+            host_machine = "amd64"
+        elif host_machine.lower() == "aarch64":
+            host_machine = "arm64"
+        return f"{host_system}/{host_machine}"
+
     def _get_single_platform_to_build(self, platforms: List[str]) -> str:
         """Returns the platform to build for single platform flag"""
 
@@ -322,13 +339,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             len(platforms) > 0
         ), f"Expected at least one platform, but got {len(platforms)}"
 
-        host_system = python_platform.system()
-        host_machine = python_platform.machine()
-
-        if host_system.lower() in ("darwin", "linux"):
-            native_platform = f"linux/{host_machine}"
-        else:
-            native_platform = f"{host_system}/{host_machine}"
+        native_platform = self.get_native_platform()
 
         for curr_platform in platforms:
             if native_platform in curr_platform:
