@@ -118,6 +118,24 @@ they are used when put into the global configuration file:
       type: local
       src: /mnt/docker-cache
 
+  security-scan:
+    # Set to "true" to enable automatic security scans of pushed images
+    enabled: false
+    # Only trivy is currently supported
+    scanner: "trivy"
+    # The version of the trivy image to pull
+    version: str = "latest"
+    # The local cache directory for the scanner (used if supported by the scanner)
+    cache_dir: null
+    config:
+      # Timeout after 20 minutes by default
+      timeout: 20m
+      # Do not error on vulnerabilities by default
+      exit-code: 0
+    # Set to a float to fail the build if the maximum score
+    # is greater than or equal to this number
+    max-score-threshold: null
+
 Configuration Locations
 =======================
 
