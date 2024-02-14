@@ -25,7 +25,7 @@ def fixture_override_colors():
 
 
 @pytest.mark.parametrize(
-    "debug, no_color, disable_timestamps, log_level, fmt",
+    "debug, no_color, disable_timestamps, log_level, console_format, file_format",
     [
         (
             False,
@@ -33,13 +33,28 @@ def fixture_override_colors():
             False,
             logging.INFO,
             "%(log_color)s%(asctime)s %(levelname)-8s %(message)s",
+            "%(log_color)s%(asctime)s %(levelname)-8s %(message)s",
         ),
-        (True, True, True, logging.DEBUG, "%(log_color)s%(levelname)-8s %(message)s"),
+        (
+            True,
+            True,
+            True,
+            logging.DEBUG,
+            "%(log_color)s%(levelname)-8s %(message)s",
+            "%(log_color)s%(asctime)s %(levelname)-8s %(message)s",
+        ),
     ],
 )
 @mock.patch("buildrunner.loggers.logging")
 def test_initialize_root_logger(
-    logging_mock, debug, no_color, disable_timestamps, log_level, fmt, tmp_path
+    logging_mock,
+    debug,
+    no_color,
+    disable_timestamps,
+    log_level,
+    console_format,
+    file_format,
+    tmp_path,
 ):
     logging_mock.DEBUG = logging.DEBUG
     logging_mock.INFO = logging.INFO
@@ -71,11 +86,11 @@ def test_initialize_root_logger(
 
     # Check formatters
     file_formatter = file_handler.setFormatter.call_args.args[0]
-    assert file_formatter.fmt == fmt
+    assert file_formatter.fmt == file_format
     assert file_formatter.no_color
     assert file_formatter.color == "white"
     stream_formatter = stream_handler.setFormatter.call_args.args[0]
-    assert stream_formatter.fmt == fmt
+    assert stream_formatter.fmt == console_format
     assert stream_formatter.no_color == no_color
     assert stream_formatter.color == "white"
     # Make sure the formatters are not the same, they should be distinct
