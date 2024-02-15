@@ -330,7 +330,7 @@ def test_valid_config_with_buildrunner_build_tag(
         docker_timeout=30,
         local_images=False,
         platform=None,
-        disable_multi_platform=False,
+        global_config_overrides={},
     )
     buildrunner_config = BuildRunnerConfig.get_instance()
     push_info = buildrunner_config.run_config.steps["build-container"].push
@@ -415,7 +415,7 @@ def test_invalid_retagging_with_buildrunner_build_tag(
             docker_timeout=30,
             local_images=False,
             platform=None,
-            disable_multi_platform=False,
+            global_config_overrides={},
         )
     assert RETAG_ERROR_MESSAGE in excinfo.value.args[0]
     assert (

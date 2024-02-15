@@ -51,27 +51,32 @@ def get_build_log_file_path(build_results_dir: str) -> str:
     return os.path.join(build_results_dir, "build.log")
 
 
+def _get_logger_format(no_log_color: bool, disable_timestamps: bool):
+    timestamp = "" if disable_timestamps else "%(asctime)s "
+    return CustomColoredFormatter(
+        f"%(log_color)s{timestamp}%(levelname)-8s %(message)s",
+        no_log_color,
+    )
+
+
 def initialize_root_logger(
     debug: bool, no_log_color: bool, disable_timestamps: bool, build_results_dir: str
 ) -> None:
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
-    timestamp = "" if disable_timestamps else "%(asctime)s "
-    color_formatter = CustomColoredFormatter(
-        f"%(log_color)s{timestamp}%(levelname)-8s %(message)s",
-        no_log_color,
-    )
-    no_color_formatter = color_formatter.clone(no_color=True)
+    console_formatter = _get_logger_format(no_log_color, disable_timestamps)
+    # The file formatter should always use no color and timestamps should be enabled
+    file_formatter = _get_logger_format(True, False)
 
     console_handler = logging.StreamHandler(sys.stdout)
     # Console logger should use colored output when specified by config
-    console_handler.setFormatter(color_formatter)
+    console_handler.setFormatter(console_formatter)
     file_handler = logging.FileHandler(
         get_build_log_file_path(build_results_dir), "w", encoding="utf8"
     )
     # The build log should never use colored output
-    file_handler.setFormatter(no_color_formatter)
+    file_handler.setFormatter(file_formatter)
     logger.handlers.clear()
     logger.addHandler(console_handler)
     logger.addHandler(file_handler)

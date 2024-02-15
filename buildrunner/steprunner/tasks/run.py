@@ -1020,9 +1020,11 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         console=container_logger,
                         # log=self.step_runner.log,
                     )
-                    container_meta_logger.write(
-                        f'Command "{_cmd}" exited with code {exit_code}\n'
-                    )
+                    if exit_code:
+                        log_method = container_meta_logger.error
+                    else:
+                        log_method = container_meta_logger.info
+                    log_method(f'Command "{_cmd}" exited with code {exit_code}')
 
                     if exit_code != 0:
                         break

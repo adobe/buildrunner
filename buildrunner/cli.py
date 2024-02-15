@@ -10,6 +10,9 @@ import argparse
 import os
 import shutil
 import sys
+from typing import Optional
+
+import yaml
 
 from . import (
     __version__,
@@ -209,6 +212,38 @@ def parse_args(argv):
         help="overrides the 'platforms' configuration and global config; to disable multi-platform builds",
     )
 
+    # Security scan config
+    parser.add_argument(
+        "--security-scan-enabled",
+        default=None,
+        choices=["true", "false"],
+        dest="security_scan_enabled",
+        help="overrides the security-scan.enabled global configuration parameter",
+    )
+    parser.add_argument(
+        "--security-scan-scanner",
+        required=False,
+        choices=["trivy"],
+        dest="security_scan_scanner",
+        help="overrides the security-scan.scanner global configuration parameter",
+    )
+    parser.add_argument(
+        "--security-scan-version",
+        dest="security_scan_version",
+        help="overrides the security-scan.version global configuration parameter",
+    )
+    parser.add_argument(
+        "--security-scan-config-file",
+        dest="security_scan_config_file",
+        help="overrides the security-scan.config global configuration parameter by loading YAML data from the file",
+    )
+    parser.add_argument(
+        "--security-scan-max-score-threshold",
+        type=float,
+        dest="security_scan_max_score_threshold",
+        help="overrides the security-scan.max-score-threshold global configuration parameter",
+    )
+
     args = parser.parse_args(argv[1:])
 
     # Set build results dir if not set
@@ -260,6 +295,70 @@ def _create_results_dir(cleanup_step_artifacts: bool, build_results_dir: str) ->
         sys.exit(os.EX_UNAVAILABLE)
 
 
+def _load_security_scan_config_file(config_file: Optional[str]) -> Optional[dict]:
+    if not config_file:
+        return None
+    if not os.path.exists(config_file):
+        sys.stderr.write(
+            f"ERROR: The specified security scan config file ({config_file}) could not be found"
+        )
+        sys.exit(os.EX_CONFIG)
+    try:
+        with open(config_file, "r", encoding="utf8") as fobj:
+            data = yaml.safe_load(fobj)
+            if not data or not isinstance(data, dict):
+                sys.stderr.write(
+                    f"ERROR: The specified security scan config file ({config_file}) must contain a dictionary"
+                )
+                sys.exit(os.EX_CONFIG)
+            return data
+    except Exception as exc:
+        sys.stderr.write(
+            f"ERROR: The specified security scan config file ({config_file}) could not be loaded: {exc}"
+        )
+        sys.exit(os.EX_CONFIG)
+
+
+def _get_security_scan_options(args: argparse.Namespace) -> dict:
+    security_scan_config = {
+        "enabled": _get_true_value(args.security_scan_enabled),
+        "scanner": args.security_scan_scanner,
+        "version": args.security_scan_version,
+        "config": _load_security_scan_config_file(args.security_scan_config_file),
+        "max-score-threshold": args.security_scan_max_score_threshold,
+    }
+    final_config = {
+        key: value for key, value in security_scan_config.items() if value is not None
+    }
+    if final_config:
+        return {"security-scan": final_config}
+    return {}
+
+
+def _get_global_config_overrides(args: argparse.Namespace) -> dict:
+    """
+    Creates a dictionary of overrides to be deeply merged into the loaded global config file(s) data.
+    Note that these field names must match exact what is stored in the global config file(s) and
+    that any fields listed here will override configured values. In other words, undefined/none values
+    should be filtered from the return data to prevent overriding
+    :param args: the parsed CLI args
+    :return: the overrides (if any specified)
+    """
+    overrides = {}
+    if args.disable_multi_platform is not None:
+        overrides["disable-multi-platform"] = _get_true_value(
+            args.disable_multi_platform
+        )
+    return {
+        **overrides,
+        **_get_security_scan_options(args),
+    }
+
+
+def _get_true_value(value: Optional[str]) -> Optional[bool]:
+    return None if value is None else value == "true"
+
+
 def initialize_br(args: argparse.Namespace) -> BuildRunner:
     _create_results_dir(not args.keep_step_artifacts, args.build_results_dir)
     loggers.initialize_root_logger(
@@ -295,9 +394,7 @@ def initialize_br(args: argparse.Namespace) -> BuildRunner:
         docker_timeout=args.docker_timeout,
         local_images=args.local_images,
         platform=args.platform,
-        disable_multi_platform=None
-        if args.disable_multi_platform is None
-        else args.disable_multi_platform == "true",
+        global_config_overrides=_get_global_config_overrides(args),
     )
 
 

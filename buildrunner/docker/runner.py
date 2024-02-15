@@ -122,6 +122,7 @@ class DockerRunner:
     def start(
         self,
         shell="/bin/sh",
+        entrypoint=None,
         working_dir=None,
         name=None,
         volumes=None,
@@ -214,6 +215,9 @@ class DockerRunner:
                 privileged=privileged,
             ),
         }
+        if entrypoint:
+            kwargs["entrypoint"] = entrypoint
+            del kwargs["command"]
 
         if compare_version("1.10", self.docker_client.api_version) < 0:
             kwargs["dns"] = dns

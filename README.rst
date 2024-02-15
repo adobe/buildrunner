@@ -973,6 +973,18 @@ container), you must pass the --publish-ports argument to buildrunner.
 This must never be used on a shared server such as a build server as it could
 cause port mapping conflicts.
 
+Image Security Scans
+====================
+
+Pushed docker images may be automatically scanned for vulnerabilities using the ``security-scan``
+global configuration options or the ``--security-scan-*`` command line options that may override
+the global configuration.  Just set ``security-scan.enabled`` to true to enable automatic scans.
+
+The ``max-score-threshold`` may also be configured to fail the build if the max score of the
+detected vulnerabilities is greater than or equal to the ``max-score-threshold`` value.
+
+Any detected vulnerabilities are added to the ``artifacts.json`` file per Docker image platform,
+along with the detected maximum vulnerability score.
 
 Remote Builds (the 'remote' step attribute)
 ===========================================

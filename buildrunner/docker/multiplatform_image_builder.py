@@ -20,14 +20,14 @@ import timeout_decorator
 from python_on_whales import docker
 from retry import retry
 
+from buildrunner.config import BuildRunnerConfig
+from buildrunner.config.models import MP_LOCAL_REGISTRY
 from buildrunner.docker import get_dockerfile
 from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
 
 
 LOGGER = logging.getLogger(__name__)
 OUTPUT_LINE = "-----------------------------------------------------------------"
-# Marker for using the local registry instead of an upstream registry
-LOCAL_REGISTRY = "local"
 IMAGE_PREFIX = "buildrunner-mp"
 
 PUSH_TIMEOUT = 300
@@ -72,9 +72,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         docker_registry: Optional[str] = None,
-        build_registry: Optional[str] = LOCAL_REGISTRY,
+        build_registry: Optional[str] = MP_LOCAL_REGISTRY,
         temp_dir: str = os.getcwd(),
-        disable_multi_platform: bool = False,
         platform_builders: Optional[Dict[str, str]] = None,
         cache_builders: Optional[List[str]] = None,
         cache_from: Optional[Union[dict, str]] = None,
@@ -82,9 +81,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
     ):
         self._docker_registry = docker_registry
         self._build_registry = build_registry
-        self._use_local_registry = build_registry == LOCAL_REGISTRY
+        self._use_local_registry = build_registry == MP_LOCAL_REGISTRY
         self._temp_dir = temp_dir
-        self._disable_multi_platform = disable_multi_platform
         self._platform_builders = platform_builders
         self._cache_builders = set(cache_builders if cache_builders else [])
         self._cache_from = cache_from
@@ -106,14 +104,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         if self._local_registry_is_running:
             self._stop_local_registry()
 
-    @property
-    def disable_multi_platform(self) -> bool:
-        """Returns true if multi-platform builds are disabled by configuration, false otherwise"""
-        return self._disable_multi_platform
-
     def _build_registry_address(self) -> str:
         """Returns the address of the local registry"""
-        if self._build_registry == LOCAL_REGISTRY:
+        if self._build_registry == MP_LOCAL_REGISTRY:
             return f"{self._mp_registry_info.ip_addr}:{self._mp_registry_info.port}"
         return self._build_registry
 
@@ -321,6 +314,23 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         image_digest = self._get_image_digest(image_ref)
         queue.put((image_ref, image_digest))
 
+    @staticmethod
+    def get_native_platform():
+        """
+        Retrieves the native platform for the current machine or a name that is similar
+        to the native platform used by Docker.
+        """
+        host_system = python_platform.system()
+        host_machine = python_platform.machine()
+
+        if host_system.lower() in ("darwin", "linux"):
+            host_system = "linux"
+        if host_machine.lower() == "x86_64":
+            host_machine = "amd64"
+        elif host_machine.lower() == "aarch64":
+            host_machine = "arm64"
+        return f"{host_system}/{host_machine}"
+
     def _get_single_platform_to_build(self, platforms: List[str]) -> str:
         """Returns the platform to build for single platform flag"""
 
@@ -329,13 +339,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             len(platforms) > 0
         ), f"Expected at least one platform, but got {len(platforms)}"
 
-        host_system = python_platform.system()
-        host_machine = python_platform.machine()
-
-        if host_system.lower() in ("darwin", "linux"):
-            native_platform = f"linux/{host_machine}"
-        else:
-            native_platform = f"{host_system}/{host_machine}"
+        native_platform = self.get_native_platform()
 
         for curr_platform in platforms:
             if native_platform in curr_platform:
@@ -401,7 +405,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             sanitized_name = f"{IMAGE_PREFIX}-unknown-node"
         repo = f"{self._build_registry_address()}/{sanitized_name}"
 
-        if self._disable_multi_platform:
+        if BuildRunnerConfig.get_instance().global_config.disable_multi_platform:
             platforms = [self._get_single_platform_to_build(platforms)]
             LOGGER.info(OUTPUT_LINE)
             LOGGER.info(

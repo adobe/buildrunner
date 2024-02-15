@@ -80,7 +80,7 @@ class BuildRunner:
         docker_timeout: int,
         local_images: bool,
         platform: Optional[str],
-        disable_multi_platform: Optional[bool],
+        global_config_overrides: dict,
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         self.build_dir = build_dir
         self.build_results_dir = build_results_dir
@@ -135,14 +135,9 @@ class BuildRunner:
             log_generated_files=self.log_generated_files,
             build_time=self.build_time,
             tmp_files=self.tmp_files,
+            global_config_overrides=global_config_overrides,
         )
         buildrunner_config = BuildRunnerConfig.get_instance()
-
-        self.disable_multi_platform = (
-            buildrunner_config.global_config.disable_multi_platform
-        )
-        if disable_multi_platform is not None:
-            self.disable_multi_platform = disable_multi_platform
 
         # cleanup local cache
         if self.cleanup_cache:
@@ -328,18 +323,22 @@ class BuildRunner:
         Determine the exit message and output to the log.
         """
         if self.exit_code:
-            exit_message = "\nBuild ERROR."
+            exit_message = "Build ERROR."
+            log_method = self.log.error
         else:
-            exit_message = "\nBuild SUCCESS."
+            exit_message = "Build SUCCESS."
+            log_method = self.log.info
 
         if self.log:
             if exit_explanation:
-                self.log.write("\n" + exit_explanation + "\n")
-            self.log.write(exit_message + "\n")
+                self.log.info("")
+                log_method(exit_explanation)
+            self.log.info("")
+            log_method(exit_message)
         else:
             if exit_explanation:
                 print(f"\n{exit_explanation}")
-            print(exit_message)
+            print(f"\n{exit_message}")
 
     def run(self):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals
         """
@@ -355,7 +354,6 @@ class BuildRunner:
                 docker_registry=buildrunner_config.global_config.docker_registry,
                 build_registry=buildrunner_config.global_config.build_registry,
                 temp_dir=buildrunner_config.global_config.temp_dir,
-                disable_multi_platform=self.disable_multi_platform,
                 platform_builders=buildrunner_config.global_config.platform_builders,
                 cache_builders=buildrunner_config.global_config.docker_build_cache.builders,
                 cache_from=buildrunner_config.global_config.docker_build_cache.from_config,
@@ -449,15 +447,12 @@ class BuildRunner:
                     self.log.write("\nPush not requested\n")
 
         except BuildRunnerConfigurationError as brce:
-            print("config error")
             exit_explanation = str(brce)
             self.exit_code = os.EX_CONFIG
         except BuildRunnerProcessingError as brpe:
-            print("processing error")
             exit_explanation = str(brpe)
             self.exit_code = 1
         except requests.exceptions.ConnectionError as rce:
-            print("connection error")
             print(str(rce))
             exit_explanation = (
                 "Error communicating with the remote host.\n\tCheck that the "

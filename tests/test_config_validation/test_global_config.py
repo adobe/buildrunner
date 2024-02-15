@@ -122,6 +122,7 @@ def test_local_files_merged(override_master_config_file, tmp_path):
     config = loader.load_global_config_files(
         build_time=123,
         global_config_files=[str(override_master_config_file), str(file2)],
+        global_config_overrides={},
     )
     assert "local-files" in config
     assert config.get("local-files") == {
@@ -129,4 +130,43 @@ def test_local_files_merged(override_master_config_file, tmp_path):
         "key2": "The contents of the file...\n",
         "key3": file_path1,
         "key4": file_path3,
+    }
+
+
+def test_overrides(override_master_config_file, tmp_path):
+    override_master_config_file.write_text(
+        """
+    security-scan:
+      scanner: scan1
+      config:
+        k1: v1
+        k2: v2.1
+    """
+    )
+    file2 = tmp_path / "file2"
+    file2.write_text(
+        """
+    security-scan:
+      config:
+        k2: v2.2
+        k3: v3.1
+    """
+    )
+    config = loader.load_global_config_files(
+        build_time=123,
+        global_config_files=[str(override_master_config_file), str(file2)],
+        global_config_overrides={
+            "security-scan": {"version": "1.2.3", "config": {"k3": "v3.2", "k4": "v4"}}
+        },
+    )
+    assert "security-scan" in config
+    assert config.get("security-scan") == {
+        "scanner": "scan1",
+        "version": "1.2.3",
+        "config": {
+            "k1": "v1",
+            "k2": "v2.2",
+            "k3": "v3.2",
+            "k4": "v4",
+        },
     }

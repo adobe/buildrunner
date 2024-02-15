@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field, field_validator, ValidationError
 
-from buildrunner.docker import multiplatform_image_builder
 from .models_step import Step
 from .validation import (
     get_validation_errors,
@@ -23,6 +22,8 @@ from .validation import (
 
 
 DEFAULT_CACHES_ROOT = "~/.buildrunner/caches"
+# Marker for using the local registry instead of an upstream registry
+MP_LOCAL_REGISTRY = "local"
 
 
 class GithubModel(BaseModel, extra="forbid"):
@@ -44,6 +45,20 @@ class DockerBuildCacheConfig(BaseModel, extra="forbid"):
     builders: Optional[List[str]] = None
     from_config: Optional[Union[dict, str]] = Field(None, alias="from")
     to_config: Optional[Union[dict, str]] = Field(None, alias="to")
+
+
+class SecurityScanConfig(BaseModel, extra="forbid"):
+    enabled: bool = False
+    scanner: str = "trivy"
+    version: str = "latest"
+    # The local cache directory for the scanner (used if supported by the scanner)
+    cache_dir: Optional[str] = None
+    config: dict = {
+        "timeout": "20m",
+        # Do not error on vulnerabilities by default
+        "exit-code": 0,
+    }
+    max_score_threshold: Optional[float] = Field(None, alias="max-score-threshold")
 
 
 class GlobalConfig(BaseModel, extra="forbid"):
@@ -76,10 +91,13 @@ class GlobalConfig(BaseModel, extra="forbid"):
         alias="disable-multi-platform", default=None
     )
     build_registry: Optional[str] = Field(
-        alias="build-registry", default=multiplatform_image_builder.LOCAL_REGISTRY
+        alias="build-registry", default=MP_LOCAL_REGISTRY
     )
     platform_builders: Optional[Dict[str, str]] = Field(
         alias="platform-builders", default=None
+    )
+    security_scan: SecurityScanConfig = Field(
+        SecurityScanConfig(), alias="security-scan"
     )
 
     @field_validator("ssh_keys", mode="before")

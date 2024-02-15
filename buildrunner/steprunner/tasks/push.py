@@ -7,10 +7,19 @@ with the terms of the Adobe license agreement accompanying it.
 """
 import logging
 import os
-from typing import List, Optional
+import tempfile
+import time
+from typing import Dict, List, Optional
+
+import yaml
 
 import buildrunner.docker
+from buildrunner.config import BuildRunnerConfig
+from buildrunner.config.models import SecurityScanConfig
 from buildrunner.config.models_step import StepPushCommit
+from buildrunner.docker.image_info import BuiltImageInfo
+from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
+from buildrunner.docker.runner import DockerRunner
 from buildrunner.errors import (
     BuildRunnerProcessingError,
 )
@@ -19,6 +28,7 @@ from buildrunner.utils import sanitize_tag
 
 
 LOGGER = logging.getLogger(__name__)
+ARTIFACT_SECURITY_SCAN_KEY = "docker:security-scan"
 
 
 class RepoDefinition:
@@ -74,6 +84,229 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             for push in pushes
         ]
 
+    def _security_scan_mp(
+        self, built_image: BuiltImageInfo, log_image_ref: str
+    ) -> Dict[str, dict]:
+        """
+        Does a security scan for each built image in a multiplatform image.
+        :param built_image: the multiplatform built image info
+        :param log_image_ref: the image label to log
+        :return: a dictionary of platform names to security scan information (for each built platform image)
+        """
+        scan_results = {}
+        for image in built_image.built_images:
+            result = self._security_scan(
+                repository=image.repo,
+                tag=image.tag,
+                log_image_ref=f"{log_image_ref}:{image.platform}",
+                pull=True,
+            )
+            if result:
+                scan_results[image.platform] = result
+        if not scan_results:
+            return {}
+        return {ARTIFACT_SECURITY_SCAN_KEY: scan_results}
+
+    def _security_scan_single(self, repo: str) -> Dict[str, dict]:
+        tag = BuildRunnerConfig.get_instance().default_tag
+        log_image_ref = f"{repo}:{tag}"
+        result = self._security_scan(
+            repository=repo, tag=tag, log_image_ref=log_image_ref, pull=False
+        )
+        if not result:
+            return {}
+        return {
+            ARTIFACT_SECURITY_SCAN_KEY: {
+                MultiplatformImageBuilder.get_native_platform(): result
+            }
+        }
+
+    def _security_scan(
+        self,
+        *,
+        repository: str,
+        tag: str,
+        log_image_ref: str,
+        pull: bool,
+    ) -> Optional[dict]:
+        # If the security scan is not enabled, do nothing
+        security_scan_config = (
+            BuildRunnerConfig.get_instance().global_config.security_scan
+        )
+        if log_image_ref != f"{repository}:{tag}":
+            log_image_ref = f"{log_image_ref} ({repository}:{tag})"
+        if not security_scan_config.enabled:
+            LOGGER.debug(
+                f"Image scanning is disabled, skipping scan of {log_image_ref}"
+            )
+            return None
+
+        LOGGER.info(
+            f"Scanning {log_image_ref} for security issues using {security_scan_config.scanner}"
+        )
+
+        if security_scan_config.scanner == "trivy":
+            return self._security_scan_trivy(
+                security_scan_config=security_scan_config,
+                repository=repository,
+                tag=tag,
+                log_image_ref=log_image_ref,
+                pull=pull,
+            )
+        raise Exception(f"Unsupported scanner {security_scan_config.scanner}")
+
+    @staticmethod
+    def _security_scan_trivy_parse_results(
+        security_scan_config: SecurityScanConfig, results: dict
+    ) -> dict:
+        max_score = 0
+        vulnerabilities = []
+        for result in results.get("Results", []):
+            if not result.get("Vulnerabilities"):
+                continue
+            for cur_vuln in result.get("Vulnerabilities"):
+                score = cur_vuln.get("CVSS", {}).get("nvd", {}).get("V3Score")
+                vulnerabilities.append(
+                    {
+                        "cvss_v3_score": score,
+                        "severity": cur_vuln.get("Severity"),
+                        "vulnerability_id": cur_vuln.get("VulnerabilityID"),
+                        "pkg_name": cur_vuln.get("PkgName"),
+                        "installed_version": cur_vuln.get("InstalledVersion"),
+                        "primary_url": cur_vuln.get("PrimaryURL"),
+                    }
+                )
+                if score:
+                    max_score = max(max_score, score)
+
+        if security_scan_config.max_score_threshold:
+            if max_score >= security_scan_config.max_score_threshold:
+                raise BuildRunnerProcessingError(
+                    f"Max vulnerability score ({max_score}) is above the "
+                    f"configured threshold ({security_scan_config.max_score_threshold})"
+                )
+            LOGGER.info(
+                f"Max vulnerability score ({max_score}) is less than the "
+                f"configured threshold ({security_scan_config.max_score_threshold})"
+            )
+        else:
+            LOGGER.debug(
+                f"Max vulnerability score is {max_score}, but no max score threshold is configured"
+            )
+        return {
+            "max_score": max_score,
+            "vulnerabilities": vulnerabilities,
+        }
+
+    def _security_scan_trivy(
+        self,
+        *,
+        security_scan_config: SecurityScanConfig,
+        repository: str,
+        tag: str,
+        log_image_ref: str,
+        pull: bool,
+    ) -> dict:
+        # Pull image for scanning (if not already pulled) so that it can be scanned locally
+        if pull:
+            self._docker_client.pull(repository, tag)
+
+        buildrunner_config = BuildRunnerConfig.get_instance()
+        with tempfile.TemporaryDirectory(
+            suffix="-trivy-run",
+            dir=buildrunner_config.global_config.temp_dir,
+        ) as local_run_dir:
+            # Set constants for this run
+            config_file_name = "config.yaml"
+            results_file_name = "results.json"
+            container_run_dir = "/trivy"
+            # Dynamically use the configured cache directory if set, uses the trivy default otherwise
+            container_cache_dir = security_scan_config.config.get(
+                "cache-dir", "/root/.cache/trivy"
+            )
+
+            # Create local directories for volume mounting (if they don't exist)
+            local_cache_dir = security_scan_config.cache_dir
+            if not local_cache_dir:
+                local_cache_dir = os.path.join(
+                    buildrunner_config.global_config.temp_dir, "trivy-cache"
+                )
+            os.makedirs(local_cache_dir, exist_ok=True)
+
+            # Create run config
+            with open(
+                os.path.join(local_run_dir, config_file_name), "w", encoding="utf8"
+            ) as fobj:
+                yaml.safe_dump(security_scan_config.config, fobj)
+
+            image_scanner = None
+            try:
+                image_config = DockerRunner.ImageConfig(
+                    f"{BuildRunnerConfig.get_instance().global_config.docker_registry}/"
+                    f"aquasec/trivy:{security_scan_config.version}",
+                    pull_image=False,
+                )
+                image_scanner = DockerRunner(
+                    image_config,
+                    log=self.step_runner.log,
+                )
+                image_scanner.start(
+                    entrypoint="/bin/sh",
+                    volumes={
+                        local_run_dir: container_run_dir,
+                        local_cache_dir: container_cache_dir,
+                        # TODO Implement support for additional connection methods
+                        "/var/run/docker.sock": "/var/run/docker.sock",
+                    },
+                )
+
+                # Print out the trivy version
+                image_scanner.run("trivy --version", console=self.step_runner.log)
+
+                # Run trivy
+                start_time = time.time()
+                exit_code = image_scanner.run(
+                    f"trivy --config {container_run_dir}/{config_file_name} image "
+                    f"-f json -o {container_run_dir}/{results_file_name} {repository}:{tag}",
+                    console=self.step_runner.log,
+                )
+                LOGGER.info(
+                    f"Took {round(time.time() - start_time, 1)} second(s) to scan image"
+                )
+                if exit_code:
+                    raise BuildRunnerProcessingError(
+                        f"Could not scan {log_image_ref} with trivy, see errors above"
+                    )
+
+                # Load results file and parse the max score
+                results_file = os.path.join(local_run_dir, results_file_name)
+                if not os.path.exists(results_file):
+                    raise BuildRunnerProcessingError(
+                        f"Results file {results_file} from trivy for {log_image_ref} does not exist, "
+                        "check for errors above"
+                    )
+                with open(results_file, "r", encoding="utf8") as fobj:
+                    results = yaml.safe_load(fobj)
+                if not results:
+                    raise BuildRunnerProcessingError(
+                        f"Could not read results file {results_file} from trivy for {log_image_ref}, "
+                        "check for errors above"
+                    )
+                return self._security_scan_trivy_parse_results(
+                    security_scan_config, results
+                )
+            finally:
+                if image_scanner:
+                    # make sure the current user/group ids of our
+                    # process are set as the owner of the files
+                    exit_code = image_scanner.run(
+                        f"chown -R {int(os.getuid())}:{int(os.getgid())} {container_run_dir}",
+                        log=self.step_runner.log,
+                    )
+                    if exit_code != 0:
+                        LOGGER.error("Error running trivy--unable to change ownership")
+                    image_scanner.cleanup()
+
     def run(self, context):  # pylint: disable=too-many-branches
         # Tag multi-platform images
         built_image = context.get("mp_built_image")
@@ -104,6 +337,10 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                             "docker:repository": repo.repository,
                             "docker:tags": repo.tags,
                             "docker:platforms": built_image_id_with_platforms,
+                            **self._security_scan_mp(
+                                built_image,
+                                f"{repo.repository}:{repo.tags[0]}",
+                            ),
                         },
                     )
 
@@ -173,6 +410,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                             "docker:image": image_to_use,
                             "docker:repository": repo.repository,
                             "docker:tags": repo.tags,
+                            **self._security_scan_single(repo.repository),
                         },
                     )
 
