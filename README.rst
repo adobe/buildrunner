@@ -981,7 +981,8 @@ global configuration options or the ``--security-scan-*`` command line options t
 the global configuration.  Just set ``security-scan.enabled`` to true to enable automatic scans.
 
 The ``max-score-threshold`` may also be configured to fail the build if the max score of the
-detected vulnerabilities is greater than or equal to the ``max-score-threshold`` value.
+detected vulnerabilities is greater than or equal to the ``max-score-threshold`` value. This
+score is the CVSS v3 score that ranges between 0 (none) to 10.0 (most critical).
 
 Any detected vulnerabilities are added to the ``artifacts.json`` file per Docker image platform,
 along with the detected maximum vulnerability score.
