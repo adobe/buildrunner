@@ -52,7 +52,8 @@ def read_requirements(filename):
                     dep_links.append(args[1])
 
                 elif _line[0].isalpha():
-                    requires.append(_line)
+                    # See note in Dockerfile for why this replacement is done
+                    requires.append(_line.replace("jaraco-classes", "jaraco.classes"))
 
                 else:
                     print(
