@@ -29,6 +29,17 @@ def fixture_uuid_mock():
         yield uuid_mock
 
 
+@pytest.fixture(autouse=True)
+def fixture_init_config():
+    with patch(
+        "buildrunner.docker.multiplatform_image_builder.BuildRunnerConfig"
+    ) as config_mock:
+        config_mock.get_instance.return_value.global_config.disable_multi_platform = (
+            False
+        )
+        yield config_mock
+
+
 def _actual_images_match_expected(
     built_image: BuiltImageInfo, expected_tags
 ) -> List[str]:
