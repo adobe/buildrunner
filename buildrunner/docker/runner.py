@@ -18,9 +18,10 @@ from pathlib import Path
 from types import GeneratorType
 from typing import Optional
 
+from docker.utils import compare_version
+from retry import retry
 import docker.errors
 import six
-from docker.utils import compare_version
 import timeout_decorator
 
 from buildrunner.docker import (
@@ -36,6 +37,7 @@ from buildrunner.utils import (
     tempfile,
 )
 
+CACHE_NUM_RETRIES = 2
 CACHE_TIMEOUT_SECONDS = 240
 
 
@@ -329,7 +331,10 @@ class DockerRunner:
 
         return local_cache_archive_match
 
-    @timeout_decorator.timeout(CACHE_TIMEOUT_SECONDS, BuildRunnerCacheTimeout)
+    @retry(exceptions=BuildRunnerCacheTimeout, tries=CACHE_NUM_RETRIES)
+    @timeout_decorator.timeout(
+        seconds=CACHE_TIMEOUT_SECONDS, timeout_exception=BuildRunnerCacheTimeout
+    )
     def _put_cache_in_container(self, docker_path: str, file_obj: io.IOBase) -> bool:
         """
         Insert a file or folder in an existing container using a tar archive as
@@ -403,7 +408,10 @@ class DockerRunner:
                 release_flock(file_obj, logger)
                 logger.write("Cache was put into the container. Released file lock.")
 
-    @timeout_decorator.timeout(CACHE_TIMEOUT_SECONDS, BuildRunnerCacheTimeout)
+    @retry(exceptions=BuildRunnerCacheTimeout, tries=CACHE_NUM_RETRIES)
+    @timeout_decorator.timeout(
+        seconds=CACHE_TIMEOUT_SECONDS, timeout_exception=BuildRunnerCacheTimeout
+    )
     def _write_cache(self, docker_path: str, file_obj: io.IOBase):
         """
         Write cache locally from file or folder in a running container
