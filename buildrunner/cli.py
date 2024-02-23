@@ -57,7 +57,7 @@ def parse_args(argv):
         "--file",
         default=None,
         dest="config_file",
-        help='build configuration file (defaults to "buildrunner.yaml", then "gauntlet.yaml")',
+        help='build configuration file (defaults to "buildrunner.yaml")',
     )
 
     parser.add_argument(
