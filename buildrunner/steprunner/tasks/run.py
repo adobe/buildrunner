@@ -1026,14 +1026,19 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         log_method = container_meta_logger.info
                     log_method(f'Command "{_cmd}" exited with code {exit_code}')
 
-                    if exit_code != 0:
+                    if exit_code:
                         break
             else:
                 self.runner.attach_until_finished(container_logger)
                 exit_code = self.runner.exit_code
                 container_meta_logger.write(f"Container exited with code {exit_code}\n")
 
-            self.runner.save_caches(container_meta_logger, caches)
+            if exit_code:
+                container_meta_logger.write(
+                    "Skipping cache save due to failed exit code"
+                )
+            else:
+                self.runner.save_caches(container_meta_logger, caches)
 
         finally:
             if self.runner:
