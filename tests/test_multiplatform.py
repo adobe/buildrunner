@@ -475,6 +475,7 @@ def test_build_multiple_builds(
             cache_from=None,
             cache_to=None,
             pull=False,
+            target=None,
         ),
         call(
             test_path,
@@ -488,6 +489,7 @@ def test_build_multiple_builds(
             cache_from=None,
             cache_to=None,
             pull=False,
+            target=None,
         ),
         call(
             test_path,
@@ -501,6 +503,7 @@ def test_build_multiple_builds(
             cache_from=None,
             cache_to=None,
             pull=False,
+            target=None,
         ),
         call(
             test_path,
@@ -514,6 +517,7 @@ def test_build_multiple_builds(
             cache_from=None,
             cache_to=None,
             pull=False,
+            target=None,
         ),
     ]
     assert mock_push.call_count == 4

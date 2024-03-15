@@ -58,6 +58,7 @@ class StepBuild(StepTask):
 
     path: Optional[str] = None
     dockerfile: Optional[str] = None
+    target: Optional[str] = None
     pull: Optional[bool] = None
     platform: Optional[str] = None
     platforms: Optional[List[str]] = None
