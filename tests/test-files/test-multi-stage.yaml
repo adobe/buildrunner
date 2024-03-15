@@ -4,8 +4,11 @@ steps:
       no-cache: true
       dockerfile: |
         FROM {{ DOCKER_REGISTRY }}/busybox:latest AS stage1
-        RUN echo "test" > /test-file.txt
+        RUN echo "test1" > /test1-file.txt
         FROM {{ DOCKER_REGISTRY }}/busybox:latest AS stage2
+        RUN echo "test2" > /test2-file.txt
       target: stage1
     run:
-      cmd: cat /test-file.txt
+      cmds: 
+        - test -f /test-file1.txt
+        - ! test -f /test-file2.txt

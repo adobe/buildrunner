@@ -359,7 +359,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         platforms: List[str],
         path: str = ".",
         file: str = "Dockerfile",
-        target: str = None,
+        target: Optional[str] = None,
         do_multiprocessing: bool = True,
         build_args: dict = None,
         inject: dict = None,
