@@ -45,6 +45,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
         self._import = step.import_param
         self.path = step.path
         self.dockerfile = step.dockerfile
+        self.target = step.target
         self.nocache = step.no_cache
         self.platform = step.platform
         self.platforms = step.platforms
@@ -211,6 +212,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     platforms=self.platforms,
                     path=self.path,
                     file=self.dockerfile,
+                    target=self.target,
                     build_args=self.buildargs,
                     inject=self.to_inject,
                     cache=not self.nocache,
@@ -238,6 +240,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     pull=self.pull,
                     buildargs=self.buildargs,
                     platform=self.platform,
+                    target=self.target,
                 )
                 if exit_code != 0 or not builder.image:
                     raise BuildRunnerProcessingError("Error building image")

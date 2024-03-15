@@ -181,6 +181,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         platform: str,
         path: str,
         dockerfile: str,
+        target: str,
         build_args: dict,
         builder: Optional[str],
         cache: bool = False,
@@ -225,6 +226,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 platforms=[platform],
                 load=True,
                 file=dockerfile,
+                target=target,
                 builder=builder,
                 build_args=build_args,
                 cache=cache,
@@ -252,6 +254,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         platform: str,
         path: str,
         dockerfile: str,
+        target: str,
         build_args: dict,
         inject: dict,
         cache: bool = False,
@@ -266,6 +269,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             platform (str): The platform to build the image for (e.g. linux/amd64)
             path (str): The path to the Dockerfile.
             dockerfile (str): The path/name of the Dockerfile (i.e. <path>/Dockerfile).
+            target (str): The name of the stage to build in a multi-stage Dockerfile
             build_args (dict): The build args to pass to docker.
             inject (dict): The files to inject into the build context.
         """
@@ -289,6 +293,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 platform=platform,
                 path=path,
                 dockerfile=dockerfile,
+                target=target,
                 build_args=build_args,
                 builder=builder,
                 cache=cache,
@@ -301,6 +306,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 platforms=[platform],
                 load=True,
                 file=dockerfile,
+                target=target,
                 build_args=build_args,
                 builder=builder,
                 cache=cache,
@@ -353,6 +359,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         platforms: List[str],
         path: str = ".",
         file: str = "Dockerfile",
+        target: Optional[str] = None,
         do_multiprocessing: bool = True,
         build_args: dict = None,
         inject: dict = None,
@@ -448,6 +455,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 platform,
                 path,
                 dockerfile,
+                target,
                 build_args,
                 inject,
                 cache,

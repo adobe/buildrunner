@@ -1,0 +1,14 @@
+steps:
+  test:
+    build:
+      no-cache: true
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest AS stage1
+        RUN echo "test1" > /test-file1.txt
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest AS stage2
+        RUN echo "test2" > /test-file2.txt
+      target: stage1
+    run:
+      cmds: 
+        - test -f /test-file1.txt
+        - "! test -f /test-file2.txt"

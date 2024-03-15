@@ -83,6 +83,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         pull=True,
         buildargs=None,
         platform=None,
+        target=None,
     ):
         """
         Run a docker build using the configured context, constructing the
@@ -118,6 +119,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             pull=pull,
             buildargs=self._sanitize_buildargs(buildargs),
             platform=platform,
+            target=target,
         )
 
         # monitor output for logs and status

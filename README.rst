@@ -240,6 +240,11 @@ shows the different configuration options available:
           FROM someimage:latest
           RUN /some/command
 
+
+        # The stage to stop at when using multi-stage docker builds
+        # similar to the --target option used by docker
+        target: dev
+
         # Whether to use the default Docker image cache for intermediate
         # images--caching images significantly speeds up the building of
         # images but may not be desired when building images for publishing
