@@ -11,4 +11,4 @@ steps:
     run:
       cmds: 
         - test -f /test-file1.txt
-        - ! test -f /test-file2.txt
+        - "! test -f /test-file2.txt"
