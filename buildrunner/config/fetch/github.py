@@ -6,29 +6,29 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-import os
 import base64
 import requests
 
+from ..models import GlobalConfig, GithubModel
 from ...errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProtocolError,
 )
 
 
-def v3_fetch_file(parsed_url, config):
+def v3_fetch_file(parsed_url, gh_config: GithubModel):
     """
     Fetch files using Github v3 protocol.
     """
 
-    endpoint = config.get("endpoint")
-    version = config.get("version")
+    endpoint = gh_config.endpoint
+    version = gh_config.version
 
-    username = config.get("username", os.getenv("USER", os.getenv("LOGNAME")))
+    username = gh_config.username
     if not username:
         raise RuntimeError(f"Failed to look up username to access github {endpoint}")
 
-    auth = (username, config.get("app_token", ""))
+    auth = (username, gh_config.app_token)
     url = "/".join(
         (
             endpoint,
@@ -74,7 +74,7 @@ def v3_fetch_file(parsed_url, config):
     return contents
 
 
-def fetch_file(parsed_url, config: dict):
+def fetch_file(parsed_url, config: GlobalConfig):
     """
     Fetch a file from Github.
     """
@@ -82,7 +82,7 @@ def fetch_file(parsed_url, config: dict):
     if parsed_url.scheme != "github":
         raise ValueError(f'URL scheme must be "github" but is "{parsed_url.github}"')
 
-    ghcfg = config.get("github")
+    ghcfg = config.github
     if not ghcfg:
         raise BuildRunnerConfigurationError(
             "Missing configuration for github in buildrunner.yaml"
@@ -96,7 +96,7 @@ def fetch_file(parsed_url, config: dict):
             f" - known github configurations: {gh_cfgs}"
         )
 
-    ver = nlcfg.get("version")
+    ver = nlcfg.version
     # NOTE: potentially the v3_fetch_file() works for other github API versions.
     if ver == "v3":
         contents = v3_fetch_file(parsed_url, nlcfg)

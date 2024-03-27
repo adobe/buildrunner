@@ -9,8 +9,10 @@ with the terms of the Adobe license agreement accompanying it.
 import codecs
 from typing import Optional
 
+from ..models import GlobalConfig
 
-def fetch_file(parsed_url, _: Optional[dict]):
+
+def fetch_file(parsed_url, _: Optional[GlobalConfig]):
     """
     Pull files from the local file system.
     """

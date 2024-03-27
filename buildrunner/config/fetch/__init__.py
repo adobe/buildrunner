@@ -9,12 +9,13 @@ with the terms of the Adobe license agreement accompanying it.
 import urllib.parse
 from typing import Optional
 
+from ..models import GlobalConfig
 from . import github
 from . import http
 from . import file
 
 
-def fetch_file(url: str, config: Optional[dict]) -> str:
+def fetch_file(url: str, config: Optional[GlobalConfig]) -> str:
     """
     Fetch a file from a provider.
     """
