@@ -178,7 +178,7 @@ class BuildRunnerConfig:
         """
 
         context = {
-            "BUILDRUNNER_ARCHITECTURE": str(platform.machine()),
+            "BUILDRUNNER_ARCH": str(platform.machine()),
             "BUILDRUNNER_BUILD_NUMBER": str(build_number),
             "BUILDRUNNER_BUILD_ID": str(build_id),
             "BUILDRUNNER_BUILD_DOCKER_TAG": str(self.default_tag),

@@ -150,5 +150,5 @@ steps:
   test-architecture:
     run:
       image: {{ DOCKER_REGISTRY }}/centos:8
-      cmd: 'if [ -z "{{ BUILDRUNNER_ARCHITECTURE }}" ]; then exit 1; else echo "Architecture is {{ BUILDRUNNER_ARCHITECTURE }}"; fi'
+      cmd: 'if [ -z "{{ BUILDRUNNER_ARCH }}" ]; then exit 1; else echo "Architecture is {{ BUILDRUNNER_ARCH }}"; fi'
 
