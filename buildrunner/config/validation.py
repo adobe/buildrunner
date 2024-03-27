@@ -146,6 +146,8 @@ def _get_source_image(step: Step) -> str:
     # Get the source image from step.run.image if build.dockerfile is not defined
     elif step.run and step.run.image:
         src_image = step.run.image
+        if ":" not in src_image:
+            src_image = f"{src_image}:latest"
 
     return src_image
 
