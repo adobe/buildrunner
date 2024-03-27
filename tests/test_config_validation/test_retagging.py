@@ -14,53 +14,36 @@ BLANK_GLOBAL_CONFIG = os.path.join(TEST_DIR, "files/blank_global_config.yaml")
 
 
 @pytest.mark.parametrize(
-    "config_yaml, error_matches",
+    "desc, config_yaml, error_matches",
     [
-        # Retagging a multiplatform image is not supported
         (
+            "Retagging a multiplatform image is not supported",
             """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image:latest
-        retag-multi-platform-image:
-            run:
-                image: user1/buildrunner-multi-platform-image:latest
-                cmd: echo "Hello World"
-            push: user1/buildrunner-multi-platform-image2:latest
-    """,
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: |
+                        FROM busybox:latest
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    repository: user1/buildrunner-multi-platform-image
+                    tags: [latest]
+            retag-multi-platform-image:
+                run:
+                    image: user1/buildrunner-multi-platform-image:latest
+                    cmd: echo "Hello World"
+                push:
+                    repository: user1/buildrunner-multi-platform-image2
+                    tags: [latest]
+        """,
             [
                 "The following images are re-tagged: ['user1/buildrunner-multi-platform-image:latest']"
             ],
         ),
-        # Retagging a multiplatform image is not supported
-        # Tests adding 'latest' tag when left out
         (
-            """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image
-        retag-multi-platform-image:
-            run:
-                image: user1/buildrunner-multi-platform-image:latest
-                cmd: echo "Hello World"
-            push: user1/buildrunner-multi-platform-image2
-    """,
-            [],
-        ),
-        # Retagging a multiplatform image is not supported
-        (
+            "Latest tag is assumed if not specified in image",
             """
     steps:
         build-container-multi-platform:
@@ -72,7 +55,7 @@ BLANK_GLOBAL_CONFIG = os.path.join(TEST_DIR, "files/blank_global_config.yaml")
                     - linux/arm64/v8
             push:
                 repository: user1/buildrunner-test-multi-platform
-                tags: []
+                tags: [latest]
 
         retag-built-image:
             run:
@@ -80,154 +63,171 @@ BLANK_GLOBAL_CONFIG = os.path.join(TEST_DIR, "files/blank_global_config.yaml")
                 cmd: echo "Hello World"
             push:
                 repository: user1/buildrunner-test-multi-platform2
-                tags: []
+                tags: [latest]
     """,
             [
-                "The following images are re-tagged: ['user1/buildrunner-test-multi-platform']"
+                "The following images are re-tagged: ['user1/buildrunner-test-multi-platform:latest']"
             ],
         ),
-        # Retagging a multiplatform image is not supported
-        # Tests with commit in build step
         (
+            "Commit in build step",
             """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            commit: user1/buildrunner-multi-platform-image
-        retag-multi-platform-image:
-            run:
-                image: user1/buildrunner-multi-platform-image
-                cmd: echo "Hello World"
-            push: user1/buildrunner-multi-platform-image2
-    """,
-            [
-                "The following images are re-tagged: ['user1/buildrunner-multi-platform-image']"
-            ],
-        ),
-        # Retagging a multiplatform image is not supported
-        # Tests with commit after build step
-        (
-            """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM {{DOCKER_REGISTRY}}/busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push: user1/buildrunner-test-multi-platform
-
-        retag-built-image:
-            run:
-                image: user1/buildrunner-test-multi-platform
-                cmd: echo "Hello World"
-            commit: user1/buildrunner-test-multi-platform2
-    """,
-            [
-                "The following images are re-tagged: ['user1/buildrunner-test-multi-platform']"
-            ],
-        ),
-        # Retagging a single platform image is supported
-        (
-            """
-    steps:
-        build-container-single-platform:
-            build:
-                dockerfile: |
-                    FROM {{DOCKER_REGISTRY}}/busybox:latest
-            push: user1/buildrunner-test-single-platform:latest
-
-        retag-built-image:
-            run:
-                image: user1/buildrunner-test-single-platform:latest
-                cmd: echo "Hello World"
-            push: user1/buildrunner-test-single-platform2
-    """,
-            [],
-        ),
-        # Retagging a multiplatform image is not supported
-        # Tests reading from dockerfile for the 2nd dockerfile
-        (
-            """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image:latest
-        retag-multi-platform-image:
-            build:
-                dockerfile: |
-                    FROM user1/buildrunner-multi-platform-image
-            push: user1/buildrunner-multi-platform-image2
-    """,
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: |
+                        FROM busybox:latest
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                commit:
+                    repository: user1/buildrunner-multi-platform-image
+                    tags: [latest]
+            retag-multi-platform-image:
+                run:
+                    image: user1/buildrunner-multi-platform-image
+                    cmd: echo "Hello World"
+                push:
+                    repository: user1/buildrunner-multi-platform-image2
+                    tags: [latest]
+        """,
             [
                 "The following images are re-tagged: ['user1/buildrunner-multi-platform-image:latest']"
             ],
         ),
-        # Retagging a multiplatform image is not supported
-        # Tests reading from dockerfile for the 2nd dockerfile
         (
+            "Commit after build step",
             """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: tests/test_config_validation/Dockerfile.retag
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push: user1/buildrunner-multi-platform-image:latest
-        retag-multi-platform-image:
-            build:
-                dockerfile: |
-                    FROM user1/buildrunner-multi-platform-image
-            push: user1/buildrunner-multi-platform-image2
-    """,
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: |
+                        FROM {{DOCKER_REGISTRY}}/busybox:latest
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    repository: user1/buildrunner-test-multi-platform
+                    tags: [latest]
+
+            retag-built-image:
+                run:
+                    image: user1/buildrunner-test-multi-platform
+                    cmd: echo "Hello World"
+                commit:
+                    repository: user1/buildrunner-test-multi-platform2
+                    tags: [latest]
+        """,
+            [
+                "The following images are re-tagged: ['user1/buildrunner-test-multi-platform:latest']"
+            ],
+        ),
+        (
+            "Retagging a single platform image is supported",
+            """
+        steps:
+            build-container-single-platform:
+                build:
+                    dockerfile: |
+                        FROM {{DOCKER_REGISTRY}}/busybox:latest
+                push:
+                    repository: user1/buildrunner-test-single-platform
+                    tags: [latest]
+
+            retag-built-image:
+                run:
+                    image: user1/buildrunner-test-single-platform:latest
+                    cmd: echo "Hello World"
+                push:
+                    repository: user1/buildrunner-test-single-platform2
+                    tags: [latest]
+        """,
+            [],
+        ),
+        (
+            "Read from dockerfile for the 2nd dockerfile",
+            """
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: |
+                        FROM busybox:latest
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    repository: user1/buildrunner-multi-platform-image
+                    tags: [latest]
+            retag-multi-platform-image:
+                build:
+                    dockerfile: |
+                        FROM user1/buildrunner-multi-platform-image
+                push:
+                    repository: user1/buildrunner-multi-platform-image2
+                    tags: [latest]
+        """,
+            [
+                "The following images are re-tagged: ['user1/buildrunner-multi-platform-image:latest']"
+            ],
+        ),
+        (
+            "Read from dockerfile file",
+            """
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: tests/test_config_validation/Dockerfile.retag
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    repository: user1/buildrunner-multi-platform-image
+                    tags: [latest]
+            retag-multi-platform-image:
+                build:
+                    dockerfile: |
+                        FROM user1/buildrunner-multi-platform-image
+                push:
+                    repository: user1/buildrunner-multi-platform-image2
+                    tags: [latest]
+        """,
             [RETAG_ERROR_MESSAGE],
         ),
-        # Reuse multi-platform images is valid if the image isn't committed or pushed
         (
+            "Reuse multi-platform images is valid if the image isn't committed or pushed",
             """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM {{DOCKER_REGISTRY}}/busybox
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push:
-                - repository: user1/buildrunner-test-multi-platform
-                  tags: [ 'latest', '0.0.1' ]
-                - repository: user2/buildrunner-test-multi-platform
-                  tags: [ 'latest', '0.0.1' ]
+        steps:
+            build-container-multi-platform:
+                build:
+                    dockerfile: |
+                        FROM {{DOCKER_REGISTRY}}/busybox
+                    platforms:
+                        - linux/amd64
+                        - linux/arm64/v8
+                push:
+                    - repository: user1/buildrunner-test-multi-platform
+                      tags: [ 'latest', '0.0.1' ]
+                    - repository: user2/buildrunner-test-multi-platform
+                      tags: [ 'latest', '0.0.1' ]
 
-        use-built-image1:
-            run:
-                image: user1/buildrunner-test-multi-platform:0.0.1
-                cmd: echo "Hello World"
+            use-built-image1:
+                run:
+                    image: user1/buildrunner-test-multi-platform:0.0.1
+                    cmd: echo "Hello World"
 
-        use-built-image2:
-            run:
-                image: user2/buildrunner-test-multi-platform:0.0.1
-                cmd: echo "Hello World"
-    """,
+            use-built-image2:
+                run:
+                    image: user2/buildrunner-test-multi-platform:0.0.1
+                    cmd: echo "Hello World"
+        """,
             [],
         ),
     ],
 )
 def test_config_data(
-    config_yaml, error_matches, assert_generate_and_validate_config_errors
+    desc, config_yaml, error_matches, assert_generate_and_validate_config_errors
 ):
+    _ = desc
     assert_generate_and_validate_config_errors(config_yaml, error_matches)
 
 
@@ -287,7 +287,7 @@ def test_config_data(
                         RUN printf '{{ BUILDRUNNER_BUILD_NUMBER }}' > /usr/share/nginx/html/index.html
                 push:
                     repository:  user1/buildrunner-test-image
-                    tags: []
+                    tags: [latest]
     """,
         """
         steps:
@@ -298,6 +298,7 @@ def test_config_data(
                         RUN printf '{{ BUILDRUNNER_BUILD_NUMBER }}' > /usr/share/nginx/html/index.html
                 push:
                     repository: user1/buildrunner-test-image
+                    tags: [latest]
     """,
     ],
 )

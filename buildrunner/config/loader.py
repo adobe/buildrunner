@@ -62,7 +62,8 @@ def _add_default_tag_to_tags(config: Union[str, dict], default_tag: str) -> dict
         if not config.get("tags"):
             config["tags"] = []
         assert isinstance(config.get("tags"), list)
-        if default_tag not in config.get("tags"):
+        # Only add the tag if not disabled in the config
+        if config.get("add_build_tag", True) and default_tag not in config.get("tags"):
             config.get("tags").append(default_tag)
 
     # Convert to dictionary and add default tag if not listed already

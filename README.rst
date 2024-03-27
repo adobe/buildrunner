@@ -850,6 +850,9 @@ step the image produced from the 'build' configuration is tagged and pushed.
 Any published Docker images are tagged with source tree branch and commit
 information as well as a provided or generated build number for tracking
 purposes. Additional tags may be added in the 'commit' or 'push' configuration.
+The default generated tag may be omitted by setting the 'add_build_tag' flag to
+false. In this case, the 'tags' property must be specified or else an error
+will occur.
 
 To push the image to a registry, you must add the --push argument to buildrunner.
 
@@ -876,6 +879,8 @@ The configuration may also specify additional tags to add to the image:
       # To push the docker image to a registry
       push:
         repository: myimages/image1
+        # Do not include default build tag
+        add_build_tag: false
         tags: [ 'latest' ]
       # OR to just commit it locally to use in subsequent steps
       commit:

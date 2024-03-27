@@ -183,6 +183,6 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             try:
                 force_remove_container(self.docker_client, container)
             except docker.errors.APIError as err:
-                logger.warning(
+                logger.debug(
                     f"Error removing intermediate container {container}: {err}"
                 )

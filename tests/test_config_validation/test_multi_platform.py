@@ -21,7 +21,7 @@ from buildrunner.config.validation import (
                     - linux/arm64/v8
             push:
                 repository: user1/buildrunner-test-multi-platform
-                tags: []
+                tags: ['latest']
             run:
                 image: user1/buildrunner-test-multi-platform
                 cmd: echo "Hello World"
@@ -40,7 +40,7 @@ from buildrunner.config.validation import (
                     FROM {{DOCKER_REGISTRY}}/busybox:latest
             push:
                 repository: user1/buildrunner-test-multi-platform
-                tags: []
+                tags: ['latest']
             run:
                 image: user1/buildrunner-test-multi-platform
                 cmd: echo "Hello World"
