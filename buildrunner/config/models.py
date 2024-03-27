@@ -29,8 +29,8 @@ MP_LOCAL_REGISTRY = "local"
 class GithubModel(BaseModel, extra="forbid"):
     endpoint: str
     version: str
-    username: str
-    app_token: str
+    username: str = os.getenv("USER", os.getenv("LOGNAME"))
+    app_token: str = ""
 
 
 class SSHKey(BaseModel, extra="forbid"):
