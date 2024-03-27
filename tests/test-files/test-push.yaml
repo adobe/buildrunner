@@ -28,6 +28,22 @@ steps:
       - repository: adobe/buildrunner-test4
         tags: ["{{ BUILDRUNNER_BUILD_TIME }}"]
 
+  test-push-without-default-tag:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push:
+      repository: adobe/buildrunner-test5
+      add_build_tag: false
+      tags: [latest]
+
+  test-pull-latest-tag:
+    run:
+      image: adobe/buildrunner-test5:latest
+      pull: false
+      cmds:
+      - 'true'
+
   test-pull-build-defaults:
     build:
       # pull defaults to false

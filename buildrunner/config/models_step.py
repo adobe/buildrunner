@@ -167,7 +167,11 @@ class StepPushCommit(StepTask):
     """Push model within a step"""
 
     repository: str
-    tags: Optional[List[str]] = None
+    add_build_tag: bool = True
+    tags: Optional[List[str]] = Field(
+        None,
+        min_length=1,
+    )
     push: bool
 
 
