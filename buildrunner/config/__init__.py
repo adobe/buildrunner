@@ -184,8 +184,6 @@ class BuildRunnerConfig:
             "BUILDRUNNER_BUILD_DOCKER_TAG": str(self.default_tag),
             "BUILDRUNNER_BUILD_TIME": str(self.build_time),
             "BUILDRUNNER_STEPS": steps_to_run,
-            # Deprecated, remove after June 2024
-            "BUILDRUNNER_PLATFORM": str(platform.machine()),
         }
         if vcs:
             context.update(
