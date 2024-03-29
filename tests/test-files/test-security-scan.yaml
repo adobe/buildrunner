@@ -15,14 +15,14 @@ steps:
       - linux/arm64
     push: adobe/buildrunner-test-security-scan2
 
-#  test-without-build-tag:
-#    build:
-#      dockerfile: |
-#        FROM {{ DOCKER_REGISTRY }}/busybox:latest
-#    push:
-#      repository: adobe/buildrunner-test-security-scan3
-#      tags: [latest]
-#      add_build_tag: false
+  test-without-build-tag:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push:
+      repository: adobe/buildrunner-test-security-scan3
+      tags: [latest]
+      add_build_tag: false
 
   test-commit-does-not-scan:
     build:

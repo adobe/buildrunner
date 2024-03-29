@@ -116,9 +116,11 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         return {ARTIFACT_SECURITY_SCAN_KEY: scan_results}
 
     def _security_scan_single(
-        self, repo: str, push_security_scan: Optional[StepPushSecurityScanConfig]
+        self,
+        repo: str,
+        tag: str,
+        push_security_scan: Optional[StepPushSecurityScanConfig],
     ) -> Dict[str, dict]:
-        tag = BuildRunnerConfig.get_instance().default_tag
         log_image_ref = f"{repo}:{tag}"
         result = self._security_scan(
             repository=repo,
@@ -427,7 +429,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                             "docker:repository": repo.repository,
                             "docker:tags": repo.tags,
                             **self._security_scan_single(
-                                repo.repository, repo.security_scan
+                                repo.repository, repo.tags[-1], repo.security_scan
                             ),
                         },
                     )
