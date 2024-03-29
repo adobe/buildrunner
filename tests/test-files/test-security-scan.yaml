@@ -1,0 +1,56 @@
+steps:
+
+  test-single:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push: adobe/buildrunner-test-security-scan1
+
+  test-multiplatform:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+      platforms:
+      - linux/amd64
+      - linux/arm64
+    push: adobe/buildrunner-test-security-scan2
+
+#  test-without-build-tag:
+#    build:
+#      dockerfile: |
+#        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+#    push:
+#      repository: adobe/buildrunner-test-security-scan3
+#      tags: [latest]
+#      add_build_tag: false
+
+  test-commit-does-not-scan:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    commit:
+      repository: adobe/buildrunner-test-security-scan4
+      security-scan:
+        # Set the threshold very low, but this will not fail since a commit does not scan images
+        max-score-threshold: 0.1
+
+  test-override-scan-config:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push:
+      repository: adobe/buildrunner-test-security-scan5
+      security-scan:
+        # Set the threshold very low but also disable scanning
+        enabled: False
+        max-score-threshold: 0.1
+
+  test-override-scan-config2:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push:
+      repository: adobe/buildrunner-test-security-scan6
+      security-scan:
+        # Set the threshold above what is possible to make sure it scans correctly
+        max-score-threshold: 15.0

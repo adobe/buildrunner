@@ -124,9 +124,9 @@ they are used when put into the global configuration file:
     # Only trivy is currently supported
     scanner: "trivy"
     # The version of the trivy image to pull
-    version: str = "latest"
+    version: "latest"
     # The local cache directory for the scanner (used if supported by the scanner)
-    cache_dir: null
+    cache-dir: null
     config:
       # Timeout after 20 minutes by default
       timeout: 20m

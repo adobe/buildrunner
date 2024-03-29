@@ -15,8 +15,8 @@ import yaml
 
 import buildrunner.docker
 from buildrunner.config import BuildRunnerConfig
-from buildrunner.config.models import SecurityScanConfig
-from buildrunner.config.models_step import StepPushCommit
+from buildrunner.config.models import GlobalSecurityScanConfig
+from buildrunner.config.models_step import StepPushCommit, StepPushSecurityScanConfig
 from buildrunner.docker.image_info import BuiltImageInfo
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
 from buildrunner.docker.runner import DockerRunner
@@ -39,8 +39,10 @@ class RepoDefinition:
     def __init__(
         self,
         repository: str,
-        tags: Optional[List[str]] = None,
+        tags: Optional[List[str]],
+        security_scan: Optional[StepPushSecurityScanConfig],
     ):
+        self.security_scan = security_scan
         # Force a lower-case repo
         repo_lower = repository.lower()
         if repo_lower != repository:
@@ -80,17 +82,22 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             RepoDefinition(
                 push.repository,
                 push.tags,
+                push.security_scan,
             )
             for push in pushes
         ]
 
     def _security_scan_mp(
-        self, built_image: BuiltImageInfo, log_image_ref: str
+        self,
+        built_image: BuiltImageInfo,
+        log_image_ref: str,
+        push_security_scan: Optional[StepPushSecurityScanConfig],
     ) -> Dict[str, dict]:
         """
         Does a security scan for each built image in a multiplatform image.
         :param built_image: the multiplatform built image info
         :param log_image_ref: the image label to log
+        :param push_security_scan: the optional security scan overrides
         :return: a dictionary of platform names to security scan information (for each built platform image)
         """
         scan_results = {}
@@ -100,6 +107,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 tag=image.tag,
                 log_image_ref=f"{log_image_ref}:{image.platform}",
                 pull=True,
+                push_security_scan=push_security_scan,
             )
             if result:
                 scan_results[image.platform] = result
@@ -107,11 +115,17 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             return {}
         return {ARTIFACT_SECURITY_SCAN_KEY: scan_results}
 
-    def _security_scan_single(self, repo: str) -> Dict[str, dict]:
+    def _security_scan_single(
+        self, repo: str, push_security_scan: Optional[StepPushSecurityScanConfig]
+    ) -> Dict[str, dict]:
         tag = BuildRunnerConfig.get_instance().default_tag
         log_image_ref = f"{repo}:{tag}"
         result = self._security_scan(
-            repository=repo, tag=tag, log_image_ref=log_image_ref, pull=False
+            repository=repo,
+            tag=tag,
+            log_image_ref=log_image_ref,
+            pull=False,
+            push_security_scan=push_security_scan,
         )
         if not result:
             return {}
@@ -128,10 +142,11 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         tag: str,
         log_image_ref: str,
         pull: bool,
+        push_security_scan: Optional[StepPushSecurityScanConfig],
     ) -> Optional[dict]:
         # If the security scan is not enabled, do nothing
-        security_scan_config = (
-            BuildRunnerConfig.get_instance().global_config.security_scan
+        security_scan_config = BuildRunnerConfig.get_instance().global_config.security_scan.merge_scan_config(
+            push_security_scan
         )
         if log_image_ref != f"{repository}:{tag}":
             log_image_ref = f"{log_image_ref} ({repository}:{tag})"
@@ -157,7 +172,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
     @staticmethod
     def _security_scan_trivy_parse_results(
-        security_scan_config: SecurityScanConfig, results: dict
+        security_scan_config: GlobalSecurityScanConfig, results: dict
     ) -> dict:
         max_score = 0
         vulnerabilities = []
@@ -201,7 +216,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
     def _security_scan_trivy(
         self,
         *,
-        security_scan_config: SecurityScanConfig,
+        security_scan_config: GlobalSecurityScanConfig,
         repository: str,
         tag: str,
         log_image_ref: str,
@@ -340,6 +355,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                             **self._security_scan_mp(
                                 built_image,
                                 f"{repo.repository}:{repo.tags[0]}",
+                                repo.security_scan,
                             ),
                         },
                     )
@@ -410,7 +426,9 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                             "docker:image": image_to_use,
                             "docker:repository": repo.repository,
                             "docker:tags": repo.tags,
-                            **self._security_scan_single(repo.repository),
+                            **self._security_scan_single(
+                                repo.repository, repo.security_scan
+                            ),
                         },
                     )
 
