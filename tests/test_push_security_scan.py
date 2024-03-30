@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 import yaml
 
-from buildrunner.config.models import SecurityScanConfig
+from buildrunner.config.models import GlobalSecurityScanConfig
 from buildrunner.errors import BuildRunnerProcessingError
 from buildrunner.steprunner.tasks import push
 
@@ -37,9 +37,13 @@ def test__security_scan_mp():
         if kwargs["repository"] == "repo2"
         else {"image": kwargs["repository"]}
     )
+    push_security_scan = mock.MagicMock()
 
     assert push.PushBuildStepRunnerTask._security_scan_mp(
-        self_mock, image_info, "image_ref1"
+        self_mock,
+        image_info,
+        "image_ref1",
+        push_security_scan,
     ) == {
         "docker:security-scan": {
             "platform1": {"image": "repo1"},
@@ -52,18 +56,21 @@ def test__security_scan_mp():
             tag="tag1",
             log_image_ref="image_ref1:platform1",
             pull=True,
+            push_security_scan=push_security_scan,
         ),
         mock.call(
             repository="repo2",
             tag="tag2",
             log_image_ref="image_ref1:platform2",
             pull=True,
+            push_security_scan=push_security_scan,
         ),
         mock.call(
             repository="repo3",
             tag="tag3",
             log_image_ref="image_ref1:platform3",
             pull=True,
+            push_security_scan=push_security_scan,
         ),
     ]
 
@@ -76,40 +83,52 @@ def test__security_scan_mp_empty():
     self_mock._security_scan.return_value = None
 
     assert not push.PushBuildStepRunnerTask._security_scan_mp(
-        self_mock, image_info, "image_ref1"
+        self_mock,
+        image_info,
+        "image_ref1",
+        None,
     )
 
 
 @mock.patch(
     "buildrunner.steprunner.tasks.push.MultiplatformImageBuilder.get_native_platform"
 )
-def test__security_scan_single(get_native_platform_mock, config_mock):
+def test__security_scan_single(get_native_platform_mock):
     get_native_platform_mock.return_value = "platform1"
-    config_mock.default_tag = "abc123"
     self_mock = mock.MagicMock()
     self_mock._security_scan.return_value = {"result": True}
-    assert push.PushBuildStepRunnerTask._security_scan_single(self_mock, "repo1") == {
-        "docker:security-scan": {"platform1": {"result": True}}
-    }
+    push_security_scan = mock.MagicMock()
+
+    assert push.PushBuildStepRunnerTask._security_scan_single(
+        self_mock, "repo1", "abc123", push_security_scan
+    ) == {"docker:security-scan": {"platform1": {"result": True}}}
     self_mock._security_scan.assert_called_once_with(
-        repository="repo1", tag="abc123", log_image_ref="repo1:abc123", pull=False
+        repository="repo1",
+        tag="abc123",
+        log_image_ref="repo1:abc123",
+        pull=False,
+        push_security_scan=push_security_scan,
     )
 
 
 @mock.patch(
     "buildrunner.steprunner.tasks.push.MultiplatformImageBuilder.get_native_platform"
 )
-def test__security_scan_single_empty(get_native_platform_mock, config_mock):
+def test__security_scan_single_empty(get_native_platform_mock):
     get_native_platform_mock.return_value = "platform1"
-    config_mock.default_tag = "abc123"
     self_mock = mock.MagicMock()
     self_mock._security_scan.return_value = None
-    assert push.PushBuildStepRunnerTask._security_scan_single(self_mock, "repo1") == {}
+    assert (
+        push.PushBuildStepRunnerTask._security_scan_single(
+            self_mock, "repo1", "abc123", None
+        )
+        == {}
+    )
     self_mock._security_scan.assert_called_once()
 
 
 def test__security_scan_scanner_disabled(config_mock):
-    config_mock.global_config.security_scan = SecurityScanConfig(enabled=False)
+    config_mock.global_config.security_scan = GlobalSecurityScanConfig(enabled=False)
     self_mock = mock.MagicMock()
     assert not push.PushBuildStepRunnerTask._security_scan(
         self_mock,
@@ -117,14 +136,20 @@ def test__security_scan_scanner_disabled(config_mock):
         tag="tag1",
         log_image_ref="image1",
         pull=False,
+        push_security_scan=None,
     )
     self_mock._security_scan_trivy.assert_not_called()
 
 
 def test__security_scan_scanner_trivy(config_mock):
-    config_mock.global_config.security_scan = SecurityScanConfig(
-        enabled=True, scanner="trivy"
-    )
+    security_scan_mock = mock.MagicMock()
+    merged_config_mock = mock.MagicMock()
+    config_mock.global_config.security_scan = security_scan_mock
+    security_scan_mock.merge_scan_config.return_value = merged_config_mock
+    merged_config_mock.enabled = True
+    merged_config_mock.scanner = "trivy"
+    push_security_scan = mock.MagicMock()
+
     self_mock = mock.MagicMock()
     self_mock._security_scan_trivy.return_value = {"result": True}
     assert push.PushBuildStepRunnerTask._security_scan(
@@ -133,18 +158,20 @@ def test__security_scan_scanner_trivy(config_mock):
         tag="tag1",
         log_image_ref="image1",
         pull=False,
+        push_security_scan=push_security_scan,
     ) == {"result": True}
     self_mock._security_scan_trivy.assert_called_once_with(
-        security_scan_config=config_mock.global_config.security_scan,
+        security_scan_config=merged_config_mock,
         repository="repo1",
         tag="tag1",
         log_image_ref="image1 (repo1:tag1)",
         pull=False,
     )
+    security_scan_mock.merge_scan_config.assert_called_once_with(push_security_scan)
 
 
 def test__security_scan_scanner_unsupported(config_mock):
-    config_mock.global_config.security_scan = SecurityScanConfig(
+    config_mock.global_config.security_scan = GlobalSecurityScanConfig(
         enabled=True, scanner="bogus"
     )
     self_mock = mock.MagicMock()
@@ -155,6 +182,7 @@ def test__security_scan_scanner_unsupported(config_mock):
             tag="tag1",
             log_image_ref="image1",
             pull=False,
+            push_security_scan=None,
         ) == {"result": True}
     assert "Unsupported scanner" in str(exc_info.value)
     self_mock._security_scan_trivy.assert_not_called()
@@ -215,7 +243,7 @@ def test__security_scan_scanner_unsupported(config_mock):
     ],
 )
 def test__security_scan_trivy_parse_results(input_results, parsed_results):
-    security_scan_config = SecurityScanConfig()
+    security_scan_config = GlobalSecurityScanConfig()
     assert (
         push.PushBuildStepRunnerTask._security_scan_trivy_parse_results(
             security_scan_config, input_results
@@ -235,7 +263,7 @@ def test__security_scan_trivy_parse_results(input_results, parsed_results):
 def test__security_scan_trivy_parse_results_max_score_threshold(
     max_score_threshold, exception_raised
 ):
-    security_scan_config = SecurityScanConfig(
+    security_scan_config = GlobalSecurityScanConfig(
         **{"max-score-threshold": max_score_threshold}
     )
     input_results = {
@@ -295,7 +323,7 @@ def test__security_scan_trivy(
     tempfile_mock.TemporaryDirectory.return_value.__enter__.return_value = str(run_path)
 
     config_mock.global_config.docker_registry = "registry1"
-    security_scan_config = SecurityScanConfig()
+    security_scan_config = GlobalSecurityScanConfig()
     self_mock = mock.MagicMock()
     self_mock._security_scan_trivy_parse_results.return_value = {"parsed_results": True}
     config_mock.global_config.temp_dir = str(tmp_path)
@@ -370,7 +398,7 @@ def test__security_scan_trivy(
 @mock.patch("buildrunner.steprunner.tasks.push.DockerRunner")
 def test__security_scan_trivy_failure(docker_runner_mock, config_mock, tmp_path):
     config_mock.global_config.docker_registry = "registry1"
-    security_scan_config = SecurityScanConfig()
+    security_scan_config = GlobalSecurityScanConfig()
     self_mock = mock.MagicMock()
     config_mock.global_config.temp_dir = str(tmp_path)
     docker_runner_mock.return_value.run.return_value = 1
@@ -398,7 +426,7 @@ def test__security_scan_trivy_file_not_created(
     docker_runner_mock, config_mock, tmp_path
 ):
     config_mock.global_config.docker_registry = "registry1"
-    security_scan_config = SecurityScanConfig()
+    security_scan_config = GlobalSecurityScanConfig()
     self_mock = mock.MagicMock()
     config_mock.global_config.temp_dir = str(tmp_path)
     docker_runner_mock.return_value.run.return_value = 0
@@ -424,7 +452,7 @@ def test__security_scan_trivy_empty_file(
     tempfile_mock.TemporaryDirectory.return_value.__enter__.return_value = str(run_path)
 
     config_mock.global_config.docker_registry = "registry1"
-    security_scan_config = SecurityScanConfig()
+    security_scan_config = GlobalSecurityScanConfig()
     self_mock = mock.MagicMock()
     config_mock.global_config.temp_dir = str(tmp_path)
 
