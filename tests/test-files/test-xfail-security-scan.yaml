@@ -1,0 +1,16 @@
+steps:
+
+  test-fail-with-low-threshold:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/busybox:latest
+    push:
+      repository: adobe/buildrunner-test-security-scan
+      security-scan:
+        enabled: True
+        max-score-threshold: -0.1
+        config:
+          security-checks:
+          - vuln
+          severity:
+          - LOW

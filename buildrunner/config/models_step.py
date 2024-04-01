@@ -28,6 +28,14 @@ def _validate_artifact_type(value) -> Any:
 AnnotatedArtifact = Annotated[Any, BeforeValidator(_validate_artifact_type)]
 
 
+class StepPushSecurityScanConfig(BaseModel, extra="forbid"):
+    enabled: Optional[bool] = None
+    scanner: Optional[str] = None
+    version: Optional[str] = None
+    config: Optional[dict] = None
+    max_score_threshold: Optional[float] = Field(None, alias="max-score-threshold")
+
+
 class StepTask(BaseModel, extra="forbid"):
     """
     Used for type checking.
@@ -173,6 +181,9 @@ class StepPushCommit(StepTask):
         min_length=1,
     )
     push: bool
+    security_scan: Optional[StepPushSecurityScanConfig] = Field(
+        None, alias="security-scan"
+    )
 
 
 class Step(BaseModel, extra="forbid"):

@@ -8,11 +8,12 @@ with the terms of the Adobe license agreement accompanying it.
 
 import os
 import tempfile
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field, field_validator, ValidationError
 
-from .models_step import Step
+from .models_step import Step, StepPushSecurityScanConfig
 from .validation import (
     get_validation_errors,
     validate_multiplatform_build,
@@ -47,18 +48,47 @@ class DockerBuildCacheConfig(BaseModel, extra="forbid"):
     to_config: Optional[Union[dict, str]] = Field(None, alias="to")
 
 
-class SecurityScanConfig(BaseModel, extra="forbid"):
+class GlobalSecurityScanConfig(BaseModel, extra="forbid"):
+    """
+    The global config version of security scan configuration has default values.
+    """
+
     enabled: bool = False
     scanner: str = "trivy"
     version: str = "latest"
     # The local cache directory for the scanner (used if supported by the scanner)
-    cache_dir: Optional[str] = None
+    cache_dir: Optional[str] = Field(None, alias="cache-dir")
     config: dict = {
         "timeout": "20m",
         # Do not error on vulnerabilities by default
         "exit-code": 0,
     }
     max_score_threshold: Optional[float] = Field(None, alias="max-score-threshold")
+
+    def merge_scan_config(
+        self, push_config: Optional[StepPushSecurityScanConfig]
+    ) -> "GlobalSecurityScanConfig":
+        """
+        Merges the push security scanning config with the global security config
+        and returns a merged config without modifying the global configuration.
+        :param push_config: the step push security scan config
+        :return: a merged scan config
+        """
+        if not push_config:
+            return self
+        new_model = {
+            field: getattr(push_config, field)
+            for field, value in self.model_fields.items()
+            if getattr(push_config, field, None) is not None
+        }
+        # model_copy does not handle actually copying the config dict, so copy this manually and update with
+        # the step config once the model copy is done
+        config_value = new_model.pop("config", None)
+        new_model["config"] = deepcopy(self.config)
+        cloned_config = self.model_copy(update=new_model)
+        if config_value:
+            cloned_config.config.update(config_value)
+        return cloned_config
 
 
 class GlobalConfig(BaseModel, extra="forbid"):
@@ -96,8 +126,8 @@ class GlobalConfig(BaseModel, extra="forbid"):
     platform_builders: Optional[Dict[str, str]] = Field(
         alias="platform-builders", default=None
     )
-    security_scan: SecurityScanConfig = Field(
-        SecurityScanConfig(), alias="security-scan"
+    security_scan: GlobalSecurityScanConfig = Field(
+        GlobalSecurityScanConfig(), alias="security-scan"
     )
 
     @field_validator("ssh_keys", mode="before")

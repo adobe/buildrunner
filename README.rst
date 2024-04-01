@@ -882,10 +882,23 @@ The configuration may also specify additional tags to add to the image:
         # Do not include default build tag
         add_build_tag: false
         tags: [ 'latest' ]
+        # Optional security scan configuration may be provided for each configured push
+        security-scan:
+          # See docs/global-configuration.rst for more information on these attributes.
+          #enabled: false
+          #scanner: "trivy"
+          #version: "latest"
+          # NOTE: Any configuration provided here will be merged with global/command line config
+          #config:
+          #  optional-param: val1
+          # Set to a float to fail the build if the maximum score
+          # is greater than or equal to this number
+          #max-score-threshold: 8.9
       # OR to just commit it locally to use in subsequent steps
       commit:
         repository: myimages/image1
         tags: [ 'latest' ]
+        # NOTE: Image security scans are disabled for images that are not pushed
 
 The configuration may also specify multiple repositories with their own tags
 (each list entry may be a string or specify additional tags):
@@ -986,9 +999,16 @@ cause port mapping conflicts.
 Image Security Scans
 ====================
 
-Pushed docker images may be automatically scanned for vulnerabilities using the ``security-scan``
-global configuration options or the ``--security-scan-*`` command line options that may override
-the global configuration.  Just set ``security-scan.enabled`` to true to enable automatic scans.
+Pushed docker images may be automatically scanned for vulnerabilities using (in priority order):
+
+* The ``security-scan`` configuration on ``push`` step attributes
+* The ``--security-scan-*`` command line options
+* The ``security-scan`` global configuration options
+
+Just set ``security-scan.enabled`` to true to enable automatic scans. The config specified on the
+command line options overrides the global config completely, but configuration on the push step
+attribute is merged with the command line/global config. Additionally note that the ``cache-dir``
+can only be configured on the global/command line level.
 
 The ``max-score-threshold`` may also be configured to fail the build if the max score of the
 detected vulnerabilities is greater than or equal to the ``max-score-threshold`` value. This

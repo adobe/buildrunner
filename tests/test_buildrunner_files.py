@@ -28,11 +28,18 @@ def _get_test_args(file_name: str) -> Optional[List[str]]:
         # Override platform to amd and use local images
         return ["--local-images", "--platform", "linux/amd64"]
 
+    if file_name == "test-security-scan.yaml":
+        # Override to enable security scanning
+        return ["--security-scan-enabled", "true"]
+
     # No additional args for this test file
     return None
 
 
 def _get_exit_code(file_name: str) -> int:
+    if file_name.startswith("test-xfail-security-scan"):
+        return 1
+
     if file_name.startswith("test-xfail"):
         return os.EX_CONFIG
 
