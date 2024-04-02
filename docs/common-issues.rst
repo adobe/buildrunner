@@ -69,3 +69,69 @@ A couple of potential solutions are:
 - tag and pushing ``latest`` outside of buildrunner after it is done (e.g. in a subsequent deployment pipeline, etc)
 
 Neither of these solutions are perfect, but both significantly shrink the chance of encountering the race condition.
+
+Utilizing multi-platform base images
+####################################
+
+At times, you may want to build a base multi-platform image and then use that base image to build
+another multi-platform image. Consider the following example:
+
+.. code:: yaml
+
+    steps:
+      build-base:
+        build:
+          dockerfile: |
+            FROM {{ DOCKER_REGISTRY }}/busybox:latest
+            CMD /do-something-cool
+          platforms:
+            - linux/amd64
+            - linux/arm64/v8
+        push: test-image1
+
+      build-from-base:
+        build:
+          dockerfile: |
+            FROM test-image1:{{ BUILDRUNNER_BUILD_DOCKER_TAG }}
+            CMD /do-something-else
+          platforms:
+            - linux/amd64
+            - linux/arm64/v8
+        push: test-image2
+
+In this case, the ``build-from-base`` step will likely fail for platforms that are not
+configured (via Docker buildx) to run on the local machine since the base image will not exist.
+
+The solution in this case is to use a single multi-stage Dockerfile instead. For example:
+
+.. code:: dockerfile
+
+    # Put this in a common Dockerfile used by both build steps below
+    FROM {{ DOCKER_REGISTRY }}/busybox:latest AS stage1
+    CMD /do-something-cool
+    FROM stage1 AS stage2
+    CMD /do-something-else
+
+.. code:: yaml
+
+
+.. code:: yaml
+
+    steps:
+      build-base:
+        build:
+          path: .
+          platforms:
+            - linux/amd64
+            - linux/arm64/v8
+          target: stage1
+        push: test-image1
+
+      build-from-base:
+        build:
+          path: .
+          platforms:
+            - linux/amd64
+            - linux/arm64/v8
+          target: stage2
+        push: test-image2
