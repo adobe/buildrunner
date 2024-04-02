@@ -57,19 +57,17 @@ which simply calls the ``BASH`` script.
    sure that you are using the `BASH shell
    <https://www.laptopmag.com/articles/use-bash-shell-windows-10>`_ enhancements for Windows or that
    you have something installed that enables the use of ``sh``, or else this method will not work.
-   If you are using WSL and the hyper-v installtion of docker:
+   If you are using WSL and the hyper-v installation of docker:
 
    1. Click on the "Expose deamon on tcp://localhost:2375 without tls" from inside of the docker settings
    2. Use the pip install method inside of the WSL subsystem
    3. Export your docker host ``DOCKER_HOST=tcp://localhost:2375`` inside of WSL
 
-.. note:: MAC USERS: If you are using the docker version of buildrunner and are getting the error
-   ``docker-credential-osxkeychain not installed or not available in PATH``, you can do one of 2
-   things:
+.. note:: MAC USERS: If you are using the docker version of buildrunner and are getting an error that
+   docker-credential-<key> is ``not installed or not available in PATH``, you can do one of the following:
 
    1. If the authentication information for the docker registry in question is in your
       ``$HOME/.docker/config.json``, remove ``"credsStore" : "osxkeychain"`` and try again
-   2. Use this `BASH <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunnerOSXCredStore>`__ script along with this `python
-      <https://github.com/adobe/buildrunner/blob/master/scripts/resolve-config.py>`_
-      script - this will pull the docker credentials from the OSX
-      keychain and inject them into the docker container
+   2. Use this `BASH <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunnerOSXCredStore>`__ script along
+      with this `python <https://github.com/adobe/buildrunner/blob/master/scripts/resolve-config.py>`_
+      script. This will pull the docker credentials from the OSX keychain and inject them into the docker container

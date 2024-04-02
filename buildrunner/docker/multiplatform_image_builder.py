@@ -1,5 +1,5 @@
 """
-Copyright 2023 Adobe
+Copyright 2024 Adobe
 All Rights Reserved.
 
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
@@ -24,6 +24,7 @@ from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models import MP_LOCAL_REGISTRY
 from buildrunner.docker import get_dockerfile
 from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
+from buildrunner.errors import BuildRunnerConfigurationError
 
 
 LOGGER = logging.getLogger(__name__)
@@ -118,6 +119,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             str: The name of the registry container
         """
         if not self._local_registry_is_running:
+            if os.getenv("BUILDRUNNER_CONTAINER"):
+                raise BuildRunnerConfigurationError(
+                    "Multiplatform builds cannot be used in the buildrunner Docker image without "
+                    "a 'build-registry' configured in the global buildrunner configuration."
+                )
+
             LOGGER.debug("Starting local docker registry")
             image = "registry"
             if self._docker_registry:

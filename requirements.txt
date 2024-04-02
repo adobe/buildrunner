@@ -89,7 +89,7 @@ pygments==2.15.1
     #   rich
 pynacl==1.5.0
     # via paramiko
-python-on-whales==0.65.0
+python-on-whales==0.70.1
     # via -r requirements.in
 pyyaml==6.0
     # via -r requirements.in

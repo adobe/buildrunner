@@ -255,7 +255,7 @@ shows the different configuration options available:
         # Buildrunner will attempt to pull these images from the remote registry.
         # If the pull is unsuccessful, buildrunner will still pass in the image name
         # into --cache-from, allowing a cache check in the host machine cache
-        # NOTE: Does not work for multi-platform builds
+        # NOTE: Does not work for multiplatform builds
         cache_from:
           - my-images/image:PR-123
           - my-images/image:latest
@@ -279,11 +279,12 @@ shows the different configuration options available:
         <or>
         platform: linux/arm64/v8 # an apple m1 architecture
 
-        # To build multi-platform images, add each platform to be built to this list and buildrunner
+        # To build multiplatform images, add each platform to be built to this list and buildrunner
         # will use docker buildx to build and provide a single tag containing all architectures specified.
-        # Note that buildx may be configured to build some platforms with emulation and therefore builds
-        # may take longer with this option specified. Also note that when using the platforms option, it is not
-        # valid to also specify the platform option.
+        # Notes:
+        #  * buildx may be configured to build some platforms with emulation and therefore builds may take longer with this option specified
+        #  * multiplatform builds cannot be used in the buildrunner docker image unless the 'build-registry' global config parameter is specified
+        #  * only one of platform or platforms may be specified
         platforms:
           - linux/amd64
           - linux/arm64/v8
@@ -371,7 +372,7 @@ the run step:
         - test-step
         - validation-step
 
-      # This is not supported in the same step as a multi-platform build.
+      # This is not supported in the same step as a multiplatform build.
       run:
         # xfail indicates whether the run operation is expected to fail.  The
         # default is false - the operation is expected to succeed.  If xfail
