@@ -1,15 +1,25 @@
-FROM python:3.11
+FROM python:3.11-bookworm
 
-COPY . /buildrunner-source
-
+ENV BUILDRUNNER_CONTAINER 1
 ENV PIP_DEFAULT_TIMEOUT 60
+
+# Install the docker client for multiplatform builds
+RUN apt update && \
+    apt install ca-certificates curl && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc && \
+    apt clean all
+RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
 
 # Some of these packages are to have native installs so that arm packages will not be built
 RUN                                                         \
-    set -x &&                                              \
     useradd -m buildrunner &&                               \
     apt update &&                                           \
     apt -y install                                          \
+        docker-ce-cli                                       \
+        docker-buildx-plugin                                \
         libffi-dev                                          \
         libssl-dev                                          \
         libyaml-dev                                         \
@@ -21,23 +31,25 @@ RUN                                                         \
         python3-dev &&                                      \
     apt clean all
 
-# Running pip this way is strange, but it allows it to detect the system packages installed
+# Install requirements first and then buildrunner itself for better docker image layer caching
 # HACK - For some reason, 'python3 setup.py install' produces an error with 'jaraco-classes' package
 # but replacing it with 'jaraco.classes' in the requirements.txt works. ¯\_(ツ)_/¯
+COPY *requirements.txt /tmp/setup/
 RUN                                                              \
-    cd /buildrunner-source &&                                    \
+    cd /tmp/setup &&                                                   \
     python3 -m pip install -U pip &&                             \
     sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
     python3 -m pip install                                       \
         -r requirements.txt &&                                   \
     python3 -m pip install                                       \
         -r test_requirements.txt &&                              \
+    rm -rf /tmp/setup
+COPY . /buildrunner-source
+RUN                                                              \
+    cd /buildrunner-source &&                                    \
+    sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
     python3 setup.py install &&                                  \
     rm -rf /buildrunner-source
-
-#RUN \
-#    set -ex; \
-#    apt-get -y install vim
 
 # The following will install docker-engine. It's not needed for the container to run,
 # but was very helpful during development
@@ -50,11 +62,5 @@ RUN                                                              \
 #    apt-get update; \
 #    apt-get -y install docker-engine
 
-ENV BUILDRUNNER_CONTAINER 1
-
 ENTRYPOINT ["/usr/local/bin/buildrunner"]
 CMD []
-
-# Local Variables:
-# fill-column: 100
-# End:

@@ -1,14 +1,17 @@
 #!/bin/bash
 
+if [ -z "$DOCKER_HOST" ]; then
+    export DOCKER_HOST=unix:///var/run/docker.sock
+fi
 env_vars="-e HOME=/$HOME"
 for var in $(env | egrep -i "^(DOCKER_HOST|DOCKER_TLS_VERIFY|DOCKER_CERT_PATH|BUILDRUNNER_)")
 do
-	if [[ "$OS" = Windows* ]]
-	then
-		# Replace =c: with =//c
-		var=$( echo "$var" | sed "s,=\([a-z]\):,=//\L\1,gi" )
-	fi
-        env_vars="$env_vars -e $var"
+	  if [[ "$OS" = Windows* ]]
+	  then
+		    # Replace =c: with =//c
+		    var=$( echo "$var" | sed "s,=\([a-z]\):,=//\L\1,gi" )
+    fi
+    env_vars="$env_vars -e $var"
 done
 
 if [ "$(uname)" == "Darwin" ]; then
