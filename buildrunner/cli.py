@@ -279,6 +279,7 @@ def clean_cache(argv):
         ),
         # Do not attempt to load run configuration, just global configuration
         load_run_config=False,
+        global_config_overrides=_get_global_config_overrides(args),
     )
     BuildRunner.clean_cache()
 
