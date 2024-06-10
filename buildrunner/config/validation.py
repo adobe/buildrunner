@@ -16,6 +16,9 @@ from .models_step import Step, StepPushCommit
 
 RETAG_ERROR_MESSAGE = "Multi-platform build steps cannot re-tag images. The following images are re-tagged:"
 RUN_MP_ERROR_MESSAGE = "run is not allowed in the same step as a multi-platform build"
+BUILD_MP_CACHE_ERROR_MESSAGE = (
+    "cache_from must be a dict or list(dict) in the multi-platform build step"
+)
 
 
 class StepImagesInfo:
@@ -253,9 +256,13 @@ def validate_multiplatform_build(
             if not isinstance(step.build.platforms, list):
                 raise ValueError(f"platforms must be a list in build step {step_name}")
 
-            if step.build.cache_from:
+            if (
+                step.build.platforms
+                and isinstance(step.build.cache_from, list)
+                and all(isinstance(x, str) for x in step.build.cache_from)
+            ):
                 raise ValueError(
-                    f"cache_from is not allowed in multi-platform build step {step_name}"
+                    f"{BUILD_MP_CACHE_ERROR_MESSAGE} {step_name} cannot be a list(str) for multiplatform images {type(step.build.cache_from)}]"
                 )
 
             if step.build.import_param:

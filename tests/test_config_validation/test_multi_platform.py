@@ -1,6 +1,7 @@
 import pytest
 
 from buildrunner.config.validation import (
+    BUILD_MP_CACHE_ERROR_MESSAGE,
     RUN_MP_ERROR_MESSAGE,
 )
 
@@ -11,21 +12,21 @@ from buildrunner.config.validation import (
         # Run in multiplatform build is not supported
         (
             """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM {{DOCKER_REGISTRY}}/busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            push:
-                repository: user1/buildrunner-test-multi-platform
-                tags: ['latest']
-            run:
-                image: user1/buildrunner-test-multi-platform
-                cmd: echo "Hello World"
-    """,
+            steps:
+                build-container-multi-platform:
+                    build:
+                        dockerfile: |
+                            FROM {{DOCKER_REGISTRY}}/busybox:latest
+                        platforms:
+                            - linux/amd64
+                            - linux/arm64/v8
+                    push:
+                        repository: user1/buildrunner-test-multi-platform
+                        tags: ['latest']
+                    run:
+                        image: user1/buildrunner-test-multi-platform
+                        cmd: echo "Hello World"
+            """,
             [
                 "run is not allowed in the same step as a multi-platform build step build-container-multi-platform"
             ],
@@ -33,47 +34,92 @@ from buildrunner.config.validation import (
         # Run in single platform build is supported
         (
             """
-    steps:
-        build-container:
-            build:
-                dockerfile: |
-                    FROM {{DOCKER_REGISTRY}}/busybox:latest
-            push:
-                repository: user1/buildrunner-test-multi-platform
-                tags: ['latest']
-            run:
-                image: user1/buildrunner-test-multi-platform
-                cmd: echo "Hello World"
-    """,
+            steps:
+                build-container:
+                    build:
+                        dockerfile: |
+                            FROM {{DOCKER_REGISTRY}}/busybox:latest
+                    push:
+                        repository: user1/buildrunner-test-multi-platform
+                        tags: ['latest']
+                    run:
+                        image: user1/buildrunner-test-multi-platform
+                        cmd: echo "Hello World"
+            """,
             [],
         ),
         # Post build is not supported for multiplatform builds
         (
             """
-    steps:
-        build-container-multi-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-                platforms:
-                    - linux/amd64
-                    - linux/arm64/v8
-            run:
-                post-build: path/to/build/context
-    """,
+            steps:
+                build-container-multi-platform:
+                    build:
+                        dockerfile: |
+                            FROM busybox:latest
+                        platforms:
+                            - linux/amd64
+                            - linux/arm64/v8
+                    run:
+                        post-build: path/to/build/context
+            """,
             [RUN_MP_ERROR_MESSAGE],
         ),
         # Post build is supported for single platform builds
         (
             """
-    steps:
-        build-container-single-platform:
-            build:
-                dockerfile: |
-                    FROM busybox:latest
-            run:
-                post-build: path/to/build/context
-    """,
+            steps:
+                build-container-single-platform:
+                    build:
+                        dockerfile: |
+                            FROM busybox:latest
+                    run:
+                        post-build: path/to/build/context
+            """,
+            [],
+        ),
+        (
+            """
+            steps:
+                build-container-multi-platform:
+                    build:
+                        dockerfile: |
+                            FROM busybox:latest
+                        platforms:
+                            - linux/amd64
+                            - linux/arm64/v8
+                        cache_from:
+                            - busybox:latest
+            """,
+            [BUILD_MP_CACHE_ERROR_MESSAGE],
+        ),
+        (
+            """
+            steps:
+                build-container-multi-platform:
+                    build:
+                        dockerfile: |
+                            FROM busybox:latest
+                        platforms:
+                            - linux/amd64
+                            - linux/arm64/v8
+                        cache_from:
+                            - { type: local, src: busybox:latest }
+            """,
+            [],
+        ),
+        (
+            """
+            steps:
+                build-container-multi-platform:
+                    build:
+                        dockerfile: |
+                            FROM busybox:latest
+                        platforms:
+                            - linux/amd64
+                            - linux/arm64/v8
+                        cache_from:
+                            { type: local, src: busybox:latest }
+            """,
             [],
         ),
     ],

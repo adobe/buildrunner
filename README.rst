@@ -250,15 +250,39 @@ shows the different configuration options available:
         # images but may not be desired when building images for publishing
         no-cache: true/false (defaults to false)
 
+        # The following applies to single platform builds.
         # Specify Docker images to consider as cache sources,
         # similar to the --cache-from option used by Docker.
         # Buildrunner will attempt to pull these images from the remote registry.
         # If the pull is unsuccessful, buildrunner will still pass in the image name
         # into --cache-from, allowing a cache check in the host machine cache
-        # NOTE: Does not work for multiplatform builds
         cache_from:
           - my-images/image:PR-123
           - my-images/image:latest
+
+        # The following applies to multiplatform builds.
+        # Specify Docker images to consider as cache sources,
+        # similar to the --cache-from option used by Docker.
+        # cache_from: Works only with the container driver. Loads the cache
+        #     (if needed) from a registry `cache_from="user/app:cache"`  or
+        #     a directory on the client `cache_from="type=local,src=path/to/dir"`.
+        #     It's also possible to use a dict or list of dict form for this
+        #     argument. e.g.
+        #     `cache_from=dict(type="local", src="path/to/dir")`
+        # cache_to: Works only with the container driver. Sends the resulting
+        #     docker cache either to a registry `cache_to="user/app:cache"`,
+        #     or to a local directory `cache_to="type=local,dest=path/to/dir"`.
+        #     It's also possible to use a dict form for this argument. e.g.
+        #     `cache_to=dict(type="local", dest="path/to/dir", mode="max")`
+        cache_from:
+          my-images/image:PR-123
+        <or>
+        cache_from:
+          - {"type": "local", "src": "path/to/dir"}
+
+        cache_to:
+          {"type": "local", "dest": "my-images/image:PR-123", "mode": "max"}
+
 
         # Whether to do a docker pull of the "FROM" image prior to the build.
         # This is critical if you are building from images that are changing

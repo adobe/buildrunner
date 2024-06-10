@@ -365,10 +365,31 @@ class BuildRunner:
                     step_name,
                     step_config,
                 ) in buildrunner_config.run_config.steps.items():
+                    # Reset the cache_from and cache_to for each step to the global values
+                    multi_platform._cache_from = (
+                        buildrunner_config.global_config.docker_build_cache.from_config
+                    )
+                    multi_platform._cache_to = (
+                        buildrunner_config.global_config.docker_build_cache.to_config
+                    )
+
                     if not self.steps_to_run or step_name in self.steps_to_run:
                         image_config = BuildStepRunner.ImageConfig(
                             self.local_images, self.platform
                         )
+
+                        # Override the multiplatform cache_from and cache_to if the step has its own
+                        if step_config.build and step_config.build.cache_from:
+                            LOGGER.info(
+                                f"Overriding cache_from with {step_config.build.cache_from}"
+                            )
+                            multi_platform._cache_from = step_config.build.cache_from
+                        if step_config.build and step_config.build.cache_to:
+                            LOGGER.info(
+                                f"Overriding cache_to with {step_config.build.cache_to}"
+                            )
+                            multi_platform._cache_to = step_config.build.cache_to
+
                         build_step_runner = BuildStepRunner(
                             self, step_name, step_config, image_config, multi_platform
                         )
