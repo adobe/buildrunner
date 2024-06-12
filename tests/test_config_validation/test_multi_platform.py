@@ -1,9 +1,6 @@
 import pytest
 
-from buildrunner.config.validation import (
-    BUILD_MP_CACHE_ERROR_MESSAGE,
-    RUN_MP_ERROR_MESSAGE,
-)
+from buildrunner.config.validation import RUN_MP_ERROR_MESSAGE
 
 
 @pytest.mark.parametrize(
@@ -87,23 +84,7 @@ from buildrunner.config.validation import (
                         platforms:
                             - linux/amd64
                             - linux/arm64/v8
-                        cache_from:
-                            - busybox:latest
-            """,
-            [BUILD_MP_CACHE_ERROR_MESSAGE],
-        ),
-        (
-            """
-            steps:
-                build-container-multi-platform:
-                    build:
-                        dockerfile: |
-                            FROM busybox:latest
-                        platforms:
-                            - linux/amd64
-                            - linux/arm64/v8
-                        cache_from:
-                            - { type: local, src: busybox:latest }
+                        cache_from: busybox:latest
             """,
             [],
         ),
@@ -118,7 +99,24 @@ from buildrunner.config.validation import (
                             - linux/amd64
                             - linux/arm64/v8
                         cache_from:
-                            { type: local, src: busybox:latest }
+                            - type: local
+                              src: path/to/dir
+            """,
+            [],
+        ),
+        (
+            """
+            steps:
+                build-container-multi-platform:
+                    build:
+                        dockerfile: |
+                            FROM busybox:latest
+                        platforms:
+                            - linux/amd64
+                            - linux/arm64/v8
+                        cache_from:
+                            type: local
+                            src: path/to/dir
             """,
             [],
         ),

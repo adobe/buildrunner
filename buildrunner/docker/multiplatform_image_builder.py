@@ -105,6 +105,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         if self._local_registry_is_running:
             self._stop_local_registry()
 
+    def set_cache_from(self, cache_from):
+        self._cache_from = cache_from
+
+    def set_cache_to(self, cache_to):
+        self._cache_to = cache_to
+
     def _build_registry_address(self) -> str:
         """Returns the address of the local registry"""
         if self._build_registry == MP_LOCAL_REGISTRY:

@@ -268,20 +268,22 @@ shows the different configuration options available:
         #     a directory on the client `cache_from="type=local,src=path/to/dir"`.
         #     It's also possible to use a dict or list of dict form for this
         #     argument. e.g.
-        #     `cache_from=dict(type="local", src="path/to/dir")`
+        #     `cache_from={type="local", src="path/to/dir"}`
         # cache_to: Works only with the container driver. Sends the resulting
         #     docker cache either to a registry `cache_to="user/app:cache"`,
         #     or to a local directory `cache_to="type=local,dest=path/to/dir"`.
         #     It's also possible to use a dict form for this argument. e.g.
-        #     `cache_to=dict(type="local", dest="path/to/dir", mode="max")`
-        cache_from:
-          my-images/image:PR-123
+        #     `cache_to={type="local", dest="path/to/dir", mode="max"}`
+        cache_from: my-images/image:PR-123
         <or>
         cache_from:
-          - {"type": "local", "src": "path/to/dir"}
+          - type: local
+            src: path/to/dir
 
         cache_to:
-          {"type": "local", "dest": "my-images/image:PR-123", "mode": "max"}
+          type: local
+          dest: path/to/dir
+          mode: max
 
 
         # Whether to do a docker pull of the "FROM" image prior to the build.
