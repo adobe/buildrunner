@@ -54,21 +54,25 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
         buildrunner_config = BuildRunnerConfig.get_instance()
 
-        if self.cache_from:
+        #  Pull the cache_from images only for single platform builds
+        if self.cache_from and isinstance(self.cache_from, list) and not self.platforms:
             for cache_from_image in self.cache_from:
-                try:
-                    self._docker_client.pull(cache_from_image, platform=self.platform)
-                    # If the pull is successful, add the image to be cleaned up at the end of the script
-                    self.step_runner.build_runner.generated_images.append(
-                        cache_from_image
-                    )
-                    self.step_runner.log.write(
-                        f"Using cache_from image: {cache_from_image}\n"
-                    )
-                except Exception:  # pylint: disable=broad-except
-                    self.step_runner.log.write(
-                        f"WARNING: Unable to pull the cache_from image: {cache_from_image}\n"
-                    )
+                if isinstance(cache_from_image, str):
+                    try:
+                        self._docker_client.pull(
+                            cache_from_image, platform=self.platform
+                        )
+                        # If the pull is successful, add the image to be cleaned up at the end of the script
+                        self.step_runner.build_runner.generated_images.append(
+                            cache_from_image
+                        )
+                        self.step_runner.log.write(
+                            f"Using cache_from image: {cache_from_image}\n"
+                        )
+                    except Exception:  # pylint: disable=broad-except
+                        self.step_runner.log.write(
+                            f"WARNING: Unable to pull the cache_from image: {cache_from_image}\n"
+                        )
 
         for src_glob, dest_path in (step.inject or {}).items():
             if not dest_path:

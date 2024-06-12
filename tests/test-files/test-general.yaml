@@ -45,7 +45,7 @@ steps:
     run:
       services:
         rabbitmq:
-          image: {{ DOCKER_REGISTRY }}/rabbitmq:3.4
+          image: {{ DOCKER_REGISTRY }}/rabbitmq:3.13
           hostname: rabbitmq
           env:
             RABBITMQ_NODENAME: test-rabbitmq

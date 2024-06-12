@@ -73,7 +73,10 @@ class StepBuild(StepTask):
     inject: Optional[Dict[str, Optional[str]]] = None
     no_cache: Optional[bool] = Field(alias="no-cache", default=None)
     buildargs: Optional[Dict[str, Any]] = None
-    cache_from: Optional[List[str]] = None
+    cache_from: Optional[
+        Union[str, Dict[str, str], List[Dict[str, str]], List[str]]
+    ] = None
+    cache_to: Optional[Union[str, Dict[str, str]]] = None
     # import is a python reserved keyword so we need to alias it
     import_param: Optional[str] = Field(alias="import", default=None)
 
