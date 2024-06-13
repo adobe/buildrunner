@@ -59,6 +59,7 @@ class Artifact(BaseModel):
     type: Optional[Any] = None
     compression: Optional[str] = None
     push: Optional[bool] = None
+    rename: Optional[str] = None
 
 
 class StepBuild(StepTask):

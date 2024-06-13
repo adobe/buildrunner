@@ -186,6 +186,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         # check if the file is directory, to copy recursive
                         is_dir = file_type.strip() == "directory"
 
+                        if properties and properties.get("rename"):
+                            if "*" in pattern:
+                                raise BuildRunnerConfigurationError(
+                                    f"Rename is not supported with wildcard patterns. `{pattern}` is not a valid pattern to use with rename."
+                                )
+
                         if is_dir:
                             # directory => recursive copy
                             self._archive_dir(
@@ -196,6 +202,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                         else:
                             output_file_name = os.path.basename(artifact_file)
+
+                            if properties and properties.get("rename"):
+                                output_file_name = properties.get("rename")
+                                properties["rename"] = {
+                                    "old": artifact_file,
+                                    "new": properties.get("rename"),
+                                }
+
                             new_artifact_file = "/stepresults/" + output_file_name
                             archive_command = (
                                 "cp",
@@ -244,6 +258,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Archive the given directory.
         """
+        # Rename doesn't apply to uncompressed directories
         if properties and properties.get("format", None) == "uncompressed":
             # recursively find all files in dir and add
             # each one, passing any properties
@@ -304,8 +319,17 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         else:
             filename = os.path.basename(artifact_file)
+
+            dest_filename = filename
+            if properties and properties.get("rename"):
+                dest_filename = properties.get("rename")
+                properties["rename"] = {
+                    "old": artifact_file,
+                    "new": properties.get("rename"),
+                }
+
             arch_props = {
-                "name": filename,
+                "name": dest_filename,
                 "compression": "gz",
                 "type": "tar",
             }

@@ -577,6 +577,9 @@ the run step:
         # ignored.  If the directory tree should be gathered verbatim without
         # archiving then the property ``format:uncompressed`` can be used.
         #
+        # Rename allows for specifying exact matches to rename for files and
+        # compressed directories. Wildcard (*) matches is not supported.
+        #
         # NOTE: Artifacts can only be archived from the /source directory using
         # a relative path or a full path. Files outside of this directory will
         # fail to be archived.
@@ -586,6 +589,7 @@ the run step:
             [type: tar|zip]
             [compression: gz|bz2|xz|lzma|lzip|lzop|z]
             [push: true|false]
+            [rename: new-name]
             property1: value1
             property2: value2
 
@@ -824,6 +828,20 @@ container:
       run:
         artifacts:
           build/artifacts/*.x86_64.rpm:
+
+This example shows renaming artifacts which would otherwise have the same name:
+
+.. code:: yaml
+
+  steps:
+    package:
+      build: package-container
+      run:
+        artifacts:
+          build/artifacts/variation1/package-container.x86_64.rpm:
+            rename: package-container1.x86_64.rpm
+          build/artifacts/variation2/package-container.x86_64.rpm:
+            rename: package-container2.x86_64.rpm
 
 This example uses one step to create a package and another to run an
 integration test:
