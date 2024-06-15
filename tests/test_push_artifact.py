@@ -121,3 +121,35 @@ def test_push_false():
         0,
         artifacts_in_file,
     )
+
+
+def test_file_remame():
+    artifacts_in_file = {
+        "single-file-rename/hello-world.txt": True,
+        "single-file-rename/hello-world1.txt": True,
+        "single-file-rename/hello-world2.txt": True,
+        "single-file-rename/hello.txt": False,
+    }
+    _test_buildrunner_file(
+        f"{TEST_DIR}/test-files",
+        "test-push-artifact.yaml",
+        ["-s", "single-file-rename"],
+        0,
+        artifacts_in_file,
+    )
+
+
+def test_archive_file_remame():
+    artifacts_in_file = {
+        "archive-file-rename/dir1.tar.gz": True,
+        "archive-file-rename/dir1-dir2.tar.gz": True,
+        "archive-file-rename/dir3-dir2.tar.gz": True,
+        "archive-file-rename/dir2.tar.gz": False,
+    }
+    _test_buildrunner_file(
+        f"{TEST_DIR}/test-files",
+        "test-push-artifact.yaml",
+        ["-s", "archive-file-rename"],
+        0,
+        artifacts_in_file,
+    )
