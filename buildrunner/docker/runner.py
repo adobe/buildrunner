@@ -380,8 +380,8 @@ class DockerRunner:
                 self.shell = "/bin/sh"
                 exit_code = self.run(f"mkdir -p {docker_path}")
                 if exit_code:
-                    logger.write(
-                        f"WARNING: There was an issue creating {docker_path} on the docker container\n"
+                    logger.warning(
+                        f"There was an issue creating {docker_path} on the docker container"
                     )
 
                 # Allow multiple people to read from the file at the same time
@@ -390,15 +390,15 @@ class DockerRunner:
                 file_obj = acquire_flock_open_read_binary(
                     lock_file=actual_cache_archive_file, logger=logger
                 )
-                logger.write(
+                logger.info(
                     "File lock acquired. Attempting to put cache into the container."
                 )
 
                 restored_cache_src.add(docker_path)
                 if not self._put_cache_in_container(docker_path, file_obj):
-                    logger.write(
-                        f"WARNING: An error occurred when trying to use cache "
-                        f"{actual_cache_archive_file} at the path {docker_path}\n"
+                    logger.warning(
+                        f"An error occurred when trying to use cache "
+                        f"{actual_cache_archive_file} at the path {docker_path}"
                     )
 
             except docker.errors.APIError:
@@ -406,7 +406,7 @@ class DockerRunner:
             finally:
                 self.shell = orig_shell
                 release_flock(file_obj, logger)
-                logger.write("Cache was put into the container. Released file lock.")
+                logger.info("Cache was put into the container. Released file lock.")
 
     @retry(exceptions=BuildRunnerCacheTimeout, tries=CACHE_NUM_RETRIES)
     @timeout_decorator.timeout(

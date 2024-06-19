@@ -17,6 +17,7 @@ from rich import progress
 
 
 CONSOLE_LOGGER_NAME = "buildrunner"
+ENCODING = sys.stdout.encoding if sys.stdout.encoding else "utf8"
 
 
 class CustomColoredFormatter(colorlog.ColoredFormatter):
@@ -97,7 +98,7 @@ class ConsoleLogger:
         with color.
         """
         if not isinstance(output, str):
-            output = str(output, encoding=sys.stdout.encoding, errors="replace")
+            output = str(output, encoding=ENCODING, errors="replace")
         if output and output[-1] == "\n":
             output = output[:-1]
         for line in output.split("\n"):
@@ -176,7 +177,7 @@ class ContainerLogger(ConsoleLogger):
         """
         # Ensure that the output is a string
         if not isinstance(output, str):
-            output = str(output, encoding=sys.stdout.encoding, errors="replace")
+            output = str(output, ENCODING, errors="replace")
 
         for char in output:
             self._buffer.append(char)

@@ -20,7 +20,7 @@ import yaml.resolver
 import yaml.scanner
 import glob
 import hashlib
-from typing import Tuple
+from typing import Optional, Tuple
 
 from buildrunner import loggers
 from buildrunner.errors import BuildRunnerConfigurationError
@@ -224,7 +224,7 @@ def _acquire_flock_open(
 
     while duration_seconds < timeout_seconds:
         try:
-            # The LOCK_NB means non blocking
+            # The LOCK_NB means non-blocking
             # More information here:
             # https://docs.python.org/3/library/fcntl.html#fcntl.flock
             if exclusive:
@@ -243,7 +243,7 @@ def _acquire_flock_open(
                 <= (duration_seconds % num_seconds_between_log_writes)
                 <= retry_sleep_seconds
             ):
-                logger.write(
+                logger.info(
                     f"PID:{pid} waiting for file lock on {lock_file} after {duration_seconds} seconds"
                 )
         else:
@@ -258,7 +258,7 @@ def _acquire_flock_open(
             f"PID:{pid} failed to acquire file lock for {lock_file} after timeout of {timeout_seconds} seconds"
         )
 
-    logger.write(
+    logger.info(
         f"PID:{pid} file opened and lock acquired for {lock_file} ({lock_file_obj})"
     )
 
@@ -310,13 +310,17 @@ def acquire_flock_open_write_binary(
     )
 
 
-def release_flock(lock_file_obj, logger: loggers.ContainerLogger):
+def release_flock(
+    lock_file_obj: Optional[io.BufferedReader], logger: loggers.ContainerLogger
+):
     """
     Release the file lock and close file descriptor
 
-    :param lock_file_fd: file descriptor
+    :param lock_file_obj: opened lock file object
     :param logger: logger to log messages
     """
+    if lock_file_obj is None:
+        return
     fcntl.flock(lock_file_obj, fcntl.LOCK_UN)
     lock_file_obj.close()
     logger.write(f"PID:{os.getpid()} released and closed file {lock_file_obj}")

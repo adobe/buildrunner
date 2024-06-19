@@ -1,5 +1,4 @@
-from multiprocessing import Process
-import tempfile
+from multiprocessing import Process, Event
 import time
 from unittest import mock
 
@@ -10,21 +9,28 @@ from buildrunner.utils import (
     acquire_flock_open_write_binary,
     release_flock,
 )
-from buildrunner.loggers import ContainerLogger
 
 
 @pytest.fixture(name="mock_logger")
 def fixture_mock_logger():
-    mock_logger = mock.create_autospec(ContainerLogger)
-    mock_logger.write.side_effect = lambda message: print(message.strip())
+    mock_logger = mock.MagicMock()
+    mock_logger.info.side_effect = lambda message: print(f"[info] {message}")
+    mock_logger.warning.side_effect = lambda message: print(f"[warning] {message}")
     return mock_logger
 
 
-def get_and_hold_lock(lock_file, sleep_seconds, exclusive=True, timeout_seconds=2):
+def _get_and_hold_lock(
+    ready_event: Event, done_event: Event, lock_file, exclusive=True, timeout_seconds=2
+):
     fd = None
+    mock_logger = mock.MagicMock()
+    mock_logger.info.side_effect = lambda message: print(
+        f"[get-and-hold-info] {message}"
+    )
+    mock_logger.warning.side_effect = lambda message: print(
+        f"[get-and-hold-warning] {message}"
+    )
     try:
-        mock_logger = mock.create_autospec(ContainerLogger)
-        mock_logger.write.side_effect = lambda message: print(message.strip())
         if exclusive:
             fd = acquire_flock_open_write_binary(
                 lock_file=lock_file, logger=mock_logger, timeout_seconds=timeout_seconds
@@ -34,178 +40,226 @@ def get_and_hold_lock(lock_file, sleep_seconds, exclusive=True, timeout_seconds=
                 lock_file=lock_file, logger=mock_logger, timeout_seconds=timeout_seconds
             )
         assert fd is not None
-        time.sleep(sleep_seconds)
+        print(
+            f"Acquired lock for file {lock_file} in background process (exclusive={exclusive})"
+        )
+        ready_event.set()
+        done_event.wait()
     finally:
         release_flock(fd, mock_logger)
 
 
-def test_flock_aquire1(mock_logger):
-    with tempfile.TemporaryDirectory() as tmp_dir_name:
-        try:
-            fd = None
-            lock_file = f"{tmp_dir_name}/mylock.file"
+def _wait_and_set(event: Event, sleep_seconds: float):
+    time.sleep(sleep_seconds)
+    event.set()
+
+
+def test_flock_acquire1(mock_logger, tmp_path):
+    try:
+        fd = None
+        lock_file = str(tmp_path / "mylock.file")
+        fd = acquire_flock_open_write_binary(
+            lock_file=lock_file, logger=mock_logger, timeout_seconds=1.0
+        )
+        assert fd is not None
+
+    finally:
+        if fd:
+            release_flock(fd, mock_logger)
+
+
+def test_flock_exclusive_acquire(mock_logger, tmp_path):
+    try:
+        lock_file = str(tmp_path / "mylock.file")
+        fd = None
+
+        # Test exclusive followed by exclusive acquire
+        ready_event = Event()
+        done_event = Event()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file)
+        )
+        p.start()
+        ready_event.wait()
+
+        with pytest.raises(FailureToAcquireLockException):
             fd = acquire_flock_open_write_binary(
-                lock_file=lock_file, logger=mock_logger, timeout_seconds=1.0
+                lock_file, mock_logger, timeout_seconds=1.0
             )
-            assert fd is not None
+        assert fd is None
+        done_event.set()
+        p.join()
 
-        finally:
-            if fd:
-                release_flock(fd, mock_logger)
+        # Test shared followed by exclusive acquire
+        ready_event.clear()
+        done_event.clear()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file, False)
+        )
+        p.start()
+        ready_event.wait()
 
-
-def test_flock_exclusive_aquire(mock_logger):
-    with tempfile.TemporaryDirectory() as tmp_dir_name:
-        try:
-            lock_file = f"{tmp_dir_name}/mylock.file"
-            fd = None
-
-            # Test exclusive followed by exclusive acquire
-            p = Process(target=get_and_hold_lock, args=(lock_file, 4))
-            p.start()
-            time.sleep(1)
-            with pytest.raises(FailureToAcquireLockException):
-                fd = acquire_flock_open_write_binary(
-                    lock_file, mock_logger, timeout_seconds=1.0
-                )
-            assert fd is None
-            p.join()
-
-            # Test shared followed by exclusive acquire
-            p = Process(target=get_and_hold_lock, args=(lock_file, 4, False))
-            p.start()
-            time.sleep(1)
-            with pytest.raises(FailureToAcquireLockException):
-                fd = acquire_flock_open_write_binary(
-                    lock_file, mock_logger, timeout_seconds=1.0
-                )
-            assert fd is None
-            p.join()
-
-            # Test exclusive followed by shared acquire
-            p = Process(target=get_and_hold_lock, args=(lock_file, 4, True))
-            p.start()
-            time.sleep(1)
-            with pytest.raises(FailureToAcquireLockException):
-                fd = acquire_flock_open_read_binary(
-                    lock_file, mock_logger, timeout_seconds=1.0
-                )
-            assert fd is None
-            p.join()
-
-        finally:
-            if fd:
-                release_flock(fd, mock_logger)
-
-
-def test_flock_release(mock_logger):
-    with tempfile.TemporaryDirectory() as tmp_dir_name:
-        try:
-            lock_file = f"{tmp_dir_name}/mylock.file"
-            fd = None
-
-            p = Process(target=get_and_hold_lock, args=(lock_file, 2))
-            p.start()
-            time.sleep(1)
+        with pytest.raises(FailureToAcquireLockException):
             fd = acquire_flock_open_write_binary(
-                lock_file, mock_logger, timeout_seconds=2.0
+                lock_file, mock_logger, timeout_seconds=1.0
             )
-            assert fd is not None
-            p.join()
-        finally:
-            if fd:
-                release_flock(fd, mock_logger)
+        assert fd is None
+        done_event.set()
+        p.join()
 
+        # Test exclusive followed by shared acquire
+        ready_event.clear()
+        done_event.clear()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file, True)
+        )
+        p.start()
+        ready_event.wait()
 
-def test_flock_aquire_exlusive_timeout(mock_logger):
-    with tempfile.TemporaryDirectory() as tmp_dir_name:
-        try:
-            lock_file = f"{tmp_dir_name}/mylock.file"
-            fd = None
-
-            # Test exclusive followed by exclusive acquire
-            p = Process(target=get_and_hold_lock, args=(lock_file, 7))
-            p.start()
-            time.sleep(1)
-
-            timeout_seconds = 5
-            start_time = time.time()
-            with pytest.raises(FailureToAcquireLockException):
-                fd = acquire_flock_open_write_binary(
-                    lock_file, mock_logger, timeout_seconds=timeout_seconds
-                )
-            duration_seconds = time.time() - start_time
-            tolerance_seconds = 0.6
-            assert (
-                (timeout_seconds - tolerance_seconds)
-                <= duration_seconds
-                <= (timeout_seconds + tolerance_seconds)
-            )
-            assert fd is None
-            p.join()
-
-            # Test exclusive followed by shared acquire
-            p = Process(target=get_and_hold_lock, args=(lock_file, 7))
-            p.start()
-            time.sleep(1)
-
-            timeout_seconds = 5
-            start_time = time.time()
-            with pytest.raises(FailureToAcquireLockException):
-                fd = acquire_flock_open_read_binary(
-                    lock_file, mock_logger, timeout_seconds=timeout_seconds
-                )
-            duration_seconds = time.time() - start_time
-            tolerance_seconds = 0.6
-            assert (
-                (timeout_seconds - tolerance_seconds)
-                <= duration_seconds
-                <= (timeout_seconds + tolerance_seconds)
-            )
-            assert fd is None
-            p.join()
-
-            # Test shared followed by exclusive acquire
-            p = Process(target=get_and_hold_lock, args=(lock_file, 7, False))
-            p.start()
-            time.sleep(1)
-
-            timeout_seconds = 5
-            start_time = time.time()
-            with pytest.raises(FailureToAcquireLockException):
-                fd = acquire_flock_open_write_binary(
-                    lock_file, mock_logger, timeout_seconds=timeout_seconds
-                )
-            duration_seconds = time.time() - start_time
-            tolerance_seconds = 0.6
-            assert (
-                (timeout_seconds - tolerance_seconds)
-                <= duration_seconds
-                <= (timeout_seconds + tolerance_seconds)
-            )
-            assert fd is None
-            p.join()
-        finally:
-            if fd:
-                release_flock(fd, mock_logger)
-
-
-def test_flock_shared_aquire(mock_logger):
-    with tempfile.TemporaryDirectory() as tmp_dir_name:
-        try:
-            lock_file = f"{tmp_dir_name}/mylock.file"
-            # Lock file needs to be created
-            with open(lock_file, "w") as file:
-                file.write("Test file.")
-            fd = None
-            p = Process(target=get_and_hold_lock, args=(lock_file, 5, False))
-            p.start()
-            time.sleep(1)
+        with pytest.raises(FailureToAcquireLockException):
             fd = acquire_flock_open_read_binary(
                 lock_file, mock_logger, timeout_seconds=1.0
             )
-            assert fd is not None
-            p.join()
-        finally:
-            if fd:
-                release_flock(fd, mock_logger)
+        assert fd is None
+        done_event.set()
+        p.join()
+
+    finally:
+        if fd:
+            release_flock(fd, mock_logger)
+
+
+def test_flock_release(mock_logger, tmp_path):
+    fd = None
+    try:
+        lock_file = str(tmp_path / "mylock.file")
+
+        ready_event = Event()
+        done_event = Event()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file)
+        )
+        p.start()
+        ready_event.wait()
+        p2 = Process(target=_wait_and_set, args=(done_event, 1.0))
+        p2.start()
+
+        fd = acquire_flock_open_write_binary(
+            lock_file, mock_logger, timeout_seconds=5.0
+        )
+        assert fd is not None
+        p.join()
+        p2.join()
+    finally:
+        if fd:
+            release_flock(fd, mock_logger)
+
+
+def test_flock_acquire_exclusive_timeout(mock_logger, tmp_path):
+    try:
+        lock_file = str(tmp_path / "mylock.file")
+        fd = None
+
+        # Test exclusive followed by exclusive acquire
+        ready_event = Event()
+        done_event = Event()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file)
+        )
+        p.start()
+        ready_event.wait()
+
+        timeout_seconds = 5
+        start_time = time.time()
+        with pytest.raises(FailureToAcquireLockException):
+            fd = acquire_flock_open_write_binary(
+                lock_file, mock_logger, timeout_seconds=timeout_seconds
+            )
+        duration_seconds = time.time() - start_time
+        tolerance_seconds = 0.6
+        assert (
+            (timeout_seconds - tolerance_seconds)
+            <= duration_seconds
+            <= (timeout_seconds + tolerance_seconds)
+        )
+        assert fd is None
+        done_event.set()
+        p.join()
+
+        # Test exclusive followed by shared acquire
+        ready_event.clear()
+        done_event.clear()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file)
+        )
+        p.start()
+        ready_event.wait()
+
+        timeout_seconds = 5
+        start_time = time.time()
+        with pytest.raises(FailureToAcquireLockException):
+            fd = acquire_flock_open_read_binary(
+                lock_file, mock_logger, timeout_seconds=timeout_seconds
+            )
+        duration_seconds = time.time() - start_time
+        tolerance_seconds = 0.6
+        assert (
+            (timeout_seconds - tolerance_seconds)
+            <= duration_seconds
+            <= (timeout_seconds + tolerance_seconds)
+        )
+        assert fd is None
+        done_event.set()
+        p.join()
+
+        # Test shared followed by exclusive acquire
+        ready_event.clear()
+        done_event.clear()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file, False)
+        )
+        p.start()
+        ready_event.wait()
+
+        timeout_seconds = 5
+        start_time = time.time()
+        with pytest.raises(FailureToAcquireLockException):
+            fd = acquire_flock_open_write_binary(
+                lock_file, mock_logger, timeout_seconds=timeout_seconds
+            )
+        duration_seconds = time.time() - start_time
+        tolerance_seconds = 0.6
+        assert (
+            (timeout_seconds - tolerance_seconds)
+            <= duration_seconds
+            <= (timeout_seconds + tolerance_seconds)
+        )
+        assert fd is None
+        done_event.set()
+        p.join()
+    finally:
+        if fd:
+            release_flock(fd, mock_logger)
+
+
+def test_flock_shared_acquire(mock_logger, tmp_path):
+    try:
+        lock_file = str(tmp_path / "mylock.file")
+        # Lock file needs to be created
+        with open(lock_file, "w") as file:
+            file.write("Test file.")
+        fd = None
+        ready_event = Event()
+        done_event = Event()
+        p = Process(
+            target=_get_and_hold_lock, args=(ready_event, done_event, lock_file, False)
+        )
+        p.start()
+        ready_event.wait()
+        fd = acquire_flock_open_read_binary(lock_file, mock_logger, timeout_seconds=1.0)
+        assert fd is not None
+        done_event.set()
+        p.join()
+    finally:
+        if fd:
+            release_flock(fd, mock_logger)
