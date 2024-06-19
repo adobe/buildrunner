@@ -291,6 +291,7 @@ def acquire_flock_open_write_binary(
     lock_file: str,
     logger: loggers.ContainerLogger,
     timeout_seconds: float = LOCK_TIMEOUT_SECONDS,
+    mode: str = "wb",
 ) -> io.BufferedWriter:
     """
     Acquire file lock and open binary file in write mode with configurable timeout
@@ -304,7 +305,7 @@ def acquire_flock_open_write_binary(
     return _acquire_flock_open(
         lock_file=lock_file,
         logger=logger,
-        mode="wb",
+        mode=mode,
         timeout_seconds=timeout_seconds,
         exclusive=True,
     )

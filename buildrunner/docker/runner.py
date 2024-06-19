@@ -7,6 +7,7 @@ with the terms of the Adobe license agreement accompanying it.
 """
 
 import base64
+import datetime
 import io
 import os.path
 import socket
@@ -15,6 +16,7 @@ from collections import OrderedDict
 from os import listdir
 from os.path import isfile, join, getmtime
 from pathlib import Path
+import tarfile
 from types import GeneratorType
 from typing import Optional
 
@@ -44,6 +46,14 @@ CACHE_TIMEOUT_SECONDS = 240
 class BuildRunnerCacheTimeout(Exception):
     """
     Exception which is raised when there is a timeout issue related to caching.
+    """
+
+    pass
+
+
+class BuildRunnerSavingCache(Exception):
+    """
+    Exception which is raised when there is an issue related to saving cache.
     """
 
     pass
@@ -425,7 +435,37 @@ class DockerRunner:
         for chunk in bits:
             file_obj.write(chunk)
 
-    def save_caches(self, logger: ContainerLogger, caches: OrderedDict) -> None:
+    def write_cache_history_log(
+        self,
+        log_str: str,
+        cache_location: str,
+        logger: ContainerLogger,
+    ) -> None:
+        """
+        Writes the cache log to a file in the cache location.
+
+        :param log_str: The log string to write to the file
+        :param cache_location: The location of the cache file
+        :param logger: The logger to write log messages to
+        """
+
+        cache_history_log = f"{cache_location}/cache_history.log"
+        file_obj = None
+        try:
+            file_obj = acquire_flock_open_write_binary(
+                lock_file=cache_history_log, logger=logger, mode="a"
+            )
+            logger.write(
+                f"File lock acquired. Attempting to write cache history log to {cache_history_log}"
+            )
+            file_obj.write(log_str)
+        finally:
+            release_flock(file_obj, logger)
+            logger.write("Writing to cache history log completed. Released file lock.")
+
+    def save_caches(
+        self, logger: ContainerLogger, caches: OrderedDict, env_vars: dict = dict()
+    ) -> None:
         """
         Saves caches from a source locations in the docker container to locations on the host system as archive file.
         """
@@ -440,6 +480,20 @@ class DockerRunner:
                         f"to local cache `{local_cache_archive_file}`\n"
                     )
 
+                    log_line = (
+                        f'{datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")} - '
+                        f'The cache file "{local_cache_archive_file}" '
+                        f'was written by step "{env_vars.get("BUILDRUNNER_STEP_NAME")}" in '
+                        f'"{env_vars.get("VCSINFO_NAME")}:{env_vars.get("VCSINFO_BRANCH")}:{env_vars.get("VCSINFO_SHORT_ID")}" '
+                        f'on host '
+                        f'"{socket.gethostname()}" [{env_vars.get("BUILDRUNNER_ARCH")}] '
+                        '\n'
+                    )
+
+                    self.write_cache_history_log(
+                        log_line, os.path.dirname(local_cache_archive_file), logger
+                    )
+
                     file_obj = None
                     try:
                         file_obj = acquire_flock_open_write_binary(
@@ -449,8 +503,15 @@ class DockerRunner:
                             "File lock acquired. Attempting to write to cache."
                         )
                         self._write_cache(docker_path, file_obj)
+                    except Exception as e:
+                        raise BuildRunnerSavingCache(
+                            f"There was an error saving cache to {local_cache_archive_file}.\nException: {e}"
+                        )
                     finally:
                         release_flock(file_obj, logger)
+                        assert tarfile.is_tarfile(
+                            local_cache_archive_file
+                        ), f"Failed to create cache {local_cache_archive_file} tar file."
                         logger.write("Writing to cache completed. Released file lock.")
                 else:
                     logger.write(
