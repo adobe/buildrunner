@@ -1062,7 +1062,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     "Skipping cache save due to failed exit code"
                 )
             else:
-                self.runner.save_caches(container_meta_logger, caches)
+                self.runner.save_caches(
+                    container_meta_logger, caches, container_args.get("environment")
+                )
 
         finally:
             if self.runner:
