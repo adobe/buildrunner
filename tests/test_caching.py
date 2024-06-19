@@ -9,7 +9,7 @@ from unittest import mock
 
 from buildrunner import BuildRunner
 from buildrunner.docker.runner import DockerRunner
-from buildrunner.loggers import ConsoleLogger, ContainerLogger
+from buildrunner.loggers import ConsoleLogger
 import pytest
 
 
@@ -64,8 +64,11 @@ def fixture_setup_tmp_dir_context():
 
 @pytest.fixture(name="mock_logger")
 def fixture_mock_logger():
-    mock_logger = mock.create_autospec(ContainerLogger)
-    mock_logger.write.side_effect = lambda message: print(message.strip())
+    mock_logger = mock.MagicMock()
+    mock_logger.info.side_effect = lambda message: print(f"[info] {message.strip()}")
+    mock_logger.warning.side_effect = lambda message: print(
+        f"[warning] {message.strip()}"
+    )
     return mock_logger
 
 
