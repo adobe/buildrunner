@@ -93,34 +93,53 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             cache_from = []
         if buildargs is None:
             buildargs = {}
-        # create our own tar file, injecting the appropriate paths
-        # pylint: disable=consider-using-with
-        _fileobj = tempfile.NamedTemporaryFile(dir=self.temp_dir)
-        with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
-            if self.path:
-                tfile.add(self.path, arcname=".")
-            if self.inject:
-                for to_inject, dest in self.inject.items():
-                    tfile.add(to_inject, arcname=dest)
-            if self.dockerfile:
-                tfile.add(self.dockerfile, arcname="./Dockerfile")
-        _fileobj.seek(0)
 
         # Always add default registry to build args
         buildargs["DOCKER_REGISTRY"] = self.docker_registry
+        stream = None
 
-        stream = self.docker_client.build(
-            path=None,
-            nocache=nocache,
-            cache_from=cache_from,
-            custom_context=True,
-            fileobj=_fileobj,
-            rm=rm,
-            pull=pull,
-            buildargs=self._sanitize_buildargs(buildargs),
-            platform=platform,
-            target=target,
-        )
+        # create our own tar file, injecting the appropriate paths
+        # pylint: disable=consider-using-with
+        if self.inject or not self.path:
+            logger.info(
+                "[Warning] When injecting files into the build context the .dockerignore is not used."
+            )
+
+            _fileobj = tempfile.NamedTemporaryFile(dir=self.temp_dir)
+            with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
+                if self.path:
+                    tfile.add(self.path, arcname=".")
+                if self.inject:
+                    for to_inject, dest in self.inject.items():
+                        tfile.add(to_inject, arcname=dest)
+                if self.dockerfile:
+                    tfile.add(self.dockerfile, arcname="./Dockerfile")
+            _fileobj.seek(0)
+
+            stream = self.docker_client.build(
+                path=None,
+                nocache=nocache,
+                cache_from=cache_from,
+                custom_context=True,
+                fileobj=_fileobj,
+                rm=rm,
+                pull=pull,
+                buildargs=self._sanitize_buildargs(buildargs),
+                platform=platform,
+                target=target,
+            )
+        else:
+            stream = self.docker_client.build(
+                path=self.path,
+                nocache=nocache,
+                cache_from=cache_from,
+                rm=rm,
+                pull=pull,
+                buildargs=self._sanitize_buildargs(buildargs),
+                platform=platform,
+                target=target,
+                dockerfile=self.dockerfile,
+            )
 
         # monitor output for logs and status
         exit_code = 0
