@@ -11,9 +11,10 @@ import platform as python_platform
 import re
 import shutil
 import tempfile
+from threading import Thread
 import uuid
-from multiprocessing import Process, SimpleQueue
-from typing import Dict, List, Optional, Union
+from queue import SimpleQueue
+from typing import Dict, Iterator, List, Optional, Union
 
 import python_on_whales
 import timeout_decorator
@@ -186,6 +187,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         actual_builder = builder or "default"
         return cache_options if actual_builder in self._cache_builders else {}
 
+    def _log_buildx(self, logs_itr: Iterator[str], platform: str):
+        for log in logs_itr:
+            LOGGER.info(f"[{platform}] {log.strip()}".strip())
+
     # pylint: disable=too-many-arguments,too-many-locals
     def _build_with_inject(
         self,
@@ -233,7 +238,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 context_dir
             ), f"Failed to create context dir {context_dir}"
 
-            docker.buildx.build(
+            logs_itr = docker.buildx.build(
                 context_dir,
                 tags=[image_ref],
                 platforms=[platform],
@@ -244,8 +249,10 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 build_args=build_args,
                 cache=cache,
                 pull=pull,
+                stream_logs=True,
                 **self._get_build_cache_options(builder),
             )
+            self._log_buildx(logs_itr, platform)
 
     @staticmethod
     def _get_image_digest(image_ref: str) -> str:
@@ -298,6 +305,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         LOGGER.info(
             f"Building image for platform {platform} with {builder or 'default'} builder"
         )
+        logs_itr = Iterator[str]
 
         if inject and isinstance(inject, dict):
             self._build_with_inject(
@@ -313,7 +321,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 pull=pull,
             )
         else:
-            docker.buildx.build(
+            logs_itr = docker.buildx.build(
                 path,
                 tags=[image_ref],
                 platforms=[platform],
@@ -324,8 +332,11 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 builder=builder,
                 cache=cache,
                 pull=pull,
+                stream_logs=True,
                 **self._get_build_cache_options(builder),
             )
+            self._log_buildx(logs_itr, platform)
+
         # Push after the initial load to support remote builders that cannot access the local registry
         docker.push([image_ref])
 
@@ -373,7 +384,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         path: str = ".",
         file: str = "Dockerfile",
         target: Optional[str] = None,
-        do_multiprocessing: bool = True,
+        use_threading: bool = True,
         build_args: dict = None,
         inject: dict = None,
         cache: bool = False,
@@ -385,7 +396,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         :arg platforms: The platforms to build the image for (e.g. linux/amd64)
         :arg path: The path to the Dockerfile. Defaults to ".".
         :arg file: The path/name of the Dockerfile (i.e. <path>/Dockerfile). Defaults to "Dockerfile".
-        :arg do_multiprocessing: Whether to use multiprocessing to build the images. Defaults to True.
+        :arg use_threading: Whether to use threading to build the images. Defaults to True.
         :arg build_args: The build args to pass to docker. Defaults to None.
         :arg inject: The files to inject into the build context. Defaults to None.
         :arg cache: If true, enables cache, defaults to False
@@ -444,12 +455,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             )
             LOGGER.info(OUTPUT_LINE)
 
-        processes = []
+        threads = []
         LOGGER.info(
-            f'Starting builds for {len(platforms)} platforms in {"parallel" if do_multiprocessing else "sequence"}'
+            f'Starting builds for {len(platforms)} platforms in {"parallel" if use_threading else "sequence"}'
         )
 
-        # Since multiprocessing may be used, use a simple queue to communicate with the build method
+        # Since threading may be used, use a simple queue to communicate with the build method
         # This queue receives tuples of (image_ref, image_digest)
         image_info_by_image_ref = {}
         queue = SimpleQueue()
@@ -475,9 +486,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 pull,
             )
             LOGGER.debug(f"Building {repo} for {platform}")
-            if do_multiprocessing:
-                processes.append(
-                    Process(
+            if use_threading:
+                threads.append(
+                    Thread(
                         target=self._build_single_image,
                         args=build_single_image_args,
                     )
@@ -485,11 +496,11 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             else:
                 self._build_single_image(*build_single_image_args)
 
-        # Start and join processes in parallel if multiprocessing is enabled
-        for proc in processes:
-            proc.start()
-        for proc in processes:
-            proc.join()
+        # Start and join threads in parallel if enabled
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
         while not queue.empty():
             image_ref, image_digest = queue.get()
@@ -563,7 +574,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                         # Push each tag individually in order to prevent strange errors with multiple matching tags
                         for image_ref in tagged_image.image_refs:
                             self._push_with_timeout(source_image_refs, [image_ref])
-                        # Process finished within timeout
+                        # Finished within timeout
                         LOGGER.info(
                             f"Successfully pushed multiplatform image(s) {tagged_image}"
                         )
