@@ -189,7 +189,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     def _log_buildx(self, logs_itr: Iterator[str], platform: str):
         for log in logs_itr:
-            LOGGER.info(f"[{platform}] {log.strip()}".strip())
+            LOGGER.info(f"[{platform}] {log}".strip())
 
     # pylint: disable=too-many-arguments,too-many-locals
     def _build_with_inject(
@@ -305,7 +305,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         LOGGER.info(
             f"Building image for platform {platform} with {builder or 'default'} builder"
         )
-        logs_itr = Iterator[str]
 
         if inject and isinstance(inject, dict):
             self._build_with_inject(
