@@ -95,7 +95,7 @@ def test_start_local_registry_on_build():
             platforms=["linux/arm64", "linux/amd64"],
             path=test_path,
             file=f"{test_path}/Dockerfile",
-            do_multiprocessing=False,
+            use_threading=False,
         )
 
         # Check that the registry is running and only one is found with that name
@@ -122,7 +122,7 @@ def test_start_local_registry_on_build():
             platforms=["linux/arm64", "linux/amd64"],
             path=test_path,
             file=f"{test_path}/Dockerfile",
-            do_multiprocessing=False,
+            use_threading=False,
         )
 
         registry_name = mpib._mp_registry_info.name
@@ -145,7 +145,7 @@ def test_tag_native_platform(platforms, expected_image_tags):
             platforms,
             path=test_path,
             file=f"{test_path}/Dockerfile",
-            do_multiprocessing=False,
+            use_threading=False,
         )
 
         assert (
@@ -183,7 +183,7 @@ def test_tag_native_platform_multiple_tags(name, platforms, expected_image_tags)
             platforms=platforms,
             path=test_path,
             file=f"{test_path}/Dockerfile",
-            do_multiprocessing=False,
+            use_threading=False,
         )
 
         assert (
@@ -222,7 +222,7 @@ def test_tag_native_platform_keep_images(name, platforms, expected_image_tags):
                 platforms=platforms,
                 path=test_path,
                 file=f"{test_path}/Dockerfile",
-                do_multiprocessing=False,
+                use_threading=False,
             )
 
             assert (
@@ -273,7 +273,7 @@ def test_push():
                     platforms=platforms,
                     path=test_path,
                     file=f"{test_path}/Dockerfile",
-                    do_multiprocessing=False,
+                    use_threading=False,
                 )
 
                 assert built_image is not None
@@ -317,7 +317,7 @@ def test_push_with_dest_names():
                     platforms=platforms,
                     path=test_path,
                     file=f"{test_path}/Dockerfile",
-                    do_multiprocessing=False,
+                    use_threading=False,
                 )
 
                 assert built_image is not None
@@ -386,7 +386,7 @@ def test_build(
             platforms=platforms,
             path=test_path,
             file=f"{test_path}/Dockerfile",
-            do_multiprocessing=False,
+            use_threading=False,
         )
 
         assert len(built_image.built_images) == len(platforms)
@@ -429,7 +429,7 @@ def test_build_multiple_builds(
             platforms=platforms1,
             path=test_path,
             file=f"{test_path}/Dockerfile",
-            do_multiprocessing=False,
+            use_threading=False,
         )
 
         # Build set 2
@@ -437,7 +437,7 @@ def test_build_multiple_builds(
             platforms=platforms2,
             path=test_path,
             file=f"{test_path}/Dockerfile",
-            do_multiprocessing=False,
+            use_threading=False,
         )
 
         # Check set 1
@@ -476,6 +476,7 @@ def test_build_multiple_builds(
             cache_to=None,
             pull=False,
             target=None,
+            stream_logs=True,
         ),
         call(
             test_path,
@@ -490,6 +491,7 @@ def test_build_multiple_builds(
             cache_to=None,
             pull=False,
             target=None,
+            stream_logs=True,
         ),
         call(
             test_path,
@@ -504,6 +506,7 @@ def test_build_multiple_builds(
             cache_to=None,
             pull=False,
             target=None,
+            stream_logs=True,
         ),
         call(
             test_path,
@@ -518,6 +521,7 @@ def test_build_multiple_builds(
             cache_to=None,
             pull=False,
             target=None,
+            stream_logs=True,
         ),
     ]
     assert mock_push.call_count == 4
@@ -568,7 +572,7 @@ def test_use_build_registry():
                 platforms=["linux/arm64", "linux/amd64"],
                 path=test_path,
                 file=f"{test_path}/Dockerfile",
-                do_multiprocessing=False,
+                use_threading=False,
             )
             assert all(
                 image_info.repo.startswith(f"{build_registry}/")
