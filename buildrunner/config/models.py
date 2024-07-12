@@ -142,6 +142,7 @@ class Config(BaseModel, extra="forbid"):
     """Top level config model"""
 
     version: Optional[float] = None
+    use_legacy_builder: Optional[bool] = Field(alias="use-legacy-builder", default=True)
     steps: Dict[str, Step]
 
     @field_validator("steps")

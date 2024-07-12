@@ -52,8 +52,22 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             timeout=timeout,
         )
         self.docker_registry = docker_registry
-        self.image = None
+        self._image = None
         self.intermediate_containers = []
+
+    @property
+    def image(self):
+        """
+        Get the image ID of the built image.
+        """
+        return self._image
+
+    @image.setter
+    def image(self, value):
+        """
+        Set the image ID of the built image.
+        """
+        self._image = value
 
     @staticmethod
     def _sanitize_buildargs(buildargs=None):
@@ -89,6 +103,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         Run a docker build using the configured context, constructing the
         context tar file if necessary.
         """
+        logger.info("Using legacy builder")
         if cache_from is None:
             cache_from = []
         if buildargs is None:

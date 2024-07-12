@@ -10,6 +10,8 @@ import glob
 import os
 import re
 
+
+from buildrunner import loggers
 import buildrunner.docker
 from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models_step import StepBuild
@@ -20,6 +22,8 @@ from buildrunner.errors import (
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
+
+LOGGER = loggers.ConsoleLogger(__name__)
 
 
 class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many-instance-attributes
@@ -204,15 +208,29 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
         buildrunner_config = BuildRunnerConfig.get_instance()
         docker_registry = buildrunner_config.global_config.docker_registry
         self.step_runner.log.write("Running docker build\n")
-        builder = DockerBuilder(
-            self.path,
-            inject=self.to_inject,
-            dockerfile=self.dockerfile,
-            docker_registry=docker_registry,
-        )
+
         try:
-            if self.platforms:
-                built_image = self.step_runner.multi_platform.build_multiple_images(
+            if self.platforms or not buildrunner_config.run_config.use_legacy_builder:
+                if self.platforms and buildrunner_config.run_config.use_legacy_builder:
+                    LOGGER.warning(
+                        f"Ignoring use-legacy-builder. Using the legacy builder for multiplatform images {self.platforms} is not supported. "
+                        "If you are want to use the legacy builder and specify the platform, please use either 'platform'."
+                    )
+
+                # Setting the platform if it is set in the step
+                if self.platform:
+                    LOGGER.info(f"Setting platform to {self.platform}")
+                    self.platforms = [self.platform]
+
+                if not self.platforms:
+                    native_platform = (
+                        self.step_runner.multi_platform.get_native_platform()
+                    )
+                    LOGGER.info(f"Setting platforms to [{native_platform}]")
+                    self.platforms = [native_platform]
+
+                # Build the image
+                built_images = self.step_runner.multi_platform.build_multiple_images(
                     platforms=self.platforms,
                     path=self.path,
                     file=self.dockerfile,
@@ -223,35 +241,50 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     pull=self.pull,
                 )
 
-                num_platforms = len(self.platforms)
+                # Set expected number of platforms
+                expected_num_platforms = 1
+                if (
+                    self.platforms
+                    and not buildrunner_config.global_config.disable_multi_platform
+                ):
+                    expected_num_platforms = len(self.platforms)
 
-                if buildrunner_config.global_config.disable_multi_platform:
-                    num_platforms = 1
+                # Set the number of built platforms
+                num_built_platforms = len(built_images.platforms)
 
-                num_built_platforms = len(built_image.platforms)
-
-                assert num_built_platforms == num_platforms, (
+                # Compare the number of built platforms with the expected number of platforms
+                assert num_built_platforms == expected_num_platforms, (
                     f"Number of built images ({num_built_platforms}) does not match "
-                    f"the number of platforms ({num_platforms})"
+                    f"the number of expected platforms ({expected_num_platforms})"
                 )
-                context["mp_built_image"] = built_image
+                context["mp_built_image"] = built_images
+                if num_built_platforms > 0:
+                    context["image"] = built_images.native_platform_image.trunc_digest
 
             else:
-                exit_code = builder.build(
-                    console=self.step_runner.log,
-                    nocache=self.nocache,
-                    cache_from=self.cache_from,
-                    pull=self.pull,
-                    buildargs=self.buildargs,
-                    platform=self.platform,
-                    target=self.target,
+                # Use the legacy builder
+                builder = DockerBuilder(
+                    self.path,
+                    inject=self.to_inject,
+                    dockerfile=self.dockerfile,
+                    docker_registry=docker_registry,
                 )
-                if exit_code != 0 or not builder.image:
-                    raise BuildRunnerProcessingError("Error building image")
-                context["image"] = builder.image
-                self.step_runner.build_runner.generated_images.append(builder.image)
+                try:
+                    exit_code = builder.build(
+                        console=self.step_runner.log,
+                        nocache=self.nocache,
+                        cache_from=self.cache_from,
+                        pull=self.pull,
+                        buildargs=self.buildargs,
+                        platform=self.platform,
+                        target=self.target,
+                    )
+                    if exit_code != 0 or not builder.image:
+                        raise BuildRunnerProcessingError("Error building image")
+                    context["image"] = builder.image
+                    self.step_runner.build_runner.generated_images.append(builder.image)
+                finally:
+                    builder.cleanup()
         except Exception as exc:
             self.step_runner.log.write(f"ERROR: {exc}\n")
             raise
-        finally:
-            builder.cleanup()
