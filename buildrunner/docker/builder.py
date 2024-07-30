@@ -16,9 +16,85 @@ import tempfile
 import docker
 import docker.errors
 
+from buildrunner.errors import (
+    BuildRunnerProcessingError,
+)
+
 from buildrunner.docker import get_dockerfile, new_client, force_remove_container
 
 logger = logging.getLogger(__name__)
+
+NO_CACHE_DEFAULT = False
+RM_DEFAULT = True
+PULL_DEFAULT = True
+
+
+def build_image(
+    path=None,
+    inject=None,
+    dockerfile=None,
+    dockerd_url=None,
+    timeout=None,
+    docker_registry=None,
+    temp_dir=None,
+    console=None,
+    nocache=NO_CACHE_DEFAULT,
+    cache_from=None,
+    rm=RM_DEFAULT,
+    pull=PULL_DEFAULT,
+    buildargs=None,
+    platform=None,
+    target=None,
+):
+    """
+    Build a Docker image using the DockerBuilder class.
+    Args:
+        path (str): Path to the build context.
+        inject (dict): Dictionary of files to inject into the build context.
+        dockerfile (str): Path to the Dockerfile to use.
+        dockerd_url (str): URL to the Docker daemon.
+        timeout (int): Timeout for the Docker client.
+        docker_registry (str): Docker registry to use.
+        temp_dir (str): Temporary directory to use.
+        console (object): Console object to write output to.
+        nocache (bool): Whether to use the Docker cache.
+        cache_from (list): List of images to use as cache sources.
+        rm (bool): Whether to remove intermediate containers.
+        pull (bool): Whether to pull images from the registry.
+        buildargs (dict): Build arguments to pass to the Docker client.
+        platform (str): Platform to build the image for.
+        target (str): Target stage to build.
+    Returns:
+        str: The ID of the built image.
+    """
+    logger.info("Using legacy builder")
+    image = None
+    builder = DockerBuilder(
+        path,
+        inject=inject,
+        dockerfile=dockerfile,
+        dockerd_url=dockerd_url,
+        timeout=timeout,
+        docker_registry=docker_registry,
+        temp_dir=temp_dir,
+    )
+    try:
+        exit_code = builder.build(
+            console=console,
+            nocache=nocache,
+            cache_from=cache_from,
+            rm=rm,
+            pull=pull,
+            buildargs=buildargs,
+            platform=platform,
+            target=target,
+        )
+        if exit_code != 0 or not builder.image:
+            raise BuildRunnerProcessingError("Error building image")
+        image = builder.image
+    finally:
+        builder.cleanup()
+    return image
 
 
 class DockerBuilder:  # pylint: disable=too-many-instance-attributes
@@ -91,10 +167,10 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
     def build(
         self,
         console=None,
-        nocache=False,
+        nocache=NO_CACHE_DEFAULT,
         cache_from=None,
-        rm=True,
-        pull=True,
+        rm=RM_DEFAULT,
+        pull=PULL_DEFAULT,
         buildargs=None,
         platform=None,
         target=None,

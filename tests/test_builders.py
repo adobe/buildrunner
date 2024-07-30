@@ -175,17 +175,14 @@ def fixture_set_env():
         ),
     ],
 )
-@mock.patch("tests.test_runner.buildrunner.steprunner.tasks.build.DockerBuilder.build")
 @mock.patch(
-    "tests.test_runner.buildrunner.steprunner.tasks.build.DockerBuilder.image",
-    new_callable=mock.PropertyMock,
+    "tests.test_runner.buildrunner.steprunner.tasks.build.legacy_builder.build_image"
 )
 @mock.patch(
     "tests.test_runner.buildrunner.steprunner.MultiplatformImageBuilder.build_multiple_images"
 )
 def test_builders(
-    mock_default_builder,
-    mock_leagacy_built_image,
+    mock_buildx_builder,
     mock_legacy_build,
     use_legacy_builder,
     config,
@@ -193,15 +190,13 @@ def test_builders(
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmp_filename = f"{tmpdirname}/config.yaml"
         with open(tmp_filename, "w") as f:
-            # f.write(json.dumps(config))
             f.write(config)
 
         args = None
         exit_code = 0
 
         #  legacy builder args
-        mock_legacy_build.return_value = 0
-        mock_leagacy_built_image.return_value = "52fc1c92b555"
+        mock_legacy_build.return_value = "52fc1c92b555"
 
         config = yaml.load(config, Loader=yaml.SafeLoader)
 
@@ -217,7 +212,6 @@ def test_builders(
                                 repo=f"repo-{platform}",
                                 tag=f"tag-{platform}",
                                 digest=f"digest-{platform}",
-                                # platform=platform
                                 platform="linux/arm64",
                             ),
                         )
@@ -244,13 +238,13 @@ def test_builders(
                                 platform=platform,
                             ),
                         )
-                mock_default_builder.return_value = built_image
+                mock_buildx_builder.return_value = built_image
 
         _test_buildrunner_file(tmpdirname, tmp_filename, args, exit_code)
 
         if use_legacy_builder:
-            mock_default_builder.assert_not_called()
+            mock_buildx_builder.assert_not_called()
             mock_legacy_build.assert_called()
         else:
-            mock_default_builder.assert_called()
+            mock_buildx_builder.assert_called()
             mock_legacy_build.assert_not_called()

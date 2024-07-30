@@ -16,10 +16,9 @@ import buildrunner.docker
 from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models_step import StepBuild
 from buildrunner.docker.importer import DockerImporter
-from buildrunner.docker.builder import DockerBuilder
+import buildrunner.docker.builder as legacy_builder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
-    BuildRunnerProcessingError,
 )
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 
@@ -263,28 +262,21 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
             else:
                 # Use the legacy builder
-                builder = DockerBuilder(
-                    self.path,
+                image = legacy_builder.build_image(
+                    path=self.path,
                     inject=self.to_inject,
                     dockerfile=self.dockerfile,
                     docker_registry=docker_registry,
+                    console=self.step_runner.log,
+                    nocache=self.nocache,
+                    cache_from=self.cache_from,
+                    pull=self.pull,
+                    buildargs=self.buildargs,
+                    platform=self.platform,
+                    target=self.target,
                 )
-                try:
-                    exit_code = builder.build(
-                        console=self.step_runner.log,
-                        nocache=self.nocache,
-                        cache_from=self.cache_from,
-                        pull=self.pull,
-                        buildargs=self.buildargs,
-                        platform=self.platform,
-                        target=self.target,
-                    )
-                    if exit_code != 0 or not builder.image:
-                        raise BuildRunnerProcessingError("Error building image")
-                    context["image"] = builder.image
-                    self.step_runner.build_runner.generated_images.append(builder.image)
-                finally:
-                    builder.cleanup()
+                context["image"] = image
+                self.step_runner.build_runner.generated_images.append(image)
         except Exception as exc:
             self.step_runner.log.write(f"ERROR: {exc}\n")
             raise
