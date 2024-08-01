@@ -86,12 +86,13 @@ step name.
 
 .. note:: Artifacts from previous steps are not available within remote builds
 
-There are two image builders in ``buildrunner``. ``docker-py`` is the default
-and legacy image builder and only supports single-platform images.
-``python-on-whales`` is the other image builder and is used for for both
-single and multi-platform images. To use the ``python-on-whales`` builder,
+There are two image builders in ``buildrunner``. The default builder is
+equivalent to ``docker build`` and only supports single-platform images,
+this is referenced as the legacy image builder.
+The new image builder is equivalent to ``docker buildx`` and is used for for both
+single and multi-platform images. To use the ``docker buildx`` builder,
 set ``use-legacy-builder: false`` in the configuration file or use ``platforms``
-in the ``build`` section.
+in the ``build`` section. The legacy builder will be removed in a future release.
 
 .. code:: yaml
 
@@ -104,7 +105,7 @@ in the ``build`` section.
       # or
       remote: <remote config>
 
-Jinja Templating
+Jinja 
 ================
 
 The 'buildrunner.yaml' file is processed as a 

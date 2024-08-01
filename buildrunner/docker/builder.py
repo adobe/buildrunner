@@ -131,20 +131,6 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         self._image = None
         self.intermediate_containers = []
 
-    @property
-    def image(self):
-        """
-        Get the image ID of the built image.
-        """
-        return self._image
-
-    @image.setter
-    def image(self, value):
-        """
-        Set the image ID of the built image.
-        """
-        self._image = value
-
     @staticmethod
     def _sanitize_buildargs(buildargs=None):
         """

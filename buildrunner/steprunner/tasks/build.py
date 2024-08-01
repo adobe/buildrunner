@@ -213,7 +213,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 if self.platforms and buildrunner_config.run_config.use_legacy_builder:
                     LOGGER.warning(
                         f"Ignoring use-legacy-builder. Using the legacy builder for multiplatform images {self.platforms} is not supported. "
-                        "If you are want to use the legacy builder and specify the platform, please use either 'platform'."
+                        "If you are want to use the legacy builder and specify the platform, please use 'platform' in the configuration file."
                     )
 
                 # Setting the platform if it is set in the step
