@@ -30,13 +30,13 @@ from buildrunner.config import (
     BuildRunnerConfig,
 )
 from buildrunner.config.models import DEFAULT_CACHES_ROOT
-from buildrunner.docker.builder import DockerBuilder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
 from buildrunner.steprunner import BuildStepRunner
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
+import buildrunner.docker.builder as legacy_builder
 
 
 LOGGER = logging.getLogger(__name__)
@@ -276,22 +276,16 @@ class BuildRunner:
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
             buildrunner_config = BuildRunnerConfig.get_instance()
-            source_builder = DockerBuilder(
+            image = legacy_builder.build_image(
                 temp_dir=buildrunner_config.global_config.temp_dir,
                 inject=inject,
                 timeout=self.docker_timeout,
                 docker_registry=buildrunner_config.global_config.docker_registry,
-            )
-            exit_code = source_builder.build(
                 nocache=True,
                 pull=False,
             )
-            if exit_code != 0 or not source_builder.image:
-                raise BuildRunnerProcessingError(
-                    f"Error building source image ({exit_code}), this may be a transient docker"
-                    " error if no output is available above"
-                )
-            self._source_image = source_builder.image
+            self._source_image = image
+
         return self._source_image
 
     def _write_artifact_manifest(self):

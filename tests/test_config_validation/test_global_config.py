@@ -18,77 +18,97 @@ def fixture_override_master_config_file(tmp_path):
     [
         (
             """
-    env:
-      ENV_VAR1: 'value1'
-      ENV_VAR2: 'true'
-    build-servers:
-      user@host:
-        - alias1
-        - alias2
-    ssh-keys:
-      key: |
-        -----INLINE KEY-----
-        ...
-      password: <password if needed>
-      prompt-password: True
-      aliases:
-        - 'my-github-key'
-    local-files:
-      digitalmarketing.mvn.settings: '~/.m2/settings.xml'
-      some.other.file.alias: |
-        The contents of the file...
-    caches-root: ~/.buildrunner/caches
-    docker-registry: docker-mirror.example.com
-    temp-dir: /my/tmp/dir
+        env:
+          ENV_VAR1: 'value1'
+          ENV_VAR2: 'true'
+        build-servers:
+          user@host:
+            - alias1
+            - alias2
+        ssh-keys:
+          key: |
+            -----INLINE KEY-----
+            ...
+          password: <password if needed>
+          prompt-password: True
+          aliases:
+            - 'my-github-key'
+        local-files:
+          digitalmarketing.mvn.settings: '~/.m2/settings.xml'
+          some.other.file.alias: |
+            The contents of the file...
+        caches-root: ~/.buildrunner/caches
+        docker-registry: docker-mirror.example.com
+        temp-dir: /my/tmp/dir
         """,
             [],
         ),
         (
             """
-    ssh-keys:
-      - file: /path/to/ssh/private/key.pem
+        ssh-keys:
+          - file: /path/to/ssh/private/key.pem
         """,
             [],
         ),
         (
             """
-    ssh-keys:
-      key: |
-        -----INLINE KEY-----
-        ...
-      password: <password if needed>
-      # If set, prompt for the ssh key password.  Ignored if password is set.
-      prompt-password: True
-      aliases:
-        - 'my-github-key'
-      bogus-attribute: 'bogus'
+        ssh-keys:
+          key: |
+            -----INLINE KEY-----
+            ...
+          password: <password if needed>
+          # If set, prompt for the ssh key password.  Ignored if password is set.
+          prompt-password: True
+          aliases:
+            - 'my-github-key'
+          bogus-attribute: 'bogus'
         """,
             ["Extra inputs are not permitted"],
         ),
         # Valid github config
         (
             """
-        github:
-          company_github:
-            endpoint: 'https://git.company.com/api'
-            version: 'v3'
-            username: 'USERNAME'
-            app_token: 'APP_TOKEN'
-        """,
+          github:
+            company_github:
+              endpoint: 'https://git.company.com/api'
+              version: 'v3'
+              username: 'USERNAME'
+              app_token: 'APP_TOKEN'
+          """,
             [],
         ),
         # Invalid github config
         (
             """
-        github:
-          company_github:
-            endpoint: 'https://git.company.com/api'
-            version: 'v3'
-            username: 'USERNAME'
-            app_token: 'APP_TOKEN'
-            bogus: 'bogus'
-        """,
+          github:
+            company_github:
+              endpoint: 'https://git.company.com/api'
+              version: 'v3'
+              username: 'USERNAME'
+              app_token: 'APP_TOKEN'
+              bogus: 'bogus'
+          """,
             ["Extra inputs are not permitted"],
+        ),
+        (
+            """
+          disable-multi-platform: True
+          """,
+            [],
+        ),
+        (
+            """
+          disable-multi-platform: False
+          """,
+            [],
+        ),
+        (
+            """
+          disable-multi-platform: bogus
+          """,
+            [
+                "disable-multi-platform:  Input should be a valid boolean, unable to interpret input (bool_parsing)"
+            ],
         ),
     ],
 )

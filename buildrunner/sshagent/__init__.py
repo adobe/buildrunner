@@ -32,7 +32,7 @@ from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
 )
-from buildrunner.docker.builder import DockerBuilder
+import buildrunner.docker.builder as legacy_builder
 
 SSH_AGENT_PROXY_BUILD_CONTEXT = os.path.join(
     os.path.dirname(__file__), "SSHAgentProxyImage"
@@ -251,17 +251,13 @@ class DockerSSHAgentProxy:
         """
         if not self._ssh_agent_image:
             self.log.write("Creating ssh-agent image\n")
-            ssh_agent_builder = DockerBuilder(
+            image = legacy_builder.build_image(
                 path=SSH_AGENT_PROXY_BUILD_CONTEXT,
                 docker_registry=self.docker_registry,
-            )
-            exit_code = ssh_agent_builder.build(
                 nocache=False,
                 pull=False,
             )
-            if exit_code != 0 or not ssh_agent_builder.image:
-                raise BuildRunnerProcessingError("Error building ssh agent image")
-            self._ssh_agent_image = ssh_agent_builder.image
+            self._ssh_agent_image = image
         return self._ssh_agent_image
 
 
