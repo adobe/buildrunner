@@ -1,6 +1,5 @@
-use-legacy-builder: true
+use-legacy-builder: false
 steps:
-
   test:
     build:
       no-cache: true

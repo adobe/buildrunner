@@ -14,6 +14,7 @@ import pwd
 import threading
 import time
 import uuid
+import python_on_whales
 
 import buildrunner.docker
 from buildrunner.config import BuildRunnerConfig
@@ -71,6 +72,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._sshagent = None
         self._dockerdaemonproxy = None
         self.runner = None
+        self.images_to_remove = []
 
     def _get_source_container(self):
         """
@@ -1093,14 +1095,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         self.step_runner.log.write("Running post-build processing\n")
         post_build = self.step.post_build
-        # post build always uses the image hash--can't pull
+        temp_tag = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
+        python_on_whales.docker.image.tag(
+            self.runner.commit(self.step_runner.log),
+            temp_tag,
+        )
+        self.images_to_remove.append(temp_tag)
+
         post_build.pull = False
         build_image_task = BuildBuildStepRunnerTask(
-            self.step_runner,
-            post_build,
-            image_to_prepend_to_dockerfile=self.runner.commit(
-                self.step_runner.log,
-            ),
+            self.step_runner, post_build, image_to_prepend_to_dockerfile=temp_tag
         )
         _build_context = {}
         build_image_task.run(_build_context)
@@ -1134,6 +1138,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 force=True,
                 v=True,
             )
+
+        for image in self.images_to_remove:
+            python_on_whales.docker.image.remove(image, force=True)
 
     def is_systemd(self, run_service: RunAndServicesBase, image, logger):
         """Check if an image runs systemd"""
