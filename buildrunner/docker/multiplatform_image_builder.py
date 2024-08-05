@@ -217,11 +217,19 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         ) as tmp_dir:
             context_dir = os.path.join(tmp_dir, f"{dir_prefix}/")
             shutil.copytree(
-                path, context_dir, ignore=shutil.ignore_patterns(dir_prefix, ".git")
+                path,
+                context_dir,
+                ignore=shutil.ignore_patterns(dir_prefix, ".git"),
+                symlinks=True,
             )
 
             for src, dest in inject.items():
                 src_path = os.path.join(path, src)
+
+                # Remove '/' prefix
+                if dest.startswith("/"):
+                    dest = dest[1:]
+
                 dest_path = os.path.join(context_dir, dest)
 
                 # Check to see if the dest dir exists, if not create it
@@ -229,6 +237,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 if not os.path.isdir(dest_dir):
                     os.mkdir(dest_dir)
 
+                # Copy source to destination
                 if os.path.isdir(src_path):
                     shutil.copytree(src_path, dest_path)
                 else:
