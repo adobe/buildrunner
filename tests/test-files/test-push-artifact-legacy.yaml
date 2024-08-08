@@ -1,0 +1,100 @@
+use-legacy-builder: true
+steps:
+
+  test-no-artifacts:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'echo "hello"'
+      ]
+
+  test-no-artifact-properties:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-no-artifact-properties-dir',
+        'echo "hello" > test-no-artifact-properties-dir/test1.txt',
+        'echo "hello" > test-no-artifact-properties-dir/test2.txt',
+        'echo "hello" > test-no-artifact-properties.txt',
+      ]
+
+  test-no-push-properties:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-no-push-properties-dir',
+        'echo "hello" > test-no-push-properties-dir/test1.txt',
+        'echo "hello" > test-no-push-properties-dir/test2.txt',
+        'echo "hello" > test-no-push-properties.txt',
+      ]
+      artifacts:
+        'test-no-push-properties-dir': {format: 'uncompressed', prop1: 'hello'}
+        'test-no-push-properties.txt': {format: 'file'}
+
+  test-push-true:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-push-true-dir',
+        'echo "hello" > test-push-true-dir/test1.txt',
+        'echo "hello" > test-push-true-dir/test2.txt',
+        'echo "hello" > test-push-true.txt',
+      ]
+      artifacts:
+        'test-push-true-dir': {format: 'uncompressed', prop1: 'hello', push: True}
+        'test-push-true.txt': {format: 'file', push: True}
+
+  test-push-false:
+    run:
+      image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
+      cmds: [
+        'mkdir test-push-false-dir',
+        'echo "hello" > test-push-false-dir/test1.txt',
+        'echo "hello" > test-push-false-dir/test2.txt',
+        'echo "hello" > test-push-false.txt',
+      ]
+      artifacts:
+        'test-push-false-dir': {format: 'uncompressed', prop1: 'hello', push: False}
+        'test-push-false.txt': {format: 'file', push: False}
+
+  single-file-rename:
+    run:
+      image: ubuntu:20.10
+      cmds:
+        - mkdir -p dir1/dir2
+        - echo "single-file-artifacts - Hello, world!!" > hello.txt
+        - echo "single-file-artifacts - Hello, world! 1/" > dir1/hello.txt
+        - echo "single-file-artifacts - Hello, world!! 1/2/" > dir1/dir2/hello.txt
+      artifacts:
+        hello.txt:
+          rename: hello-world.txt
+        dir1/hello.txt:
+          format: uncompressed
+          rename: hello-world1.txt
+        dir1/dir2/hello.txt:
+          format: uncompressed
+          rename: hello-world2.txt
+
+  archive-file-rename:
+    run:
+      image: ubuntu:latest
+      cmds:
+        - mkdir -p dir1/dir2
+        - mkdir -p dir3/dir2
+        - mkdir -p uncompressed-dir
+        - echo "directory-archiver - Hello, world!!" > hello.txt
+        - echo "directory-archiver - Hello, world! 1" > dir1/hello.txt
+        - echo "directory-archiver - Hello, world! 2" > dir1/hello1.txt
+        - echo "directory-archiver - Hello, world! 3" > dir1/hello2.txt
+        - echo "directory-archiver - Hello, world!! 1/2/" > dir1/dir2/hello.txt
+        - echo "directory-archiver - Hello, world! 3-2" > dir3/dir2/hello1.txt
+        - echo "directory-archiver - Hello, world! 3-2" > dir3/dir2/hello2.txt
+      artifacts:
+        dir1:
+          compression: tar
+        dir1/dir2:
+          compression: tar
+          rename: dir1-dir2
+        dir3/dir2:
+          compression: tar
+          rename: dir3-dir2
