@@ -243,6 +243,11 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 else:
                     shutil.copy(src_path, dest_path)
 
+            # Dockerfile listed in inject will overwrite the dockerfile in the context
+            if dockerfile and "Dockerfile" not in inject.values():
+                LOGGER.info(f"Injecting Dockerfile {dockerfile} to context directory '{context_dir}'")
+                shutil.copy(dockerfile, f"{context_dir}/Dockerfile")
+
             assert os.path.isdir(
                 context_dir
             ), f"Failed to create context dir {context_dir}"
@@ -252,7 +257,6 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 tags=[image_ref],
                 platforms=[platform],
                 load=True,
-                file=dockerfile,
                 target=target,
                 builder=builder,
                 build_args=build_args,
