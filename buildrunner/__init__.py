@@ -299,7 +299,10 @@ class BuildRunner:
                         pull=False,
                     )
                 )
-                assert len(built_images_info.built_images) == 1
+                if len(built_images_info.built_images) != 1:
+                    raise BuildRunnerProcessingError(
+                        "Failed to build source image. Retrying the build may resolve the issue."
+                    )
                 self._source_image = built_images_info.built_images[0].trunc_digest
 
         return self._source_image

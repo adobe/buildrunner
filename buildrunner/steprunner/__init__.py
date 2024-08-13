@@ -112,6 +112,9 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
                         f'Step "{self.name}" failed with exception: {err}\n    '
                         f"Ignoring due to XFAIL\n"
                     )
+                except Exception as err:  # pylint: disable=broad-except
+                    self.log.write(f'Step "{self.name}" failed with exception: {err}\n')
+                    raise err
         finally:
             for _task in _tasks:
                 try:
