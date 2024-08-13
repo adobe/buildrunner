@@ -109,6 +109,7 @@ class BuildRunner:
         self._source_image = None
         self._source_archive = None
         self._log = None
+        self._step_runner = None
 
         try:
             vcs = detect_vcs(self.build_dir)
@@ -276,15 +277,31 @@ class BuildRunner:
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
             buildrunner_config = BuildRunnerConfig.get_instance()
-            image = legacy_builder.build_image(
-                temp_dir=buildrunner_config.global_config.temp_dir,
-                inject=inject,
-                timeout=self.docker_timeout,
-                docker_registry=buildrunner_config.global_config.docker_registry,
-                nocache=True,
-                pull=False,
-            )
-            self._source_image = image
+            if buildrunner_config.run_config.use_legacy_builder:
+                image = legacy_builder.build_image(
+                    temp_dir=buildrunner_config.global_config.temp_dir,
+                    inject=inject,
+                    timeout=self.docker_timeout,
+                    docker_registry=buildrunner_config.global_config.docker_registry,
+                    nocache=True,
+                    pull=False,
+                )
+                self._source_image = image
+            else:
+                # Use buildx builder
+                native_platform = self._step_runner.multi_platform.get_native_platform()
+                LOGGER.info(f"Setting platforms to [{native_platform}]")
+                platforms = [native_platform]
+                built_images_info = (
+                    self._step_runner.multi_platform.build_multiple_images(
+                        platforms=platforms,
+                        inject=inject,
+                        cache=False,
+                        pull=False,
+                    )
+                )
+                assert len(built_images_info.built_images) == 1
+                self._source_image = built_images_info.built_images[0].trunc_digest
 
         return self._source_image
 
@@ -384,10 +401,10 @@ class BuildRunner:
                             )
                             multi_platform.set_cache_to(step_config.build.cache_to)
 
-                        build_step_runner = BuildStepRunner(
+                        self._step_runner = BuildStepRunner(
                             self, step_name, step_config, image_config, multi_platform
                         )
-                        build_step_runner.run()
+                        self._step_runner.run()
 
                 self.log.write(
                     "\nFinalizing build\n________________________________________\n"

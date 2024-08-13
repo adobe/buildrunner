@@ -1,6 +1,7 @@
 import os
 import tempfile
 import json
+import pytest
 
 from tests import test_runner
 
@@ -52,104 +53,135 @@ def _test_buildrunner_file(
         assert len(artifacts) == 0
 
 
-def test_no_artifacts():
-    artifacts_in_file = {}
+# Test legacy builder
+@pytest.mark.parametrize(
+    "test_name, artifacts_in_file",
+    [
+        ("test-no-artifacts", {}),
+        (
+            "test-no-artifact-properties",
+            {
+                "test-no-artifact-properties/test-no-artifact-properties-dir/test1.txt": False,
+                "test-no-artifact-properties/test-no-artifacts-properties-dir/test2.txt": False,
+                "test-no-artifact-properties/test-no-artifact-properties.txt": False,
+            },
+        ),
+        (
+            "test-no-push-properties",
+            {
+                "test-no-push-properties/test-no-push-properties-dir/test1.txt": True,
+                "test-no-push-properties/test-no-push-properties-dir/test2.txt": True,
+                "test-no-push-properties/test-no-push-properties.txt": True,
+            },
+        ),
+        (
+            "test-push-true",
+            {
+                "test-push-true/test-push-true-dir/test1.txt": True,
+                "test-push-true/test-push-true-dir/test2.txt": True,
+                "test-push-true/test-push-true.txt": True,
+            },
+        ),
+        (
+            "test-push-false",
+            {
+                "test-push-false/test-push-false-dir/test1.txt": False,
+                "test-push-false/test-push-false-dir/test2.txt": False,
+                "test-push-false/test-push-false.txt": False,
+            },
+        ),
+        (
+            "single-file-rename",
+            {
+                "single-file-rename/hello-world.txt": True,
+                "single-file-rename/hello-world1.txt": True,
+                "single-file-rename/hello-world2.txt": True,
+                "single-file-rename/hello.txt": False,
+            },
+        ),
+        (
+            "archive-file-rename",
+            {
+                "archive-file-rename/dir1.tar.gz": True,
+                "archive-file-rename/dir1-dir2.tar.gz": True,
+                "archive-file-rename/dir3-dir2.tar.gz": True,
+                "archive-file-rename/dir2.tar.gz": False,
+            },
+        ),
+    ],
+)
+def test_artifacts_with_legacy_builder(test_name, artifacts_in_file):
     _test_buildrunner_file(
         f"{TEST_DIR}/test-files",
-        "test-push-artifact.yaml",
-        ["-s", "test-no-artifacts"],
+        "test-push-artifact-legacy.yaml",
+        ["-s", test_name],
         0,
         artifacts_in_file,
     )
 
 
-def test_no_artifact_properties():
-    artifacts_in_file = {
-        "test-no-artifact-properties/test-no-artifact-properties-dir/test1.txt": False,
-        "test-no-artifact-properties/test-no-artifacts-properties-dir/test2.txt": False,
-        "test-no-artifact-properties/test-no-artifact-properties.txt": False,
-    }
+# Test legacy builder
+@pytest.mark.parametrize(
+    "test_name, artifacts_in_file",
+    [
+        ("test-no-artifacts", {}),
+        (
+            "test-no-artifact-properties",
+            {
+                "test-no-artifact-properties/test-no-artifact-properties-dir/test1.txt": False,
+                "test-no-artifact-properties/test-no-artifacts-properties-dir/test2.txt": False,
+                "test-no-artifact-properties/test-no-artifact-properties.txt": False,
+            },
+        ),
+        (
+            "test-no-push-properties",
+            {
+                "test-no-push-properties/test-no-push-properties-dir/test1.txt": True,
+                "test-no-push-properties/test-no-push-properties-dir/test2.txt": True,
+                "test-no-push-properties/test-no-push-properties.txt": True,
+            },
+        ),
+        (
+            "test-push-true",
+            {
+                "test-push-true/test-push-true-dir/test1.txt": True,
+                "test-push-true/test-push-true-dir/test2.txt": True,
+                "test-push-true/test-push-true.txt": True,
+            },
+        ),
+        (
+            "test-push-false",
+            {
+                "test-push-false/test-push-false-dir/test1.txt": False,
+                "test-push-false/test-push-false-dir/test2.txt": False,
+                "test-push-false/test-push-false.txt": False,
+            },
+        ),
+        (
+            "single-file-rename",
+            {
+                "single-file-rename/hello-world.txt": True,
+                "single-file-rename/hello-world1.txt": True,
+                "single-file-rename/hello-world2.txt": True,
+                "single-file-rename/hello.txt": False,
+            },
+        ),
+        (
+            "archive-file-rename",
+            {
+                "archive-file-rename/dir1.tar.gz": True,
+                "archive-file-rename/dir1-dir2.tar.gz": True,
+                "archive-file-rename/dir3-dir2.tar.gz": True,
+                "archive-file-rename/dir2.tar.gz": False,
+            },
+        ),
+    ],
+)
+def test_artifacts_with_buildx_builder(test_name, artifacts_in_file):
     _test_buildrunner_file(
         f"{TEST_DIR}/test-files",
-        "test-push-artifact.yaml",
-        ["-s", "test-no-artifact-properties"],
-        0,
-        artifacts_in_file,
-    )
-
-
-def test_no_push_property():
-    artifacts_in_file = {
-        "test-no-push-properties/test-no-push-properties-dir/test1.txt": True,
-        "test-no-push-properties/test-no-push-properties-dir/test2.txt": True,
-        "test-no-push-properties/test-no-push-properties.txt": True,
-    }
-    _test_buildrunner_file(
-        f"{TEST_DIR}/test-files",
-        "test-push-artifact.yaml",
-        ["-s", "test-no-push-properties"],
-        0,
-        artifacts_in_file,
-    )
-
-
-def test_push_true():
-    artifacts_in_file = {
-        "test-push-true/test-push-true-dir/test1.txt": True,
-        "test-push-true/test-push-true-dir/test2.txt": True,
-        "test-push-true/test-push-true.txt": True,
-    }
-    _test_buildrunner_file(
-        f"{TEST_DIR}/test-files",
-        "test-push-artifact.yaml",
-        ["-s", "test-push-true"],
-        0,
-        artifacts_in_file,
-    )
-
-
-def test_push_false():
-    artifacts_in_file = {
-        "test-push-false/test-push-false-dir/test1.txt": False,
-        "test-push-false/test-push-false-dir/test2.txt": False,
-        "test-push-false/test-push-false.txt": False,
-    }
-    _test_buildrunner_file(
-        f"{TEST_DIR}/test-files",
-        "test-push-artifact.yaml",
-        ["-s", "test-push-false"],
-        0,
-        artifacts_in_file,
-    )
-
-
-def test_file_remame():
-    artifacts_in_file = {
-        "single-file-rename/hello-world.txt": True,
-        "single-file-rename/hello-world1.txt": True,
-        "single-file-rename/hello-world2.txt": True,
-        "single-file-rename/hello.txt": False,
-    }
-    _test_buildrunner_file(
-        f"{TEST_DIR}/test-files",
-        "test-push-artifact.yaml",
-        ["-s", "single-file-rename"],
-        0,
-        artifacts_in_file,
-    )
-
-
-def test_archive_file_remame():
-    artifacts_in_file = {
-        "archive-file-rename/dir1.tar.gz": True,
-        "archive-file-rename/dir1-dir2.tar.gz": True,
-        "archive-file-rename/dir3-dir2.tar.gz": True,
-        "archive-file-rename/dir2.tar.gz": False,
-    }
-    _test_buildrunner_file(
-        f"{TEST_DIR}/test-files",
-        "test-push-artifact.yaml",
-        ["-s", "archive-file-rename"],
+        "test-push-artifact-buildx.yaml",
+        ["-s", test_name],
         0,
         artifacts_in_file,
     )
