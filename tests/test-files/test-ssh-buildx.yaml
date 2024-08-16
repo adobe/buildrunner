@@ -1,0 +1,17 @@
+use-legacy-builder: True
+steps:
+  clone:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
+        RUN yum install -y git-core openssh-clients && yum clean all
+    run:
+      ssh-keys: ['buildrunner-deploy']
+      cmds:
+      - mkdir ~/.ssh
+      - ssh-keyscan github.com > ~/.ssh/known_hosts
+      - chmod 700 ~/.ssh
+      - chmod 600 ~/.ssh/known_hosts
+      # Clone into temp directory since the "buildrunner" directory may already exist
+      - rm -rf /tmp/test-clone
+      - git clone git@github.com:adobe/buildrunner.git /tmp/test-clone

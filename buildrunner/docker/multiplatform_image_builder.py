@@ -429,7 +429,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             else:
                 path = "."
 
-        dockerfile, cleanup_dockerfile = get_dockerfile(file)
+        dockerfile, cleanup_dockerfile = get_dockerfile(dockerfile=file, path=path)
 
         # Track this newly built image
         built_image = BuiltImageInfo(id=str(uuid.uuid4()))

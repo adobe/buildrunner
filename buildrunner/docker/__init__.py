@@ -107,7 +107,9 @@ def force_remove_container(docker_client, container):
     )
 
 
-def get_dockerfile(dockerfile: str, temp_dir: str = None) -> Tuple[str, bool]:
+def get_dockerfile(
+    dockerfile: str, temp_dir: str = None, path: str = None
+) -> Tuple[str, bool]:
     """
     Check if the dockerfile exists, if not create a temporary file and write the dockerfile to it.
     :param dockerfile: the dockerfile
@@ -117,7 +119,19 @@ def get_dockerfile(dockerfile: str, temp_dir: str = None) -> Tuple[str, bool]:
     cleanup_dockerfile = False
     curr_dockerfile = None
 
-    if dockerfile:
+    if path and path != "." and not dockerfile:
+        if os.path.exists(path):
+            if os.path.exists(os.path.join(path, "Dockerfile")):
+                curr_dockerfile = os.path.join(path, "Dockerfile")
+            else:
+                raise BuildRunnerConfigurationError(
+                    f"Path {path} exists but does not contain a Dockerfile"
+                )
+        else:
+            raise BuildRunnerConfigurationError(
+                f"Path {path} does not exist, cannot find Dockerfile"
+            )
+    elif dockerfile:
         if os.path.exists(dockerfile):
             curr_dockerfile = dockerfile
         else:

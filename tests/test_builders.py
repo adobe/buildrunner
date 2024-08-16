@@ -56,10 +56,10 @@ def fixture_set_env():
 
 
 @pytest.mark.parametrize(
-    "use_legacy_builder, config,",
+    "description, use_legacy_builder, config,",
     [
-        # Use default builder
         (
+            "Use buildx builder with platform",
             False,
             """
             use-legacy-builder: false
@@ -74,6 +74,7 @@ def fixture_set_env():
             """,
         ),
         (
+            "Use buildx builder",
             False,
             """
             use-legacy-builder: false
@@ -87,6 +88,7 @@ def fixture_set_env():
             """,
         ),
         (
+            "Overwrite use-legacy-builder with platforms",
             False,
             """
             use-legacy-builder: true
@@ -103,6 +105,7 @@ def fixture_set_env():
             """,
         ),
         (
+            "Use buildx builder with platforms",
             False,
             """
             use-legacy-builder: false
@@ -119,6 +122,7 @@ def fixture_set_env():
             """,
         ),
         (
+            "Default builder with platforms",
             False,
             """
             steps:
@@ -133,8 +137,8 @@ def fixture_set_env():
                             - linux/arm64
             """,
         ),
-        # Use legacy builder
         (
+            "Default builder",
             True,
             """
             steps:
@@ -147,6 +151,7 @@ def fixture_set_env():
             """,
         ),
         (
+            "Use legacy builder with platform",
             True,
             """
             use-legacy-builder: true
@@ -161,6 +166,7 @@ def fixture_set_env():
             """,
         ),
         (
+            "Use legacy builder with use-legacy-builder",
             True,
             """
             use-legacy-builder: true
@@ -184,9 +190,11 @@ def fixture_set_env():
 def test_builders(
     mock_buildx_builder,
     mock_legacy_build,
+    description,
     use_legacy_builder,
     config,
 ):
+    _ = description
     with tempfile.TemporaryDirectory() as tmpdirname:
         tmp_filename = f"{tmpdirname}/config.yaml"
         with open(tmp_filename, "w") as f:
