@@ -278,7 +278,10 @@ class DockerSSHAgentProxy:
                         use_threading=False,
                     )
                 )
-                assert len(built_images_info.built_images) == 1
+                if len(built_images_info.built_images) != 1:
+                    raise BuildRunnerProcessingError(
+                        "Failed to build ssh-agent image. Retrying the build may resolve the issue."
+                    )
                 self._ssh_agent_image = built_images_info.built_images[0].trunc_digest
         return self._ssh_agent_image
 
