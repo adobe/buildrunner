@@ -10,6 +10,8 @@ import os
 
 from buildrunner.docker import DOCKER_DEFAULT_DOCKERD_URL
 
+DAEMON_IMAGE_NAME = "busybox:latest"
+
 
 class DockerDaemonProxy:
     """
@@ -74,10 +76,8 @@ class DockerDaemonProxy:
                 self._env["DOCKER_HOST"] = "unix:///dockerdaemon/docker.sock"
 
         # create and start the Docker container
-        image_name = f"{self.docker_registry}/busybox:latest"
-        self.docker_client.pull(image_name)
         self._daemon_container = self.docker_client.create_container(
-            image_name,
+            f"{self.docker_registry}/{DAEMON_IMAGE_NAME}",
             command="/bin/sh",
             volumes=_volumes,
             host_config=self.docker_client.create_host_config(binds=_binds),

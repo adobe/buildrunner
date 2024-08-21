@@ -5,6 +5,8 @@ import docker.errors
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
 import buildrunner.config.loader  # noqa: E402
+from buildrunner.docker.daemon import DAEMON_IMAGE_NAME  # noqa: E402
+from buildrunner import docker as buildrunner_docker  # noqa: E402
 from buildrunner import (  # noqa: E402
     cli,
     __version__,
@@ -30,6 +32,14 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
 
     try:
         build_runner = cli.initialize_br(args)
+
+        # Pull Docker daemon proxy
+        image_name = f"{build_runner.buildrunner_config.global_config.docker_registry}/{DAEMON_IMAGE_NAME}"
+        docker_client = buildrunner_docker.new_client(
+            timeout=build_runner.docker_timeout
+        )
+        docker_client.pull(image_name)
+
         build_runner.run()
         if build_runner.exit_code:
             return build_runner.exit_code
