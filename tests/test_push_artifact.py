@@ -21,6 +21,8 @@ def _test_buildrunner_file(
             top_dir_path,
             "-b",
             temp_dir,
+            # Since we are using a fresh temp directory, don't delete it first
+            "--keep-step-artifacts",
             "-f",
             os.path.join(test_dir, file_name),
         ]
