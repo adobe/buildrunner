@@ -1,5 +1,3 @@
-from buildrunner.docker.daemon import DAEMON_IMAGE_NAME
-from buildrunner import docker as buildrunner_docker
 import os
 import sys
 import docker.errors
@@ -7,6 +5,8 @@ import docker.errors
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
 import buildrunner.config.loader  # noqa: E402
+from buildrunner.docker.daemon import DAEMON_IMAGE_NAME  # noqa: E402
+from buildrunner import docker as buildrunner_docker  # noqa: E402
 from buildrunner import (  # noqa: E402
     cli,
     __version__,
