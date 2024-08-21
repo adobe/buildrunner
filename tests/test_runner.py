@@ -1,3 +1,5 @@
+from buildrunner.docker.daemon import DAEMON_IMAGE_NAME
+from buildrunner import docker as buildrunner_docker
 import os
 import sys
 import docker.errors
@@ -30,6 +32,14 @@ def run_tests(argv, master_config_file=None, global_config_files=None):
 
     try:
         build_runner = cli.initialize_br(args)
+
+        # Pull Docker daemon proxy
+        image_name = f"{build_runner.buildrunner_config.global_config.docker_registry}/{DAEMON_IMAGE_NAME}"
+        docker_client = buildrunner_docker.new_client(
+            timeout=build_runner.docker_timeout
+        )
+        docker_client.pull(image_name)
+
         build_runner.run()
         if build_runner.exit_code:
             return build_runner.exit_code

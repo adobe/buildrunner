@@ -138,7 +138,7 @@ class BuildRunner:
             tmp_files=self.tmp_files,
             global_config_overrides=global_config_overrides,
         )
-        buildrunner_config = BuildRunnerConfig.get_instance()
+        self.buildrunner_config = BuildRunnerConfig.get_instance()
 
         # cleanup local cache
         if self.cleanup_cache:
@@ -148,7 +148,7 @@ class BuildRunner:
             missing_steps = [
                 step
                 for step in steps_to_run
-                if step not in buildrunner_config.run_config.steps
+                if step not in self.buildrunner_config.run_config.steps
             ]
             if missing_steps:
                 raise BuildRunnerConfigurationError(
@@ -276,13 +276,12 @@ class BuildRunner:
                 source_archive_path: "source.tar",
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
-            buildrunner_config = BuildRunnerConfig.get_instance()
-            if buildrunner_config.run_config.use_legacy_builder:
+            if self.buildrunner_config.run_config.use_legacy_builder:
                 image = legacy_builder.build_image(
-                    temp_dir=buildrunner_config.global_config.temp_dir,
+                    temp_dir=self.buildrunner_config.global_config.temp_dir,
                     inject=inject,
                     timeout=self.docker_timeout,
-                    docker_registry=buildrunner_config.global_config.docker_registry,
+                    docker_registry=self.buildrunner_config.global_config.docker_registry,
                     nocache=True,
                     pull=False,
                 )
@@ -359,29 +358,28 @@ class BuildRunner:
         self.exit_code = None
 
         exit_explanation = None
-        buildrunner_config = BuildRunnerConfig.get_instance()
         try:  # pylint: disable=too-many-nested-blocks
             with MultiplatformImageBuilder(
-                docker_registry=buildrunner_config.global_config.docker_registry,
-                build_registry=buildrunner_config.global_config.build_registry,
-                temp_dir=buildrunner_config.global_config.temp_dir,
-                platform_builders=buildrunner_config.global_config.platform_builders,
-                cache_builders=buildrunner_config.global_config.docker_build_cache.builders,
-                cache_from=buildrunner_config.global_config.docker_build_cache.from_config,
-                cache_to=buildrunner_config.global_config.docker_build_cache.to_config,
+                docker_registry=self.buildrunner_config.global_config.docker_registry,
+                build_registry=self.buildrunner_config.global_config.build_registry,
+                temp_dir=self.buildrunner_config.global_config.temp_dir,
+                platform_builders=self.buildrunner_config.global_config.platform_builders,
+                cache_builders=self.buildrunner_config.global_config.docker_build_cache.builders,
+                cache_from=self.buildrunner_config.global_config.docker_build_cache.from_config,
+                cache_to=self.buildrunner_config.global_config.docker_build_cache.to_config,
             ) as multi_platform:
                 self.get_source_archive_path()
                 # run each step
                 for (
                     step_name,
                     step_config,
-                ) in buildrunner_config.run_config.steps.items():
+                ) in self.buildrunner_config.run_config.steps.items():
                     # Reset the cache_from and cache_to for each step to the global values
                     multi_platform.set_cache_from(
-                        buildrunner_config.global_config.docker_build_cache.from_config
+                        self.buildrunner_config.global_config.docker_build_cache.from_config
                     )
                     multi_platform.set_cache_to(
-                        buildrunner_config.global_config.docker_build_cache.to_config
+                        self.buildrunner_config.global_config.docker_build_cache.to_config
                     )
 
                     if not self.steps_to_run or step_name in self.steps_to_run:
