@@ -74,8 +74,10 @@ class DockerDaemonProxy:
                 self._env["DOCKER_HOST"] = "unix:///dockerdaemon/docker.sock"
 
         # create and start the Docker container
+        image_name = f"{self.docker_registry}/busybox:latest"
+        self.docker_client.pull(image_name)
         self._daemon_container = self.docker_client.create_container(
-            f"{self.docker_registry}/busybox:latest",
+            image_name,
             command="/bin/sh",
             volumes=_volumes,
             host_config=self.docker_client.create_host_config(binds=_binds),
