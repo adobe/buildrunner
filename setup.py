@@ -13,7 +13,7 @@ import types
 from setuptools import setup, find_packages
 
 
-BASE_VERSION = "3.12"
+BASE_VERSION = "3.13"
 
 SOURCE_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILDRUNNER_DIR = os.path.join(SOURCE_DIR, "buildrunner")

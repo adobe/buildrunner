@@ -7,7 +7,11 @@ from python_on_whales import docker
 from python_on_whales.exceptions import DockerException
 
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
-from buildrunner.docker.image_info import BuiltImageInfo
+from buildrunner.docker.image_info import (
+    BuiltImageInfo,
+    BuiltTaggedImage,
+    TaggedImageInfo,
+)
 
 
 TEST_DIR = os.path.dirname(__file__)
@@ -585,3 +589,228 @@ def test_use_build_registry():
             ), "The local registry should not have been started when using a build registry"
     finally:
         registry_mpib._stop_local_registry()
+
+
+@pytest.mark.parametrize(
+    "side_effect, expected_call_count",
+    [
+        (TimeoutError("Timeout"), 5),
+        (
+            [
+                None,
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+            ],
+            6,
+        ),
+        (
+            [
+                None,
+                None,
+                None,
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+                TimeoutError("Timeout"),
+            ],
+            8,
+        ),
+    ],
+)
+@patch("buildrunner.docker.multiplatform_image_builder.PUSH_TIMEOUT", 1)
+@patch("buildrunner.docker.multiplatform_image_builder.BuildRunnerConfig")
+@patch(
+    "buildrunner.docker.multiplatform_image_builder.python_on_whales.docker.buildx.imagetools.create"
+)
+def test_push_retries(mock_docker, mock_config, side_effect, expected_call_count):
+    mock_docker.side_effect = side_effect
+    mock_config.get_instance.return_value.global_config.disable_multi_platform = False
+
+    build_name = "test-push-image-2001"
+    with pytest.raises(TimeoutError):
+        with MultiplatformImageBuilder() as mpib:
+            mpib._built_images = [
+                BuiltImageInfo(
+                    id="test-id1",
+                    images_by_platform={
+                        "linux/arm64": BuiltTaggedImage(
+                            repo=build_name,
+                            tag="test",
+                            digest="abcd12345",
+                            platform="linux/arm64",
+                        ),
+                        "linux/amd64": BuiltTaggedImage(
+                            repo=build_name,
+                            tag="test",
+                            digest="abcd12345",
+                            platform="linux/amd64",
+                        ),
+                    },
+                    tagged_images=[
+                        TaggedImageInfo(
+                            repo=build_name,
+                            tags=["latest", "0.1.0", "0.1.1", "0.1.2", "test", "test2"],
+                        ),
+                    ],
+                )
+            ]
+
+            mpib.push()
+
+    assert mock_docker.call_count == expected_call_count
+
+
+@pytest.mark.parametrize(
+    "tagged_images, expected_call_count",
+    [
+        (
+            [
+                TaggedImageInfo(
+                    repo="my-test-image1",
+                    tags=["latest", "0.1.0", "0.1.1", "0.1.2", "test", "test2"],
+                )
+            ],
+            6,
+        ),
+        (
+            [
+                TaggedImageInfo(
+                    repo="my-test-image1",
+                    tags=["latest", "0.1.0", "test"],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image2",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image3",
+                    tags=[
+                        "latest",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image4",
+                    tags=["latest", "0.1.0", "0.1.1", "0.1.2", "test", "test2"],
+                ),
+            ],
+            12,
+        ),
+        (
+            [
+                TaggedImageInfo(
+                    repo="my-test-image1",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                        "0.1.1",
+                        "0.1.2",
+                        "test",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image2",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                        "0.1.1",
+                        "0.1.2",
+                        "test",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image3",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                        "0.1.1",
+                        "0.1.2",
+                        "test",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image4",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                        "0.1.1",
+                        "0.1.2",
+                        "test",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image5",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                        "0.1.1",
+                        "0.1.2",
+                        "test",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image6",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                        "0.1.1",
+                        "0.1.2",
+                        "test",
+                    ],
+                ),
+                TaggedImageInfo(
+                    repo="my-test-image7",
+                    tags=[
+                        "latest",
+                        "0.1.0",
+                        "0.1.1",
+                        "0.1.2",
+                        "test",
+                    ],
+                ),
+            ],
+            35,
+        ),
+    ],
+)
+@patch("buildrunner.docker.multiplatform_image_builder.PUSH_TIMEOUT", 1)
+@patch("buildrunner.docker.multiplatform_image_builder.BuildRunnerConfig")
+@patch(
+    "buildrunner.docker.multiplatform_image_builder.python_on_whales.docker.buildx.imagetools.create"
+)
+def test_push_calls(mock_docker, mock_config, tagged_images, expected_call_count):
+    mock_docker.side_effect = None
+    mock_config.get_instance.return_value.global_config.disable_multi_platform = False
+
+    build_name = "test-push-image-2001"
+    with MultiplatformImageBuilder() as mpib:
+        mpib._built_images = [
+            BuiltImageInfo(
+                id="test-id1",
+                images_by_platform={
+                    "linux/arm64": BuiltTaggedImage(
+                        repo=build_name,
+                        tag="test",
+                        digest="abcd12345",
+                        platform="linux/arm64",
+                    ),
+                    "linux/amd64": BuiltTaggedImage(
+                        repo=build_name,
+                        tag="test",
+                        digest="abcd12345",
+                        platform="linux/amd64",
+                    ),
+                },
+                tagged_images=tagged_images,
+            )
+        ]
+
+        mpib.push()
+
+    assert mock_docker.call_count == expected_call_count

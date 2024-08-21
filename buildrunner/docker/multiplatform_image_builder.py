@@ -25,7 +25,7 @@ from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models import MP_LOCAL_REGISTRY
 from buildrunner.docker import get_dockerfile
 from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
-from buildrunner.errors import BuildRunnerConfigurationError
+from buildrunner.errors import BuildRunnerConfigurationError, BuildRunnerError
 
 
 LOGGER = logging.getLogger(__name__)
@@ -536,8 +536,15 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         return built_image
 
+    @retry(
+        TimeoutError,
+        tries=5,
+        logger=LOGGER,
+    )
     @timeout_decorator.timeout(PUSH_TIMEOUT)
-    def _push_with_timeout(self, src_names: List[str], tag_names: List[str]) -> None:
+    def _push_with_timeout_and_retries(
+        self, src_names: List[str], tag_names: List[str]
+    ) -> None:
         """
         Creates tags from a set of source images in the remote registry.
         This method will time out if it takes too long. An exception may be
@@ -558,11 +565,11 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         Pushes all built images to their tagged image counterparts.
         :raises TimeoutError: If the image fails to push within the specified timeout and retries
         """
-        # Parameters for timeout and retries
-        initial_timeout_seconds = 60
-        timeout_step_seconds = 60
-        timeout_max_seconds = 600
-        retries = 5
+        push_count = 0
+        expected_pushes = 0
+        for built_image in self._built_images:
+            for tagged_image in built_image.tagged_images:
+                expected_pushes += len(tagged_image.image_refs)
 
         for built_image in self._built_images:
             if not built_image.tagged_images:
@@ -578,34 +585,19 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                     f"Pushing {built_image.id} to {', '.join(tagged_image.image_refs)}"
                 )
 
-                timeout_seconds = initial_timeout_seconds
-                while retries > 0:
-                    retries -= 1
-                    LOGGER.debug(
-                        f"Creating manifest(s) {tagged_image} with timeout {timeout_seconds} seconds"
-                    )
-                    try:
-                        # Push each tag individually in order to prevent strange errors with multiple matching tags
-                        for image_ref in tagged_image.image_refs:
-                            self._push_with_timeout(source_image_refs, [image_ref])
-                        # Finished within timeout
-                        LOGGER.info(
-                            f"Successfully pushed multiplatform image(s) {tagged_image}"
-                        )
-                        break
-                    except Exception as exc:  # pylint: disable=broad-exception-caught
-                        LOGGER.warning(
-                            f"Caught exception while pushing images, retrying: {exc}"
-                        )
-                    if retries == 0:
-                        raise TimeoutError(
-                            f"Timeout pushing {tagged_image} after {retries} retries"
-                            f" and {timeout_seconds} seconds each try"
-                        )
-                    timeout_seconds += timeout_step_seconds
+                LOGGER.debug(f"Creating manifest(s) {tagged_image}")
+                # Push each tag individually in order to prevent strange errors with multiple matching tags
+                for image_ref in tagged_image.image_refs:
+                    self._push_with_timeout_and_retries(source_image_refs, [image_ref])
+                    push_count += 1
+                LOGGER.info(
+                    f"Successfully pushed multiplatform image(s) {tagged_image}"
+                )
 
-                    # Cap timeout at max timeout
-                    timeout_seconds = min(timeout_seconds, timeout_max_seconds)
+        if push_count != expected_pushes:
+            raise BuildRunnerError(
+                f"Failed to push all images. Expected to push {expected_pushes} but pushed {push_count}."
+            )
 
     @property
     def num_built_images(self) -> int:
