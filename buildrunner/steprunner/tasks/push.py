@@ -226,6 +226,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
     ) -> dict:
         # Pull image for scanning (if not already pulled) so that it can be scanned locally
         if pull:
+            # TODO replace with python on whales
             self._docker_client.pull(repository, tag)
 
         buildrunner_config = BuildRunnerConfig.get_instance()
@@ -400,6 +401,7 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
                 # Tag the image
                 for tag in repo.tags:
+                    # TODO replace with python on whales
                     self._docker_client.tag(
                         image_to_use,
                         repo.repository,

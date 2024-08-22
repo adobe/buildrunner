@@ -430,12 +430,14 @@ class BuildRunner:
                         push_kwargs = {
                             "stream": True,
                         }
+                        # TODO replace with python on whales
                         if (
                             "insecure_registry"
                             in inspect.getfullargspec(_docker_client.push).args
                         ):
                             push_kwargs["insecure_registry"] = _insecure_registry
 
+                        # TODO replace with python on whales
                         stream = _docker_client.push(_repo_tag, **push_kwargs)
                         previous_status = None
                         for msg_str in stream:
@@ -500,6 +502,7 @@ class BuildRunner:
             # cleanup the source image
             if self._source_image:
                 self.log.write(f"Destroying source image {self._source_image}\n")
+                # TODO replace with python on whales
                 _docker_client.remove_image(
                     self._source_image,
                     noprune=False,
@@ -512,6 +515,7 @@ class BuildRunner:
                 # reverse the order of the images since child images would likely come after parent images
                 for _image in self.generated_images[::-1]:
                     try:
+                        # TODO replace with python on whales
                         _docker_client.remove_image(
                             _image,
                             noprune=False,

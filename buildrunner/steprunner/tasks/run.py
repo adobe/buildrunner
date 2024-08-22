@@ -80,10 +80,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         source container.
         """
         if not self._source_container:
+            # TODO replace with python on whales
             self._source_container = self._docker_client.create_container(
                 self.step_runner.build_runner.get_source_image(),
                 command="/bin/sh",
             )["Id"]
+            # TODO replace with python on whales
             self._docker_client.start(
                 self._source_container,
             )
@@ -655,6 +657,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Wait for listening port on named container
         """
+        # TODO replace with python on whales
         ipaddr = self._docker_client.inspect_container(name)["NetworkSettings"][
             "IPAddress"
         ]
@@ -682,6 +685,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
 
             # check that the container is still available
+            # TODO replace with python on whales
             container = self._docker_client.inspect_container(name)
             container_status = container.get("State", {}).get("Status")
             if container_status not in ["created", "running"]:
@@ -821,6 +825,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
         # see if we need to inject ssh keys
         if self.step.ssh_keys:
+            # TODO replace with python on whales
             self._sshagent = DockerSSHAgentProxy(
                 self._docker_client,
                 self.step_runner.log,
@@ -833,6 +838,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
 
         # start the docker daemon proxy
+        # TODO replace with python on whales
         self._dockerdaemonproxy = DockerDaemonProxy(
             self._docker_client,
             self.step_runner.log,
@@ -1133,6 +1139,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.log.write(
                 f"Destroying source container {self._source_container:.10}\n"
             )
+            # TODO replace with python on whales
             self._docker_client.remove_container(
                 self._source_container,
                 force=True,
@@ -1152,6 +1159,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             rval = run_service.systemd
         else:
             labels = (
+                # TODO replace with python on whales
                 self._docker_client.inspect_image(image)
                 .get("Config", {})
                 .get("Labels", {})

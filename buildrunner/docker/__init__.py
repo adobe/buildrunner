@@ -100,6 +100,7 @@ def force_remove_container(docker_client, container):
     :param docker_client: the docker client
     :param container: the container
     """
+    # TODO replace with python on whales
     docker_client.remove_container(
         container,
         force=True,

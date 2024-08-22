@@ -41,6 +41,7 @@ class DockerImporter:
         """
 
         try:
+            # TODO replace with python on whales
             import_return = self.docker_client.import_image(self.src)
         except docker.errors.APIError as apie:
             raise BuildRunnerProcessingError(

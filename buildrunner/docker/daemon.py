@@ -18,6 +18,7 @@ class DockerDaemonProxy:
     Class used to encapsulate Docker daemon information within a container.
     """
 
+    # TODO replace with python on whales
     def __init__(self, docker_client, log, docker_registry):
         """ """
         self.docker_client = docker_client
@@ -76,12 +77,18 @@ class DockerDaemonProxy:
                 self._env["DOCKER_HOST"] = "unix:///dockerdaemon/docker.sock"
 
         # create and start the Docker container
+        image_name = f"{self.docker_registry}/busybox:latest"
+        # TODO replace with python on whales
+        self.docker_client.pull(image_name)
+        # TODO replace with python on whales
         self._daemon_container = self.docker_client.create_container(
             f"{self.docker_registry}/{DAEMON_IMAGE_NAME}",
             command="/bin/sh",
             volumes=_volumes,
+            # TODO replace with python on whales
             host_config=self.docker_client.create_host_config(binds=_binds),
         )["Id"]
+        # TODO replace with python on whales
         self.docker_client.start(self._daemon_container)
         self.log.write(
             f"Created Docker daemon container {self._daemon_container:.10}\n"
@@ -96,6 +103,7 @@ class DockerDaemonProxy:
             f"Destroying Docker daemon container {self._daemon_container:.10}\n"
         )
         if self._daemon_container:
+            # TODO replace with python on whales
             self.docker_client.remove_container(
                 self._daemon_container,
                 force=True,

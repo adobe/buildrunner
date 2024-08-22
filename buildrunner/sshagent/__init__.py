@@ -88,6 +88,7 @@ class DockerSSHAgentProxy:
     implementation that is managed by this class.
     """
 
+    # TODO replace with python on whales
     def __init__(self, docker_client, log, docker_registry):
         """ """
         self.docker_client = docker_client
