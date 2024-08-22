@@ -101,6 +101,7 @@ class DockerRunner:
         #
         # Pull all images to ensure we get the hashes for intermediate images
         found_image = False
+        # TODO replace with python on whales
         for image in self.docker_client.images(all=True):
             if (
                 image["Id"].startswith("sha256:" + self.image_name)
@@ -124,6 +125,7 @@ class DockerRunner:
             if log:
                 log.write(f"Pulling image {self.image_name}\n")
             with DockerPullProgress() as docker_progress:
+                # TODO replace with python on whales
                 for data in self.docker_client.pull(
                     self.image_name, stream=True, decode=True, platform=self.platform
                 ):
@@ -214,6 +216,7 @@ class DockerRunner:
             "user": user,
             "working_dir": working_dir,
             "hostname": hostname,
+            # TODO replace with python on whales
             "host_config": self.docker_client.create_host_config(
                 binds=_binds,
                 links=links,
@@ -231,9 +234,11 @@ class DockerRunner:
             kwargs["entrypoint"] = entrypoint
             del kwargs["command"]
 
+        # TODO replace with python on whales
         if compare_version("1.10", self.docker_client.api_version) < 0:
             kwargs["dns"] = dns
 
+        # TODO replace with python on whales
         # start the container
         self.container = self.docker_client.create_container(self.image_name, **kwargs)
         self.docker_client.start(self.container["Id"])
@@ -254,6 +259,7 @@ class DockerRunner:
         Stop the backing Docker container.
         """
         if self.container:
+            # TODO replace with python on whales
             self.docker_client.stop(
                 self.container["Id"],
                 timeout=0,
@@ -269,11 +275,13 @@ class DockerRunner:
                     force_remove_container(self.docker_client, container)
                 except docker.errors.NotFound:
                     try:
+                        # TODO replace with python on whales
                         container_ids = self.docker_client.containers(
                             filters={"label": container}, quiet=True
                         )
                         if container_ids:
                             for container_id in container_ids:
+                                # TODO replace with python on whales
                                 self.docker_client.remove_container(
                                     container_id["Id"],
                                     force=True,
@@ -287,7 +295,7 @@ class DockerRunner:
                         print(
                             f'Unable to find docker container with name or label "{container}"'
                         )
-
+            # TODO replace with python on whales
             self.docker_client.remove_container(
                 self.container["Id"],
                 force=True,
@@ -354,6 +362,7 @@ class DockerRunner:
         :param file_obj: Opened file object of cache
         :return: True if the call succeeds.
         """
+        # TODO replace with python on whales
         return self.docker_client.put_archive(
             self.container["Id"], docker_path, file_obj
         )
@@ -429,6 +438,7 @@ class DockerRunner:
         :param docker_path: Path of file or folder in the container
         :param file_obj: Opened file object to write cache
         """
+        # TODO replace with python on whales
         bits, _ = self.docker_client.get_archive(
             self.container["Id"], f"{docker_path}/."
         )
@@ -556,6 +566,7 @@ class DockerRunner:
             tty=False,
             # workdir=workdir,
         )
+        # TODO replace with python on whales
         output_buffer = self.docker_client.exec_start(
             create_res,
             stream=stream,
@@ -581,6 +592,7 @@ class DockerRunner:
                 console.write(warning)
             if log:
                 log.write(warning)
+        # TODO replace with python on whales
         inspect_res = self.docker_client.exec_inspect(create_res)
         if "ExitCode" in inspect_res:
             if inspect_res["ExitCode"] is None:
@@ -628,6 +640,7 @@ class DockerRunner:
         """
         status = None
         try:
+            # TODO replace with python on whales
             status = self.docker_client.inspect_container(
                 self.container["Id"],
             )
@@ -642,6 +655,7 @@ class DockerRunner:
         ipaddr = None
         try:
             if self.is_running():
+                # TODO replace with python on whales
                 inspection = self.docker_client.inspect_container(
                     self.container["Id"],
                 )
@@ -680,6 +694,7 @@ class DockerRunner:
         Attach to the container, writing output to the given log stream until
         the container exits.
         """
+        # TODO replace with python on whales
         docker_socket: socket.SocketIO = self.docker_client.attach_socket(
             self.container["Id"],
         )
@@ -710,6 +725,7 @@ class DockerRunner:
         stream.write(
             f"Committing build container {self.container['Id']:.10} as an image...\n"
         )
+        # TODO replace with python on whales
         self.committed_image = self.docker_client.commit(
             self.container["Id"],
         )["Id"]

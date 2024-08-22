@@ -62,6 +62,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
             for cache_from_image in self.cache_from:
                 if isinstance(cache_from_image, str):
                     try:
+                        # TODO replace with python on whales
                         self._docker_client.pull(
                             cache_from_image, platform=self.platform
                         )
