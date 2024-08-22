@@ -193,6 +193,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
                     tfile.add(self.dockerfile, arcname="./Dockerfile")
             _fileobj.seek(0)
 
+            # TODO don't need to replace with python on whales
             stream = self.docker_client.build(
                 path=None,
                 nocache=nocache,
@@ -206,6 +207,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
                 target=target,
             )
         else:
+            # TODO don't need to replace with python on whales
             stream = self.docker_client.build(
                 path=self.path,
                 nocache=nocache,
@@ -277,6 +279,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         # iterate through and destroy intermediate containers
         for container in self.intermediate_containers:
             try:
+                # TODO don't need to replace with python on whales
                 force_remove_container(self.docker_client, container)
             except docker.errors.APIError as err:
                 logger.debug(
