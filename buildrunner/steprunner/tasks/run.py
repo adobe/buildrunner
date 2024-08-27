@@ -825,6 +825,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 self._docker_client,
                 self.step_runner.log,
                 buildrunner_config.global_config.docker_registry,
+                self.step_runner.multi_platform,
             )
             self._sshagent.start(
                 buildrunner_config.get_ssh_keys_from_aliases(

@@ -39,6 +39,8 @@ jobs:
         # this key is rather worthless and can be stored safely in code here. This *could* be used as a secret,
         # but since secrets are not available to forks, we cannot test SSH functionality in PRs which defeats
         # the purpose somewhat.
+        #
+        # Please note that for the SSH unit tests to pass on a local machine, the private key needs to be placed in ~/.ssh/buildrunner-deploy-id_rsa
         DEPLOY_SSH_KEY: "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACBasvUoRzAAdHZ5nFWtDR/5DQU+FWtDYNXD0xPGSdjKtwAAAJiLXobki16G\n5AAAAAtzc2gtZWQyNTUxOQAAACBasvUoRzAAdHZ5nFWtDR/5DQU+FWtDYNXD0xPGSdjKtw\nAAAEBcRwB1PEnUHF5aK6q3JYyuOlT+adQ0mcRrIxsmJiiq1Vqy9ShHMAB0dnmcVa0NH/kN\nBT4Va0Ng1cPTE8ZJ2Mq3AAAAEWJ1aWxkcnVubmVyQGFkb2JlAQIDBA==\n-----END OPENSSH PRIVATE KEY-----"
         DEPLOY_SSH_KEY_PUB: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFqy9ShHMAB0dnmcVa0NH/kNBT4Va0Ng1cPTE8ZJ2Mq3 buildrunner@adobe"
       run: |

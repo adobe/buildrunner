@@ -1,5 +1,6 @@
-# Please note that for the SSH unit tests to pass on a local machine, the private key needs to be placed in ~/.ssh/buildrunner-deploy-id_rsa.
-# Look in the .github/workflows/build.yaml file for the SSH private key.
+# Please note that for the SSH unit tests to pass on a local machine, the private key needs to be placed in ~/.ssh/buildrunner-deploy-id_rsa
+# Look in the .github/workflows/build.yaml file for the SSH private key
+use-legacy-builder: False
 steps:
   clone:
     build:
