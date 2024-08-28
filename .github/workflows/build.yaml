@@ -52,12 +52,13 @@ jobs:
     - name: Test with pytest
       run: pytest -v --junitxml=test-reports/test-results.xml
     - name: Publish test results
-      uses: EnricoMi/publish-unit-test-result-action/composite@v1
-      # exclude this step for 3.6, since it fails due to a breaking change to EnricoMi/publish-unit-test-result-action
-      if: always() && matrix.python-version != '3.6'
+      uses: EnricoMi/publish-unit-test-result-action/linux@v2
+      if: always()
       with:
         files: test-reports/test-results.xml
         check_name: "Test Results ${{ matrix.python-version }}"
+        github_retries: 10
+        secondary_rate_limit_wait_seconds: 60.0
   tag-commit:
     if: github.repository == 'adobe/buildrunner' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
