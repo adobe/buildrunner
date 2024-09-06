@@ -245,7 +245,7 @@ class BuildRunner:
                 if tarinfo.name == os.path.basename(self.build_results_dir):
                     return None
                 for _ex in excludes:
-                    if fnmatch.fnmatch(tarinfo.name, _ex):
+                    if _ex and _ex.strip() and fnmatch.fnmatch(tarinfo.name, _ex):
                         return None
                 return tarinfo
 
