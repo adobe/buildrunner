@@ -23,6 +23,7 @@ from typing import List, Optional
 
 import requests
 
+from retry import retry
 from vcsinfo import detect_vcs, VCSUnsupported, VCSMissingRevision
 
 from buildrunner import docker, loggers
@@ -226,6 +227,14 @@ class BuildRunner:
         """
         self.artifacts[artifact_file] = properties
 
+    @retry(exceptions=FileNotFoundError, tries=3, delay=1)
+    def _create_archive_tarfile(self, dir_to_add, _fileobj, filter_func):
+        """
+        Create the tarfile with retries
+        """
+        with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
+            tfile.add(dir_to_add, arcname="", filter=filter_func)
+
     def get_source_archive_path(self):
         """
         Create the source archive for use in remote builds or to build the
@@ -238,9 +247,9 @@ class BuildRunner:
                 with open(buildignore, "r", encoding="utf-8") as _file:
                     excludes = _file.read().splitlines()
 
-            def _exclude_working_dir(tarinfo):
+            def _filter_results_and_excludes(tarinfo):
                 """
-                Filter to exclude results dir from source archive.
+                Filter to exclude results dir and listed excludes from source archive.
                 """
                 if tarinfo.name == os.path.basename(self.build_results_dir):
                     return None
@@ -257,8 +266,9 @@ class BuildRunner:
                     delete=False,
                     dir=BuildRunnerConfig.get_instance().global_config.temp_dir,
                 )
-                with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
-                    tfile.add(self.build_dir, arcname="", filter=_exclude_working_dir)
+                self._create_archive_tarfile(
+                    self.build_dir, _fileobj, _filter_results_and_excludes
+                )
                 self._source_archive = _fileobj.name
             finally:
                 if _fileobj:
