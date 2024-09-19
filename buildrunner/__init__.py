@@ -307,6 +307,9 @@ class BuildRunner:
                         inject=inject,
                         cache=False,
                         pull=False,
+                        build_args={
+                            "BUILDRUNNER_DISTRO": os.environ.get("BUILDRUNNER_DISTRO")
+                        },
                     )
                 )
                 if len(built_images_info.built_images) != 1:
