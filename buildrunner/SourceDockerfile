@@ -3,3 +3,6 @@ FROM $DOCKER_REGISTRY/busybox:latest
 ADD source.tar /source/
 VOLUME /source
 
+# Adding unique layers to avoid image conflicts with parallel buildrunner executions
+ARG BUILDRUNNER_DISTRO
+RUN echo "Building on $BUILDRUNNER_DISTRO (random number: $((RANDOM)))" > /build_info.txt
