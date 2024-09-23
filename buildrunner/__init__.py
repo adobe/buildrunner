@@ -227,7 +227,7 @@ class BuildRunner:
         """
         self.artifacts[artifact_file] = properties
 
-    @retry(exceptions=FileNotFoundError, tries=3, delay=1)
+    @retry(exceptions=FileNotFoundError, tries=5, delay=1, backoff=3, max_delay=10)
     def _create_archive_tarfile(self, dir_to_add, _fileobj, filter_func):
         """
         Create the tarfile with retries
