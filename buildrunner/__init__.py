@@ -25,6 +25,7 @@ import requests
 
 from retry import retry
 from vcsinfo import detect_vcs, VCSUnsupported, VCSMissingRevision
+from docker.errors import ImageNotFound
 
 from buildrunner import docker, loggers
 from buildrunner.config import (
@@ -516,11 +517,16 @@ class BuildRunner:
             # cleanup the source image
             if self._source_image:
                 self.log.write(f"Destroying source image {self._source_image}\n")
-                _docker_client.remove_image(
-                    self._source_image,
-                    noprune=False,
-                    force=True,
-                )
+                try:
+                    _docker_client.remove_image(
+                        self._source_image,
+                        noprune=False,
+                        force=True,
+                    )
+                except ImageNotFound:
+                    self.log.warning(
+                        f"Failed to remove source image {self._source_image}\n"
+                    )
 
             if self.cleanup_images:
                 self.log.write("Removing local copy of generated images\n")

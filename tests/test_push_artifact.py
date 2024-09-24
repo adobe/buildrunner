@@ -123,7 +123,7 @@ def test_artifacts_with_legacy_builder(test_name, artifacts_in_file):
     )
 
 
-# Test legacy builder
+# Test buildx builder
 @pytest.mark.parametrize(
     "test_name, artifacts_in_file",
     [

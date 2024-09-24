@@ -260,6 +260,7 @@ def test_tag_native_platform_keep_images(name, platforms, expected_image_tags):
         docker.image.remove(name, force=True)
 
 
+@pytest.mark.serial
 def test_push():
     try:
         with MultiplatformImageBuilder() as remote_mp:
@@ -302,6 +303,7 @@ def test_push():
         docker.image.remove(build_name, force=True)
 
 
+@pytest.mark.serial
 def test_push_with_dest_names():
     dest_names = None
     try:
@@ -349,6 +351,7 @@ def test_push_with_dest_names():
             docker.image.remove(dest_name, force=True)
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     "name, platforms, expected_image_tags",
     [
@@ -402,6 +405,7 @@ def test_build(
         ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
 
 
+@pytest.mark.serial
 @patch("buildrunner.docker.multiplatform_image_builder.docker.image.remove")
 @patch("buildrunner.docker.multiplatform_image_builder.docker.push")
 @patch(
@@ -544,6 +548,7 @@ def test_build_multiple_builds(
     ]
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     "builder, cache_builders, return_cache_options",
     [
@@ -591,6 +596,7 @@ def test_use_build_registry():
         registry_mpib._stop_local_registry()
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     "side_effect, expected_call_count",
     [
@@ -664,6 +670,7 @@ def test_push_retries(mock_docker, mock_config, side_effect, expected_call_count
     assert mock_docker.call_count == expected_call_count
 
 
+@pytest.mark.serial
 @pytest.mark.parametrize(
     "tagged_images, expected_call_count",
     [

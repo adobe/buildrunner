@@ -10,6 +10,13 @@ test_dir_path = os.path.realpath(os.path.dirname(__file__))
 TEST_DIR = os.path.dirname(__file__)
 top_dir_path = os.path.realpath(os.path.dirname(test_dir_path))
 
+serial_test_files = [
+    "test-general-buildx.yaml",
+    "test-general.yaml",
+    "test-push-artifact-buildx.yaml",
+    "test-security-scan.yaml",
+]
+
 
 def _get_test_args(file_name: str) -> Optional[List[str]]:
     if file_name == "test-timeout.yaml":
@@ -52,14 +59,22 @@ def _get_exit_code(file_name: str) -> int:
     return os.EX_OK
 
 
-def _get_test_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]], int]]:
-    file_names = sorted(
-        [
-            file_name
-            for file_name in os.listdir(test_dir)
-            if file_name.startswith("test-") and file_name.endswith(".yaml")
-        ]
-    )
+def _get_test_runs(
+    test_dir: str, serial_tests: bool
+) -> List[Tuple[str, str, Optional[List[str]], int]]:
+    file_names = []
+    for file_name in os.listdir(test_dir):
+        if serial_tests:
+            if file_name in serial_test_files:
+                file_names.append(file_name)
+        else:
+            if (
+                file_name.startswith("test-")
+                and file_name.endswith(".yaml")
+                and file_name not in serial_test_files
+            ):
+                file_names.append(file_name)
+
     return [
         (test_dir, file_name, _get_test_args(file_name), _get_exit_code(file_name))
         for file_name in file_names
@@ -107,9 +122,19 @@ def fixture_set_env():
 
 
 @pytest.mark.parametrize(
-    "test_dir, file_name, args, exit_code", _get_test_runs(f"{TEST_DIR}/test-files")
+    "test_dir, file_name, args, exit_code",
+    _get_test_runs(test_dir=f"{TEST_DIR}/test-files", serial_tests=False),
 )
 def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
+    _test_buildrunner_file(test_dir, file_name, args, exit_code)
+
+
+@pytest.mark.serial
+@pytest.mark.parametrize(
+    "test_dir, file_name, args, exit_code",
+    _get_test_runs(test_dir=f"{TEST_DIR}/test-files", serial_tests=True),
+)
+def test_serial_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
@@ -119,7 +144,20 @@ def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
 )
 @pytest.mark.parametrize(
     "test_dir, file_name, args, exit_code",
-    _get_test_runs(f"{TEST_DIR}/test-files/arm-arch"),
+    _get_test_runs(test_dir=f"{TEST_DIR}/test-files/arm-arch", serial_tests=False),
 )
 def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
+    _test_buildrunner_file(test_dir, file_name, args, exit_code)
+
+
+@pytest.mark.serial
+@pytest.mark.skipif(
+    "arm64" not in platform.uname().machine,
+    reason="This test should only be run on arm64 architecture",
+)
+@pytest.mark.parametrize(
+    "test_dir, file_name, args, exit_code",
+    _get_test_runs(test_dir=f"{TEST_DIR}/test-files/arm-arch", serial_tests=True),
+)
+def test_serial_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)

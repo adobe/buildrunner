@@ -50,7 +50,10 @@ jobs:
         chmod 700 ~/.ssh
         chmod 600 ~/.ssh/buildrunner-deploy-*
     - name: Test with pytest
-      run: pytest -v --junitxml=test-reports/test-results.xml
+      run: |
+        pytest -v -m "not serial" --numprocesses=auto --junitxml=test-reports/serial-test-results.xml
+        pytest -v -m "serial" --junitxml=test-reports/non-serial-test-results.xml
+        python scripts/combine_xml.py test-reports/serial-test-results.xml test-reports/non-serial-test-results.xml > test-reports/test-result.xml
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action/linux@v2
       if: always()
