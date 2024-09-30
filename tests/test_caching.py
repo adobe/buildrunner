@@ -119,6 +119,7 @@ def setup_cache_test_files(
     return test_files
 
 
+@pytest.mark.serial
 def test_restore_cache_basic(runner, tmp_dir_name, mock_logger, log_output):
     """
     Tests basic restore cache functionality
@@ -149,6 +150,7 @@ def test_restore_cache_basic(runner, tmp_dir_name, mock_logger, log_output):
         assert f"{file}\n" in output
 
 
+@pytest.mark.serial
 def test_restore_cache_no_cache(runner, mock_logger, log_output):
     """
     Tests restore cache when a match is not found
@@ -179,6 +181,7 @@ def test_restore_cache_no_cache(runner, mock_logger, log_output):
             assert f"{file}\n" not in output
 
 
+@pytest.mark.serial
 def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger, log_output):
     """
     Tests restore cache when there is prefix matching
@@ -218,6 +221,7 @@ def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger, log_ou
         assert f"{file}\n" in output
 
 
+@pytest.mark.serial
 def test_restore_cache_prefix_timestamps(runner, tmp_dir_name, mock_logger, log_output):
     """
     Tests that when the cache prefix matches it chooses the most recent archive file
@@ -263,6 +267,7 @@ def test_restore_cache_prefix_timestamps(runner, tmp_dir_name, mock_logger, log_
         assert f"{file}\n" in output
 
 
+@pytest.mark.serial
 def test_save_cache_basic(runner, tmp_dir_name, mock_logger):
     """
     Test basic save cache functionality
@@ -297,6 +302,7 @@ def test_save_cache_basic(runner, tmp_dir_name, mock_logger):
             assert file in extracted_files
 
 
+@pytest.mark.serial
 def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     """
     Test save cache functionality when there are multiple cache keys.
@@ -382,6 +388,7 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
             assert file in extracted_files
 
 
+@pytest.mark.serial
 def test_save_cache_multiple_caches(runner, tmp_dir_name, mock_logger):
     venv_cache_name = "venv"
     venv_docker_path = "/root/venv_cache"

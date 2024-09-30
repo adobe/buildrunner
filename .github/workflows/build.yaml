@@ -1,7 +1,12 @@
 name: Build
 on:
-  - push
-  - pull_request
+  # Only run workflow when there is push to main or when there is a pull request to main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 jobs:
   test:
     # When running with act (https://github.com/nektos/act), these lines need to be appended with the ACT variable
@@ -50,7 +55,10 @@ jobs:
         chmod 700 ~/.ssh
         chmod 600 ~/.ssh/buildrunner-deploy-*
     - name: Test with pytest
-      run: pytest -v --junitxml=test-reports/test-results.xml
+      run: |
+        pytest -v -m "not serial" --numprocesses=auto --junitxml=test-reports/non-serial-test-results.xml
+        pytest -v -m "serial" --junitxml=test-reports/serial-test-results.xml
+        python scripts/combine_xml.py test-reports/serial-test-results.xml test-reports/non-serial-test-results.xml > test-reports/test-result.xml
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action/linux@v2
       if: always()
