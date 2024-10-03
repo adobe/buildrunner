@@ -34,14 +34,19 @@ def fixture_setup_runner():
         "docker.io/ubuntu:19.04",
         pull_image=False,
     )
-    runner = DockerRunner(
-        image_config=image_config,
-    )
-    runner.start(working_dir="/root")
+    with mock.patch(
+        "buildrunner.docker.runner.BuildRunnerConfig.get_instance"
+    ) as mock_build_runner_config:
+        #  Set to use docker-py to be used over python on whales
+        mock_build_runner_config.run_config.use_legacy_builder.return_value = True
+        runner = DockerRunner(
+            image_config=image_config,
+        )
+        runner.start(working_dir="/root")
 
-    yield runner
+        yield runner
 
-    runner.cleanup()
+        runner.cleanup()
 
 
 @pytest.fixture(name="log_output")

@@ -27,6 +27,7 @@ import python_on_whales
 import six
 import timeout_decorator
 
+from buildrunner.config import BuildRunnerConfig
 from buildrunner.docker import (
     new_client,
     force_remove_container,
@@ -131,6 +132,10 @@ class DockerRunner:
                     docker_progress.status_report(data)
             if log:
                 log.write("\nImage pulled successfully\n")
+
+        self.use_docker_py = (
+            BuildRunnerConfig.get_instance().run_config.use_legacy_builder
+        )
 
     def start(
         self,
@@ -237,7 +242,10 @@ class DockerRunner:
 
         # start the container
         self.container = self.docker_client.create_container(self.image_name, **kwargs)
-        python_on_whales.docker.start(self.container["Id"])
+        if self.use_docker_py:
+            self.docker_client.start(self.container["Id"])
+        else:
+            python_on_whales.docker.start(self.container["Id"])
 
         # run any supplied provisioners
         if provisioners:
@@ -255,7 +263,13 @@ class DockerRunner:
         Stop the backing Docker container.
         """
         if self.container:
-            python_on_whales.docker.stop(self.container["Id"], time=0)
+            if self.use_docker_py:
+                self.docker_client.stop(
+                    self.container["Id"],
+                    timeout=0,
+                )
+            else:
+                python_on_whales.docker.stop(self.container["Id"], time=0)
 
     def cleanup(self):
         """
