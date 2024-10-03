@@ -25,6 +25,7 @@ from .validation import (
 DEFAULT_CACHES_ROOT = "~/.buildrunner/caches"
 # Marker for using the local registry instead of an upstream registry
 MP_LOCAL_REGISTRY = "local"
+DEFAULT_TO_LEGACY_BUILDER = True
 
 
 class GithubModel(BaseModel, extra="forbid"):
@@ -142,7 +143,9 @@ class Config(BaseModel, extra="forbid"):
     """Top level config model"""
 
     version: Optional[float] = None
-    use_legacy_builder: Optional[bool] = Field(alias="use-legacy-builder", default=True)
+    use_legacy_builder: Optional[bool] = Field(
+        alias="use-legacy-builder", default=DEFAULT_TO_LEGACY_BUILDER
+    )
     steps: Dict[str, Step]
 
     @field_validator("steps")
