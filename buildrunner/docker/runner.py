@@ -23,6 +23,7 @@ from typing import Optional
 from docker.utils import compare_version
 from retry import retry
 import docker.errors
+import python_on_whales
 import six
 import timeout_decorator
 
@@ -236,7 +237,7 @@ class DockerRunner:
 
         # start the container
         self.container = self.docker_client.create_container(self.image_name, **kwargs)
-        self.docker_client.start(self.container["Id"])
+        python_on_whales.docker.start(self.container["Id"])
 
         # run any supplied provisioners
         if provisioners:
@@ -254,10 +255,7 @@ class DockerRunner:
         Stop the backing Docker container.
         """
         if self.container:
-            self.docker_client.stop(
-                self.container["Id"],
-                timeout=0,
-            )
+            python_on_whales.docker.stop(self.container["Id"], time=0)
 
     def cleanup(self):
         """
