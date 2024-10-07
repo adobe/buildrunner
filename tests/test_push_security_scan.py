@@ -353,14 +353,10 @@ def test__security_scan_trivy(
         "config.yaml",
         "results.json",
     }
-    assert (
-        yaml.safe_load((run_path / "config.yaml").read_text())
-        == security_scan_config.config
-    )
-    assert (
-        yaml.safe_load((run_path / "config.yaml").read_text())
-        == security_scan_config.config
-    )
+    assert yaml.safe_load((run_path / "config.yaml").read_text()) == {
+        "cache-dir": "/root/.cache/trivy",
+        **security_scan_config.config,
+    }
 
     docker_runner_mock.ImageConfig.assert_called_once_with(
         "registry1/aquasec/trivy:latest",
