@@ -254,7 +254,10 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
             with open(
                 os.path.join(local_run_dir, config_file_name), "w", encoding="utf8"
             ) as fobj:
-                yaml.safe_dump(security_scan_config.config, fobj)
+                yaml.safe_dump(
+                    {"cache-dir": container_cache_dir, **security_scan_config.config},
+                    fobj,
+                )
 
             image_scanner = None
             try:
