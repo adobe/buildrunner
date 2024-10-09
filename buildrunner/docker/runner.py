@@ -276,9 +276,14 @@ class DockerRunner:
         Cleanup the backing Docker container, stopping it if necessary.
         """
         if self.container:
+            use_docker_py = (
+                BuildRunnerConfig.get_instance().run_config.use_legacy_builder
+            )
             for container in self.containers:
                 try:
-                    force_remove_container(self.docker_client, container)
+                    force_remove_container(
+                        self.docker_client, container, use_legacy_builder=use_docker_py
+                    )
                 except docker.errors.NotFound:
                     try:
                         container_ids = self.docker_client.containers(
@@ -286,11 +291,16 @@ class DockerRunner:
                         )
                         if container_ids:
                             for container_id in container_ids:
-                                self.docker_client.remove_container(
-                                    container_id["Id"],
-                                    force=True,
-                                    v=True,
-                                )
+                                if use_docker_py:
+                                    self.docker_client.remove_container(
+                                        container_id["Id"],
+                                        force=True,
+                                        v=True,
+                                    )
+                                else:
+                                    python_on_whales.docker.remove(
+                                        container_id["Id"], force=True, volumes=True
+                                    )
                         else:
                             print(
                                 f'Unable to find docker container with name or label "{container}"'
@@ -299,12 +309,16 @@ class DockerRunner:
                         print(
                             f'Unable to find docker container with name or label "{container}"'
                         )
-
-            self.docker_client.remove_container(
-                self.container["Id"],
-                force=True,
-                v=True,
-            )
+            if use_docker_py:
+                self.docker_client.remove_container(
+                    self.container["Id"],
+                    force=True,
+                    v=True,
+                )
+            else:
+                python_on_whales.docker.remove(
+                    self.container["Id"], force=True, volumes=True
+                )
 
         self.container = None
 

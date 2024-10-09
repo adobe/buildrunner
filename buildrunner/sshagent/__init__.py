@@ -27,6 +27,7 @@ from paramiko.agent import AgentSSH
 from paramiko.common import io_sleep
 from paramiko.util import asbytes
 from paramiko.message import Message
+import python_on_whales
 
 import buildrunner.config
 import buildrunner.docker.builder as legacy_builder
@@ -244,11 +245,16 @@ class DockerSSHAgentProxy:
             self.log.write(
                 f"Destroying ssh-agent container {self._ssh_agent_container:.10}\n"
             )
-            self.docker_client.remove_container(
-                self._ssh_agent_container,
-                force=True,
-                v=True,
-            )
+            if buildrunner.config.BuildRunnerConfig.get_instance().run_config.use_legacy_builder:
+                self.docker_client.remove_container(
+                    self._ssh_agent_container,
+                    force=True,
+                    v=True,
+                )
+            else:
+                python_on_whales.docker.remove(
+                    self._ssh_agent_container, force=True, volumes=True
+                )
 
     def get_ssh_agent_image(self):
         """

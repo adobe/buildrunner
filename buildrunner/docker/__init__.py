@@ -12,8 +12,10 @@ import tempfile
 from typing import Tuple
 import urllib.parse
 import docker
+import python_on_whales
 
 from buildrunner.errors import BuildRunnerError, BuildRunnerConfigurationError
+
 
 try:
     # Newer API
@@ -94,17 +96,21 @@ def new_client(
     )
 
 
-def force_remove_container(docker_client, container):
+def force_remove_container(docker_client, container, use_legacy_builder: bool):
     """
     Force removes a container from the given docker client.
     :param docker_client: the docker client
     :param container: the container
+    :param use_legacy_builder: whether to use the legacy builder
     """
-    docker_client.remove_container(
-        container,
-        force=True,
-        v=True,
-    )
+    if use_legacy_builder:
+        docker_client.remove_container(
+            container,
+            force=True,
+            v=True,
+        )
+    else:
+        python_on_whales.docker.remove(container, force=True, volumes=True)
 
 
 def get_dockerfile(dockerfile: str, temp_dir: str = None) -> Tuple[str, bool]:

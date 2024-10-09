@@ -21,6 +21,7 @@ import tempfile
 import types
 from typing import List, Optional
 
+import python_on_whales
 import requests
 
 from retry import retry
@@ -518,11 +519,16 @@ class BuildRunner:
             if self._source_image:
                 self.log.write(f"Destroying source image {self._source_image}\n")
                 try:
-                    _docker_client.remove_image(
-                        self._source_image,
-                        noprune=False,
-                        force=True,
-                    )
+                    if self.buildrunner_config.run_config.use_legacy_builder:
+                        _docker_client.remove_image(
+                            self._source_image,
+                            noprune=False,
+                            force=True,
+                        )
+                    else:
+                        python_on_whales.docker.image.remove(
+                            self._source_image, prune=True, force=True
+                        )
                 except ImageNotFound:
                     self.log.warning(
                         f"Failed to remove source image {self._source_image}\n"
@@ -534,11 +540,16 @@ class BuildRunner:
                 # reverse the order of the images since child images would likely come after parent images
                 for _image in self.generated_images[::-1]:
                     try:
-                        _docker_client.remove_image(
-                            _image,
-                            noprune=False,
-                            force=True,
-                        )
+                        if self.buildrunner_config.run_config.use_legacy_builder:
+                            _docker_client.remove_image(
+                                _image,
+                                noprune=False,
+                                force=True,
+                            )
+                        else:
+                            python_on_whales.docker.image.remove(
+                                _image, prune=True, force=True
+                            )
                     except Exception as _ex:  # pylint: disable=broad-except
                         self.log.write(f"Error removing image {_image}: {str(_ex)}\n")
             else:

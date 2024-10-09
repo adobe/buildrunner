@@ -6,6 +6,7 @@ import tempfile
 
 import yaml
 
+from buildrunner.config.models import DEFAULT_TO_LEGACY_BUILDER
 from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
 from tests import test_runner
 
@@ -139,7 +140,7 @@ def fixture_set_env():
         ),
         (
             "Default builder",
-            True,
+            DEFAULT_TO_LEGACY_BUILDER,
             """
             steps:
                 build-container-single-platform:
