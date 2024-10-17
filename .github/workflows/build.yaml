@@ -35,7 +35,9 @@ jobs:
     - name: Pre-commit checks
       run: pre-commit run --all-files
     - name: Test with pytest
+      # Create the ssh key file once for all testing
       run: |
+        ssh-keygen -t ecdsa -m PEM -N '' -f /tmp/buildrunner-test-id_rsa
         pytest -v -m "not serial" --numprocesses=auto --junitxml=test-reports/non-serial-test-results.xml
         pytest -v -m "serial" --junitxml=test-reports/serial-test-results.xml
         python scripts/combine_xml.py test-reports/serial-test-results.xml test-reports/non-serial-test-results.xml > test-reports/test-result.xml
