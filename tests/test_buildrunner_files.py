@@ -1,10 +1,15 @@
 import os
 import pytest
 import platform
+import subprocess
 import tempfile
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 from tests import test_runner
+
+# This should match what is in the dot-buildrunner.yaml file
+TEST_SSH_KEY_FILE = "/tmp/buildrunner-test-id_rsa"
 
 test_dir_path = os.path.realpath(os.path.dirname(__file__))
 TEST_DIR = os.path.dirname(__file__)
@@ -16,6 +21,37 @@ serial_test_files = [
     "test-push-artifact-buildx.yaml",
     "test-security-scan.yaml",
 ]
+
+
+@pytest.fixture(autouse=True, scope="session")
+def setup_buildrunner_test_ssh_key():
+    key_file_path = Path(TEST_SSH_KEY_FILE)
+    cleanup_key_file = False
+    pub_key_file_path = Path(f"{TEST_SSH_KEY_FILE}.pub")
+    if not key_file_path.exists():
+        subprocess.run(
+            [
+                "ssh-keygen",
+                "-t",
+                "ecdsa",
+                "-m",
+                "PEM",
+                "-N",
+                "",
+                "-f",
+                TEST_SSH_KEY_FILE,
+            ],
+            check=True,
+        )
+        cleanup_key_file = True
+    # Set the public key in an environment variable to use in the test buildrunner files
+    os.environ["BUILDRUNNER_TEST_SSH_PUB_KEY"] = pub_key_file_path.read_text().strip()
+    yield
+    # Cleanup
+    del os.environ["BUILDRUNNER_TEST_SSH_PUB_KEY"]
+    if cleanup_key_file:
+        key_file_path.unlink()
+        pub_key_file_path.unlink()
 
 
 def _get_test_args(file_name: str) -> Optional[List[str]]:

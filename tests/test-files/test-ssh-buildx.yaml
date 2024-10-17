@@ -1,5 +1,3 @@
-# Please note that for the SSH unit tests to pass on a local machine, the private key needs to be placed in ~/.ssh/buildrunner-deploy-id_rsa
-# Look in the .github/workflows/build.yaml file for the SSH private key
 use-legacy-builder: False
 steps:
   clone:
@@ -8,12 +6,20 @@ steps:
         FROM {{ DOCKER_REGISTRY }}/rockylinux:8.5
         RUN yum install -y git-core openssh-clients && yum clean all
     run:
-      ssh-keys: ['buildrunner-deploy']
+      # This key is generated automatically by the test runner
+      ssh-keys: ['buildrunner-test-ssh']
+      services:
+        ssh-service:
+          image: {{ DOCKER_REGISTRY }}/linuxserver/openssh-server:latest
+          wait_for:
+          - 2222
+          env:
+            # This is set in the test_buildrunner_files.py file
+            PUBLIC_KEY: "{{ BUILDRUNNER_TEST_SSH_PUB_KEY }}"
+            LOG_STDOUT: "true"
       cmds:
       - mkdir ~/.ssh
-      - ssh-keyscan github.com > ~/.ssh/known_hosts
+      - ssh-keyscan -p 2222 ssh-service > ~/.ssh/known_hosts
       - chmod 700 ~/.ssh
       - chmod 600 ~/.ssh/known_hosts
-      # Clone into temp directory since the "buildrunner" directory may already exist
-      - rm -rf /tmp/test-clone
-      - git clone git@github.com:adobe/buildrunner.git /tmp/test-clone
+      - if [ "$(ssh -p 2222 linuxserver.io@ssh-service 'whoami')" != "linuxserver.io" ]; then exit 1; fi

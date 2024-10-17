@@ -11,9 +11,10 @@ ssh-keys:
   aliases:
   - 'adobe-github'
   - 'adobe-dma'
-- file: ~/.ssh/buildrunner-deploy-id_rsa
+# This should match what is in the test_buildrunner_files.py file and is generated before the tests are run
+- file: /tmp/buildrunner-test-id_rsa
   aliases:
-  - 'buildrunner-deploy'
+  - 'buildrunner-test-ssh'
 
 local-files:
   tests: ./tests
