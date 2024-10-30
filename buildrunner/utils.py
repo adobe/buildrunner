@@ -8,14 +8,14 @@ with the terms of the Adobe license agreement accompanying it.
 
 from collections import OrderedDict
 from datetime import datetime
-import fcntl
 import io
 import logging
 import os
 import re
 import sys
-import time
 import uuid
+import portalocker
+import timeout_decorator
 import yaml.resolver
 import yaml.scanner
 import glob
@@ -213,46 +213,30 @@ def _acquire_flock_open(
     :param exclusive: config exclusive lock (True) or shared lock (False), defaults to True
     :return: opened file object if successful else None
     """
+
+    @timeout_decorator.timeout(
+        seconds=timeout_seconds, timeout_exception=FailureToAcquireLockException
+    )
+    def get_lock(file_obj, flags):
+        portalocker.lock(
+            file_obj,
+            flags,
+        )
+        return file_obj
+
     # pylint: disable=unspecified-encoding,consider-using-with
     file_obj = open(lock_file, mode)
-    pid = os.getpid()
     lock_file_obj = None
-    retry_sleep_seconds = 0.5
+    pid = os.getpid()
 
-    start_time = current_time = time.time()
-    duration_seconds = current_time - start_time
-
-    while duration_seconds < timeout_seconds:
-        try:
-            # The LOCK_NB means non-blocking
-            # More information here:
-            # https://docs.python.org/3/library/fcntl.html#fcntl.flock
-            if exclusive:
-                # Obtain an exclusive lock, blocks shared (read) locks
-                fcntl.flock(file_obj, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            else:
-                # Allow multiple people to read from the file at the same time
-                # If another instance adds an exclusive lock in the save method below,
-                # this will block until the lock is released
-                fcntl.flock(file_obj, fcntl.LOCK_SH | fcntl.LOCK_NB)
-        except (IOError, OSError):
-            # Limit the amount of logs written while waiting for the file lock
-            num_seconds_between_log_writes = 10
-            if (
-                0
-                <= (duration_seconds % num_seconds_between_log_writes)
-                <= retry_sleep_seconds
-            ):
-                logger.info(
-                    f"PID:{pid} waiting for file lock on {lock_file} after {duration_seconds} seconds"
-                )
-        else:
-            lock_file_obj = file_obj
-            break
-        time.sleep(retry_sleep_seconds)
-        duration_seconds = time.time() - start_time
-
-    if lock_file_obj is None:
+    try:
+        flags = (
+            portalocker.LockFlags.EXCLUSIVE
+            if exclusive
+            else portalocker.LockFlags.SHARED
+        )
+        lock_file_obj = get_lock(file_obj, flags)
+    except FailureToAcquireLockException:
         file_obj.close()
         raise FailureToAcquireLockException(
             f"PID:{pid} failed to acquire file lock for {lock_file} after timeout of {timeout_seconds} seconds"
@@ -322,6 +306,6 @@ def release_flock(
     """
     if lock_file_obj is None:
         return
-    fcntl.flock(lock_file_obj, fcntl.LOCK_UN)
+    portalocker.unlock(lock_file_obj)
     lock_file_obj.close()
     logger.write(f"PID:{os.getpid()} released and closed file {lock_file_obj}")
