@@ -217,7 +217,12 @@ def _acquire_flock_open(
     @timeout_decorator.timeout(
         seconds=timeout_seconds, timeout_exception=FailureToAcquireLockException
     )
-    def get_lock(file_obj, flags):
+    def get_lock(file_obj: io.IOBase):
+        flags = (
+            portalocker.LockFlags.EXCLUSIVE
+            if exclusive
+            else portalocker.LockFlags.SHARED
+        )
         portalocker.lock(
             file_obj,
             flags,
@@ -230,12 +235,7 @@ def _acquire_flock_open(
     pid = os.getpid()
 
     try:
-        flags = (
-            portalocker.LockFlags.EXCLUSIVE
-            if exclusive
-            else portalocker.LockFlags.SHARED
-        )
-        lock_file_obj = get_lock(file_obj, flags)
+        lock_file_obj = get_lock(file_obj)
     except FailureToAcquireLockException:
         file_obj.close()
         raise FailureToAcquireLockException(
