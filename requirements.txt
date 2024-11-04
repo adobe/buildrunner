@@ -75,6 +75,8 @@ paramiko==3.2.0
     #   fabric
 pkginfo==1.9.6
     # via twine
+portalocker==2.10.1
+    # via -r requirements.in
 pycparser==2.21
     # via cffi
 pydantic==2.4.2
