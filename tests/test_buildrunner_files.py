@@ -19,7 +19,6 @@ serial_test_files = [
     "test-general-buildx.yaml",
     "test-general.yaml",
     "test-push-artifact-buildx.yaml",
-    "test-security-scan.yaml",
 ]
 
 
@@ -186,14 +185,11 @@ def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
-@pytest.mark.serial
-@pytest.mark.skipif(
-    "arm64" not in platform.uname().machine,
-    reason="This test should only be run on arm64 architecture",
-)
+@pytest.mark.flaky(reruns=2, reruns_delay=1)
 @pytest.mark.parametrize(
     "test_dir, file_name, args, exit_code",
-    _get_test_runs(test_dir=f"{TEST_DIR}/test-files/arm-arch", serial_tests=True),
+    _get_test_runs(test_dir=f"{TEST_DIR}/test-files/scan", serial_tests=False),
 )
-def test_serial_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
+def test_buildrunner_scan_dir(test_dir: str, file_name, args, exit_code):
+    # The scan tests can be flaky, with errors like "TOOMANYREQUESTS: retry-after: 804.543µs, allowed: 44000/minute"
     _test_buildrunner_file(test_dir, file_name, args, exit_code)

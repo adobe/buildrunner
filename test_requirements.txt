@@ -35,6 +35,7 @@ nodeenv==1.8.0
 packaging==23.1
     # via
     #   pytest
+    #   pytest-rerunfailures
     #   ruff-lsp
 platformdirs==3.5.1
     # via virtualenv
@@ -49,10 +50,13 @@ pytest==7.3.1
     #   -r test_requirements.in
     #   pytest-cov
     #   pytest-randomly
+    #   pytest-rerunfailures
     #   pytest-xdist
 pytest-cov==4.1.0
     # via -r test_requirements.in
 pytest-randomly==3.12.0
+    # via -r test_requirements.in
+pytest-rerunfailures==14.0
     # via -r test_requirements.in
 pytest-xdist==3.3.1
     # via -r test_requirements.in
