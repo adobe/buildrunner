@@ -8,9 +8,7 @@ with the terms of the Adobe license agreement accompanying it.
 
 import os
 
-import python_on_whales
 
-from buildrunner.config import BuildRunnerConfig
 from buildrunner.docker import DOCKER_DEFAULT_DOCKERD_URL
 
 DAEMON_IMAGE_NAME = "busybox:latest"
@@ -99,13 +97,8 @@ class DockerDaemonProxy:
             f"Destroying Docker daemon container {self._daemon_container:.10}\n"
         )
         if self._daemon_container:
-            if BuildRunnerConfig.get_instance().run_config.use_legacy_builder:
-                self.docker_client.remove_container(
-                    self._daemon_container,
-                    force=True,
-                    v=True,
-                )
-            else:
-                python_on_whales.docker.remove(
-                    self._daemon_container, force=True, volumes=True
-                )
+            self.docker_client.remove_container(
+                self._daemon_container,
+                force=True,
+                v=True,
+            )

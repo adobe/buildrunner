@@ -16,7 +16,7 @@ import buildrunner.docker
 from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models_step import StepBuild
 from buildrunner.docker.importer import DockerImporter
-import buildrunner.docker.builder as legacy_builder
+import buildrunner.docker.builder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
 )
@@ -262,7 +262,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
             else:
                 # Use the legacy builder
-                image = legacy_builder.build_image(
+                image = buildrunner.docker.builder.build_image(
                     path=self.path,
                     inject=self.to_inject,
                     dockerfile=self.dockerfile,

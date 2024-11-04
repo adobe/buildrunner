@@ -27,10 +27,8 @@ from paramiko.agent import AgentSSH
 from paramiko.common import io_sleep
 from paramiko.util import asbytes
 from paramiko.message import Message
-import python_on_whales
 
-import buildrunner.config
-import buildrunner.docker.builder as legacy_builder
+import buildrunner.docker.builder
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
@@ -245,52 +243,25 @@ class DockerSSHAgentProxy:
             self.log.write(
                 f"Destroying ssh-agent container {self._ssh_agent_container:.10}\n"
             )
-            if buildrunner.config.BuildRunnerConfig.get_instance().run_config.use_legacy_builder:
-                self.docker_client.remove_container(
-                    self._ssh_agent_container,
-                    force=True,
-                    v=True,
-                )
-            else:
-                python_on_whales.docker.remove(
-                    self._ssh_agent_container, force=True, volumes=True
-                )
+            self.docker_client.remove_container(
+                self._ssh_agent_container,
+                force=True,
+                v=True,
+            )
 
     def get_ssh_agent_image(self):
         """
         Get and/or create the image used to proxy the ssh agent to a container.
         """
-        buildrunner_config = buildrunner.config.BuildRunnerConfig.get_instance()
         if not self._ssh_agent_image:
-            if buildrunner_config.run_config.use_legacy_builder:
-                self.log.write("Creating ssh-agent image\n")
-                image = legacy_builder.build_image(
-                    path=SSH_AGENT_PROXY_BUILD_CONTEXT,
-                    docker_registry=self.docker_registry,
-                    nocache=False,
-                    pull=False,
-                )
-                self._ssh_agent_image = image
-            else:
-                native_platform = (
-                    self._multiplatform_image_builder.get_native_platform()
-                )
-                platforms = [native_platform]
-                built_images_info = (
-                    self._multiplatform_image_builder.build_multiple_images(
-                        platforms=platforms,
-                        path=SSH_AGENT_PROXY_BUILD_CONTEXT,
-                        file=f"{SSH_AGENT_PROXY_BUILD_CONTEXT}/Dockerfile",
-                        cache=True,
-                        pull=False,
-                        use_threading=False,
-                    )
-                )
-                if len(built_images_info.built_images) != 1:
-                    raise BuildRunnerProcessingError(
-                        "Failed to build ssh-agent image. Retrying the build may resolve the issue."
-                    )
-                self._ssh_agent_image = built_images_info.built_images[0].trunc_digest
+            self.log.write("Creating ssh-agent image\n")
+            image = buildrunner.docker.builder.build_image(
+                path=SSH_AGENT_PROXY_BUILD_CONTEXT,
+                docker_registry=self.docker_registry,
+                nocache=False,
+                pull=False,
+            )
+            self._ssh_agent_image = image
         return self._ssh_agent_image
 
 

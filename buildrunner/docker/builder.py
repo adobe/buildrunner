@@ -277,9 +277,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         # iterate through and destroy intermediate containers
         for container in self.intermediate_containers:
             try:
-                force_remove_container(
-                    self.docker_client, container, use_legacy_builder=True
-                )
+                force_remove_container(self.docker_client, container)
             except docker.errors.APIError as err:
                 logger.debug(
                     f"Error removing intermediate container {container}: {err}"

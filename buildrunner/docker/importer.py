@@ -6,13 +6,11 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-import python_on_whales
 import yaml
 
 import docker
 import docker.errors
 
-from buildrunner.config import BuildRunnerConfig
 from buildrunner.docker import new_client
 from buildrunner.errors import BuildRunnerProcessingError
 from buildrunner.utils import is_dict
@@ -43,11 +41,7 @@ class DockerImporter:
         """
 
         try:
-            import_return = None
-            if BuildRunnerConfig.get_instance().run_config.use_legacy_builder:
-                import_return = self.docker_client.import_image(self.src)
-            else:
-                import_return = python_on_whales.docker.import_(self.src)
+            import_return = self.docker_client.import_image(self.src)
         except docker.errors.APIError as apie:
             raise BuildRunnerProcessingError(
                 f"Error importing image from archive file {self.src}: {apie}"
