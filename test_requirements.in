@@ -7,3 +7,4 @@ ruff>=0.1.7
 ruff-lsp>=0.0.45
 # Python 3.8 only supports up to 3.5.0
 pre-commit<3.6
+pytest-rerunfailures>=14.0
