@@ -1134,18 +1134,11 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.log.write(
                 f"Destroying source container {self._source_container:.10}\n"
             )
-            if BuildRunnerConfig.get_instance().run_config.use_legacy_builder:
-                self._docker_client.remove_container(
-                    self._source_container,
-                    force=True,
-                    v=True,
-                )
-            else:
-                python_on_whales.docker.container.remove(
-                    self._source_container,
-                    force=True,
-                    volumes=True,
-                )
+            self._docker_client.remove_container(
+                self._source_container,
+                force=True,
+                v=True,
+            )
 
         for image in self.images_to_remove:
             python_on_whales.docker.image.remove(image, force=True)

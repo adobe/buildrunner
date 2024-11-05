@@ -183,7 +183,7 @@ def fixture_set_env():
     ],
 )
 @mock.patch(
-    "tests.test_runner.buildrunner.steprunner.tasks.build.legacy_builder.build_image"
+    "tests.test_runner.buildrunner.steprunner.tasks.build.buildrunner.docker.builder.build_image"
 )
 @mock.patch(
     "tests.test_runner.buildrunner.steprunner.MultiplatformImageBuilder.build_multiple_images"

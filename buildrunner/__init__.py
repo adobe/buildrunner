@@ -21,7 +21,6 @@ import tempfile
 import types
 from typing import List, Optional
 
-import python_on_whales
 import requests
 
 from retry import retry
@@ -39,7 +38,7 @@ from buildrunner.errors import (
 )
 from buildrunner.steprunner import BuildStepRunner
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
-import buildrunner.docker.builder as legacy_builder
+import buildrunner.docker.builder
 
 
 LOGGER = logging.getLogger(__name__)
@@ -288,37 +287,15 @@ class BuildRunner:
                 source_archive_path: "source.tar",
                 SOURCE_DOCKERFILE: "Dockerfile",
             }
-            if self.buildrunner_config.run_config.use_legacy_builder:
-                image = legacy_builder.build_image(
-                    temp_dir=self.buildrunner_config.global_config.temp_dir,
-                    inject=inject,
-                    timeout=self.docker_timeout,
-                    docker_registry=self.buildrunner_config.global_config.docker_registry,
-                    nocache=True,
-                    pull=False,
-                )
-                self._source_image = image
-            else:
-                # Use buildx builder
-                native_platform = self._step_runner.multi_platform.get_native_platform()
-                LOGGER.info(f"Setting platforms to [{native_platform}]")
-                platforms = [native_platform]
-                built_images_info = (
-                    self._step_runner.multi_platform.build_multiple_images(
-                        platforms=platforms,
-                        inject=inject,
-                        cache=False,
-                        pull=False,
-                        build_args={
-                            "BUILDRUNNER_DISTRO": os.environ.get("BUILDRUNNER_DISTRO")
-                        },
-                    )
-                )
-                if len(built_images_info.built_images) != 1:
-                    raise BuildRunnerProcessingError(
-                        "Failed to build source image. Retrying the build may resolve the issue."
-                    )
-                self._source_image = built_images_info.built_images[0].trunc_digest
+            image = buildrunner.docker.builder.build_image(
+                temp_dir=self.buildrunner_config.global_config.temp_dir,
+                inject=inject,
+                timeout=self.docker_timeout,
+                docker_registry=self.buildrunner_config.global_config.docker_registry,
+                nocache=True,
+                pull=False,
+            )
+            self._source_image = image
 
         return self._source_image
 
@@ -519,16 +496,11 @@ class BuildRunner:
             if self._source_image:
                 self.log.write(f"Destroying source image {self._source_image}\n")
                 try:
-                    if self.buildrunner_config.run_config.use_legacy_builder:
-                        _docker_client.remove_image(
-                            self._source_image,
-                            noprune=False,
-                            force=True,
-                        )
-                    else:
-                        python_on_whales.docker.image.remove(
-                            self._source_image, prune=True, force=True
-                        )
+                    _docker_client.remove_image(
+                        self._source_image,
+                        noprune=False,
+                        force=True,
+                    )
                 except ImageNotFound:
                     self.log.warning(
                         f"Failed to remove source image {self._source_image}\n"
@@ -540,16 +512,11 @@ class BuildRunner:
                 # reverse the order of the images since child images would likely come after parent images
                 for _image in self.generated_images[::-1]:
                     try:
-                        if self.buildrunner_config.run_config.use_legacy_builder:
-                            _docker_client.remove_image(
-                                _image,
-                                noprune=False,
-                                force=True,
-                            )
-                        else:
-                            python_on_whales.docker.image.remove(
-                                _image, prune=True, force=True
-                            )
+                        _docker_client.remove_image(
+                            _image,
+                            noprune=False,
+                            force=True,
+                        )
                     except Exception as _ex:  # pylint: disable=broad-except
                         self.log.write(f"Error removing image {_image}: {str(_ex)}\n")
             else:

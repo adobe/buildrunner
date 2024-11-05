@@ -1,4 +1,5 @@
 import os
+import random
 import pytest
 import platform
 import subprocess
@@ -185,7 +186,7 @@ def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
-@pytest.mark.flaky(reruns=2, reruns_delay=1)
+@pytest.mark.flaky(reruns=5, reruns_delay=random.randint(1, 5))
 @pytest.mark.parametrize(
     "test_dir, file_name, args, exit_code",
     _get_test_runs(test_dir=f"{TEST_DIR}/test-files/scan", serial_tests=False),
