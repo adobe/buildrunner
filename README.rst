@@ -640,6 +640,12 @@ the run step:
         # 'BUILDRUNNER_SYSTEMD'.
         # If found, systemd=true will be assumed.
         systemd: true/false
+        # (Ignored when systemd is not enabled)
+        # For systemd 248+, a read-write mount for /sys/fs/cgroup is required as well as a tmpfs mounted at /run, and
+        # this flag enables this behavior
+        # If this is ommitted, the image will be inspected for the label
+        # 'BUILDRUNNER_SYSTEMD_V248' and that value will be used instead.
+        systemd_v248: true/false
 
         # Docker supports certain kernel capabilities, like 'SYS_ADMIN'.
         # see https://goo.gl/gTQrqW for more infromation on setting these.

@@ -598,6 +598,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         )
         self._service_runners[name] = service_runner
         cont_name = self.step_runner.id + "-" + name
+        systemd = self.is_systemd(service, _image)
         service_container_id = service_runner.start(
             name=cont_name,
             volumes=_volumes,
@@ -614,7 +615,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             extra_hosts=_extra_hosts,
             working_dir=_cwd,
             containers=_containers,
-            systemd=self.is_systemd(service, _image, service_logger),
+            systemd=systemd,
+            systemd_v248=self.is_systemd_v248(systemd, service, _image),
         )
         self._service_links[cont_name] = name
 
@@ -1022,8 +1024,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 log=self.step_runner.log,
             )
             # Figure out if we should be running systemd.  Has to happen after docker pull
-            container_args["systemd"] = self.is_systemd(
-                self.step, _run_image, self.step_runner.log
+            container_args["systemd"] = self.is_systemd(self.step, _run_image)
+            container_args["systemd_v248"] = self.is_systemd_v248(
+                container_args["systemd"], self.step, _run_image
             )
 
             container_id = self.runner.start(
@@ -1143,22 +1146,34 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         for image in self.images_to_remove:
             python_on_whales.docker.image.remove(image, force=True)
 
-    def is_systemd(self, run_service: RunAndServicesBase, image, logger):
-        """Check if an image runs systemd"""
-        # Unused argument
-        _ = logger
-
-        rval = False
-        if run_service.systemd:
-            rval = run_service.systemd
-        else:
-            labels = (
-                self._docker_client.inspect_image(image)
-                .get("Config", {})
-                .get("Labels", {})
-            )
-            if labels and "BUILDRUNNER_SYSTEMD" in labels:
-                rval = labels.get("BUILDRUNNER_SYSTEMD", False)
-
+    def _get_label_is_truthy(self, image, label_name: str) -> bool:
+        labels = (
+            self._docker_client.inspect_image(image).get("Config", {}).get("Labels", {})
+        )
+        if not labels or label_name not in labels:
+            return False
         # Labels will be set as the string value.  Make sure we handle '0' and 'False'
-        return bool(rval and rval != "0" and rval != "False")
+        value = labels.get(label_name, False)
+        return bool(value and value != "0" and value != "False")
+
+    def is_systemd(self, run_service: RunAndServicesBase, image: str) -> bool:
+        """
+        Check if an image runs systemd
+        """
+        if run_service.systemd is not None:
+            return run_service.systemd
+        return self._get_label_is_truthy(image, "BUILDRUNNER_SYSTEMD")
+
+    def is_systemd_v248(
+        self, systemd: bool, run_service: RunAndServicesBase, image: str
+    ) -> bool:
+        """
+        Check if an image needs the changes for systemd v248+
+        """
+        if not systemd:
+            # Do not run any other checks if we are not using systemd at all
+            return False
+
+        if run_service.systemd_v248 is not None:
+            return run_service.systemd_v248
+        return self._get_label_is_truthy(image, "BUILDRUNNER_SYSTEMD_V248")

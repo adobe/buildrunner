@@ -149,7 +149,8 @@ class DockerRunner:
         dns_search=None,
         extra_hosts=None,
         containers=None,
-        systemd=None,
+        systemd: bool = False,
+        systemd_v248: bool = False,
         cap_add=None,
         privileged=False,
     ):  # pylint: disable=too-many-arguments,too-many-locals
@@ -172,11 +173,17 @@ class DockerRunner:
 
         security_opt = None
         command = shell
+        tmpfs = {}
+        cgroupns = None
         if systemd:
-            # If we are running in a systemd context,
-            # the following 3 settings are necessary to
+            # If we are running in a systemd context, the following 3 settings are necessary to
             # allow services to run.
-            volumes["/sys/fs/cgroup"] = "/sys/fs/cgroup:ro"
+            if systemd_v248:
+                volumes["/sys/fs/cgroup/buildrunner.scope"] = "/sys/fs/cgroup:rw"
+                tmpfs["/run"] = ""
+                cgroupns = "host"
+            else:
+                volumes["/sys/fs/cgroup"] = "/sys/fs/cgroup:ro"
             security_opt = ["seccomp=unconfined"]
             command = "/usr/sbin/init"
 
@@ -225,6 +232,8 @@ class DockerRunner:
                 security_opt=security_opt,
                 cap_add=cap_add,
                 privileged=privileged,
+                tmpfs=tmpfs,
+                cgroupns=cgroupns,
             ),
         }
         if entrypoint:
