@@ -5,7 +5,7 @@ ENV PIP_DEFAULT_TIMEOUT 60
 
 # Install the docker client for multiplatform builds
 RUN apt update && \
-    apt install ca-certificates curl && \
+    apt -y install ca-certificates curl && \
     install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && \
     chmod a+r /etc/apt/keyrings/docker.asc && \
