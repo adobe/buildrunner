@@ -128,7 +128,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
             timeout=timeout,
         )
         self.docker_registry = docker_registry
-        self._image = None
+        self.image = None
         self.intermediate_containers = []
 
     @staticmethod
