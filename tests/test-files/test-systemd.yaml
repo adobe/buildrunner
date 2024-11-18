@@ -61,15 +61,15 @@ steps:
     run:
        systemd: true
        cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
-  test-systemd-v248-on:
+  test-systemd-cgroup2-on:
     build:
       dockerfile: |
-        # Rocky linux 9 has 248+ installed
+        # Rocky linux 9 has systemd 248+ installed
         FROM {{ DOCKER_REGISTRY }}/rockylinux:9.0
         RUN yum install -y procps-ng && yum clean all
     run:
        systemd: true
-       systemd_v248: true
+       systemd_cgroup2: true
        cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
 
   test-systemd-on-built:
@@ -81,13 +81,13 @@ steps:
     run:
       cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
 
-  test-systemd-v248-on-built:
+  test-systemd-cgroup2-on-built:
     build:
       dockerfile: |
         FROM {{ DOCKER_REGISTRY }}/rockylinux:9.0
         RUN yum install -y procps-ng && yum clean all
         LABEL BUILDRUNNER_SYSTEMD=1
-        LABEL BUILDRUNNER_SYSTEMD_V248=1
+        LABEL BUILDRUNNER_SYSTEMD_CGROUP2=1
     run:
       cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init
 
@@ -118,7 +118,7 @@ steps:
       image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       pull: false
       cmd: curl http://s1:8001 1>/dev/null 2>&1
-  test-systemd-v248-service:
+  test-systemd-cgroup2-service:
     run:
       services:
         s1:
@@ -127,7 +127,7 @@ steps:
               FROM {{ DOCKER_REGISTRY }}/rockylinux:9.0
               RUN yum -y install python3 procps-ng && yum clean all
               LABEL BUILDRUNNER_SYSTEMD=1
-              LABEL BUILDRUNNER_SYSTEMD_V248=1
+              LABEL BUILDRUNNER_SYSTEMD_CGROUP2=1
           systemd: true
           cmd: ps -p 1 -o cmd | tail -1 | grep /usr/sbin/init && python3 -m http.server 8001
       image: {{ DOCKER_REGISTRY }}/rockylinux:8.5

@@ -150,7 +150,7 @@ class DockerRunner:
         extra_hosts=None,
         containers=None,
         systemd: bool = False,
-        systemd_v248: bool = False,
+        systemd_cgroup2: bool = False,
         cap_add=None,
         privileged=False,
     ):  # pylint: disable=too-many-arguments,too-many-locals
@@ -178,7 +178,7 @@ class DockerRunner:
         if systemd:
             # If we are running in a systemd context, the following 3 settings are necessary to
             # allow services to run.
-            if systemd_v248:
+            if systemd_cgroup2:
                 volumes["/sys/fs/cgroup/buildrunner.scope"] = "/sys/fs/cgroup:rw"
                 tmpfs["/run"] = ""
                 cgroupns = "host"
