@@ -616,7 +616,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             working_dir=_cwd,
             containers=_containers,
             systemd=systemd,
-            systemd_v248=self.is_systemd_v248(systemd, service, _image),
+            systemd_cgroup2=self.is_systemd_cgroup2(systemd, service, _image),
         )
         self._service_links[cont_name] = name
 
@@ -1025,7 +1025,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
             # Figure out if we should be running systemd.  Has to happen after docker pull
             container_args["systemd"] = self.is_systemd(self.step, _run_image)
-            container_args["systemd_v248"] = self.is_systemd_v248(
+            container_args["systemd_cgroup2"] = self.is_systemd_cgroup2(
                 container_args["systemd"], self.step, _run_image
             )
 
@@ -1164,16 +1164,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             return run_service.systemd
         return self._get_label_is_truthy(image, "BUILDRUNNER_SYSTEMD")
 
-    def is_systemd_v248(
+    def is_systemd_cgroup2(
         self, systemd: bool, run_service: RunAndServicesBase, image: str
     ) -> bool:
         """
-        Check if an image needs the changes for systemd v248+
+        Check if an image needs the changes for cgroup2
         """
         if not systemd:
             # Do not run any other checks if we are not using systemd at all
             return False
 
-        if run_service.systemd_v248 is not None:
-            return run_service.systemd_v248
-        return self._get_label_is_truthy(image, "BUILDRUNNER_SYSTEMD_V248")
+        if run_service.systemd_cgroup2 is not None:
+            return run_service.systemd_cgroup2
+        return self._get_label_is_truthy(image, "BUILDRUNNER_SYSTEMD_CGROUP2")

@@ -104,7 +104,7 @@ class RunAndServicesBase(StepTask):
     ports: Optional[Dict[int, Optional[int]]] = None
     pull: Optional[bool] = None
     systemd: Optional[bool] = None
-    systemd_v248: Optional[bool] = None
+    systemd_cgroup2: Optional[bool] = None
     containers: Optional[List[str]] = None
     caches: Optional[Dict[str, Union[str, List[str]]]] = None
 
