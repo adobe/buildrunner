@@ -32,3 +32,7 @@ caches-root: ~/.buildrunner/caches
 # buildrunner scripts
 env:
   GLOBAL_VAR1: 'value1'
+
+# The 'docker-registry' global configuration specifies the default docker registry
+# Use the AWS public ECR as it has higher rate limits than Docker Hub
+docker-registry: public.ecr.aws/docker/library
