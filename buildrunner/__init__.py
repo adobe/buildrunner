@@ -18,6 +18,7 @@ import shutil
 import sys
 import tarfile
 import tempfile
+import traceback
 import types
 from typing import List, Optional
 
@@ -35,6 +36,7 @@ from buildrunner.config.models import DEFAULT_CACHES_ROOT
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
+    BuildRunnerError,
 )
 from buildrunner.steprunner import BuildStepRunner
 from buildrunner.docker.multiplatform_image_builder import MultiplatformImageBuilder
@@ -471,12 +473,6 @@ class BuildRunner:
                 else:
                     self.log.write("\nPush not requested\n")
 
-        except BuildRunnerConfigurationError as brce:
-            exit_explanation = str(brce)
-            self.exit_code = os.EX_CONFIG
-        except BuildRunnerProcessingError as brpe:
-            exit_explanation = str(brpe)
-            self.exit_code = 1
         except requests.exceptions.ConnectionError as rce:
             print(str(rce))
             exit_explanation = (
@@ -485,6 +481,17 @@ class BuildRunner:
                 "environment variables are set correctly.\n\tCheck that the "
                 "remote PyPi server information is set correctly."
             )
+            self.exit_code = 1
+        except ImageNotFound as inf:
+            exit_explanation = f"Image not found: {inf.explanation}"
+            self.exit_code = os.EX_CONFIG
+        except BuildRunnerError as exc:
+            exit_explanation = str(exc)
+            self.exit_code = (
+                os.EX_CONFIG if isinstance(exc, BuildRunnerConfigurationError) else 1
+            )
+        except Exception as exc:
+            exit_explanation = f"Encountered unhandled exception ({type(exc).__name__}) {traceback.format_exc()}"
             self.exit_code = 1
 
         finally:
