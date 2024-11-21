@@ -472,6 +472,7 @@ class BuildRunner:
                         )
                 else:
                     self.log.write("\nPush not requested\n")
+
         except requests.exceptions.ConnectionError as rce:
             print(str(rce))
             exit_explanation = (
@@ -481,6 +482,9 @@ class BuildRunner:
                 "remote PyPi server information is set correctly."
             )
             self.exit_code = 1
+        except ImageNotFound as inf:
+            exit_explanation = f"Image not found: {inf.explanation}"
+            self.exit_code = os.EX_CONFIG
         except BuildRunnerError as exc:
             exit_explanation = str(exc)
             self.exit_code = (

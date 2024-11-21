@@ -2,5 +2,5 @@
 steps:
   use-bogus-image:
     run:
-      image: user1/buildrunner-test-multi-platform:bogus
+      image: user1/buildrunner-bogus-image:bogus
       cmd: echo "Hello World"
