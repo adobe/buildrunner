@@ -71,6 +71,8 @@ class BuildRunnerConfig:
         log_generated_files: bool,
         build_time: int,
         global_config_overrides: dict,
+        # Arbitrary labels to add to all started containers, of the form key1=value1,key2=value2
+        container_labels: Optional[str] = None,
         # May be passed in to add temporary files to this list as they are created
         tmp_files: Optional[List[str]] = None,
         # Used only from CLI commands that do not need a run config
@@ -83,6 +85,7 @@ class BuildRunnerConfig:
         self.build_time = build_time
         if not self.build_time:
             self.build_time = epoch_time()
+        self.container_labels = self._parse_container_labels(container_labels)
         self.tmp_files = tmp_files
 
         self.global_config = self._load_global_config(
@@ -98,6 +101,20 @@ class BuildRunnerConfig:
         self.run_config = (
             self._load_run_config(run_config_file) if load_run_config else None
         )
+
+    @staticmethod
+    def _parse_container_labels(container_labels_str: Optional[str]) -> dict:
+        container_labels = {}
+        if not container_labels_str:
+            return container_labels
+        for pair in container_labels_str.split(","):
+            if "=" not in pair:
+                raise BuildRunnerConfigurationError(
+                    "Invalid container label format, must be key=value"
+                )
+            key, value = pair.split("=", 1)
+            container_labels[key] = value
+        return container_labels
 
     def _load_global_config(
         self, global_config_file: Optional[str], global_config_overrides: dict

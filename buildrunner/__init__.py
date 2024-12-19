@@ -85,6 +85,7 @@ class BuildRunner:
         local_images: bool,
         platform: Optional[str],
         global_config_overrides: dict,
+        container_labels: Optional[str] = None,
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         self.build_dir = build_dir
         self.build_results_dir = build_results_dir
@@ -141,6 +142,7 @@ class BuildRunner:
             build_time=self.build_time,
             tmp_files=self.tmp_files,
             global_config_overrides=global_config_overrides,
+            container_labels=container_labels,
         )
         self.buildrunner_config = BuildRunnerConfig.get_instance()
 
