@@ -27,6 +27,7 @@ import docker.errors
 import six
 import timeout_decorator
 
+from buildrunner import BuildRunnerConfig
 from buildrunner.docker import (
     new_client,
     force_remove_container,
@@ -79,10 +80,10 @@ class DockerRunner:
     def __init__(self, image_config, dockerd_url=None, log=None):
         image_name = image_config.image_name
         pull_image = image_config.pull_image
-        platform = image_config.platform
+        image_platform = image_config.platform
 
         self.image_name = image_name.lower()
-        self.platform = platform
+        self.platform = image_platform
         if log and self.image_name != image_name:
             log.write(
                 f"Forcing image_name to lowercase: {image_name} => {self.image_name}\n"
@@ -230,6 +231,7 @@ class DockerRunner:
             "user": user,
             "working_dir": working_dir,
             "hostname": hostname,
+            "labels": BuildRunnerConfig.get_instance().container_labels,
             "host_config": self.docker_client.create_host_config(
                 binds=_binds,
                 links=links,

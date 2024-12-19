@@ -69,6 +69,15 @@ def parse_args(argv):
     )
 
     parser.add_argument(
+        "--container-labels",
+        default=None,
+        help=(
+            "arbitrary labels to add to every container started by buildrunner, "
+            "in the form of 'key1=value1,key2=value2'"
+        ),
+    )
+
+    parser.add_argument(
         "-n",
         "--build-number",
         default=None,
@@ -396,6 +405,7 @@ def initialize_br(args: argparse.Namespace) -> BuildRunner:
         local_images=args.local_images,
         platform=args.platform,
         global_config_overrides=_get_global_config_overrides(args),
+        container_labels=args.container_labels,
     )
 
 

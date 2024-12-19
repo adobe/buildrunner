@@ -7,7 +7,7 @@ from os.path import isfile, join
 from time import sleep
 from unittest import mock
 
-from buildrunner import BuildRunner
+from buildrunner import BuildRunner, BuildRunnerConfig
 from buildrunner.docker.runner import DockerRunner
 from buildrunner.loggers import ConsoleLogger
 import pytest
@@ -26,6 +26,25 @@ def _tar_safe_extractall(tar, path=".", members=None, *, numeric_owner=False):
         if not _tar_is_within_directory(path, member_path):
             raise Exception("Attempted path traversal in tar file")
     tar.extractall(path, members, numeric_owner=numeric_owner)
+
+
+@pytest.fixture(name="initialize_config", autouse=True)
+def fixture_initialize_config(tmp_path):
+    buildrunner_path = tmp_path / "buildrunner.yaml"
+    buildrunner_path.write_text("steps: {'step1': {}}")
+    BuildRunnerConfig.initialize_instance(
+        build_id="123",
+        vcs=None,
+        build_dir=str(tmp_path),
+        global_config_file=None,
+        run_config_file=str(buildrunner_path),
+        build_time=0,
+        build_number=1,
+        push=False,
+        steps_to_run=None,
+        log_generated_files=False,
+        global_config_overrides={},
+    )
 
 
 @pytest.fixture(name="runner")
