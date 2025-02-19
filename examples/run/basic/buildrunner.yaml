@@ -1,0 +1,5 @@
+steps:
+  simple-run-step:
+    run:
+      image: busybox:latest
+      cmd: echo Hello World

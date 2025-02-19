@@ -1,0 +1,6 @@
+steps:
+  simple-build-step:
+    build:
+      dockerfile: |
+        FROM busybox:latest
+        RUN echo Hello World
