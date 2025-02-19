@@ -90,9 +90,17 @@ def new_client(
             args["timeout"] = MAX_TIMEOUT
         else:
             args["timeout"] = timeout
-    return Client(
-        base_url=_dockerd_url, version=DOCKER_API_VERSION, tls=tls_config, **args
-    )
+    try:
+        return Client(
+            base_url=_dockerd_url, version=DOCKER_API_VERSION, tls=tls_config, **args
+        )
+    except docker.errors.DockerException as e:
+        if "Connection aborted" in str(e) and "No such file or directory" in str(e):
+            raise BuildRunnerContainerError(
+                "Error connecting to Docker daemon. Please ensure the Docker daemon is running and try again."
+            )
+        else:
+            raise BuildRunnerContainerError(f"An docker error occurred: {e}")
 
 
 def force_remove_container(docker_client, container):
