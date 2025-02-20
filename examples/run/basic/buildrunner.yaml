@@ -1,3 +1,4 @@
+# Basic buildrunner configuration to run a simple Docker image.
 steps:
   simple-run-step:
     run:
