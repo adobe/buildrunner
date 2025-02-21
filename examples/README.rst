@@ -11,26 +11,16 @@ To run Buildrunner using an example configuration file, follow these steps from 
 
 1. **Navigate to the Buildrunner repository directory.**
 
-2. **Install Buildrunner:**
+2. **Execute Buildrunner with a specified configuration file:**
     .. code-block:: sh
 
-      pip install .
-
-    *Tip: It is recommended to install Buildrunner within a virtual environment to avoid conflicts with system-wide dependencies.*
-
-
-3. **Execute Buildrunner with a specified configuration file:**
-    .. code-block:: sh
-
-        ./bin/buildrunner -f examples/<path-to-config-file>
-        or
-        buildrunner -f examples/<path-to-config-file>
+        PYTHONPATH=. ./bin/buildrunner -f examples/<path-to-config-file>
 
     *Example:*
 
     .. code-block:: sh
 
-      buildrunner -f examples/configs/build/basic/buildrunner.yaml
+      PYTHONPATH=. ./bin/buildrunner -f examples/build/basic/buildrunner.yaml
 
 Adding a New Example Configuration File
 =======================================
