@@ -1,0 +1,11 @@
+# This example demonstrates how to use the inject field to inject a file into the build context.
+# See buildrunner documentation for more information.
+steps:
+  build-step-with-inject:
+    build:
+      inject:
+        examples/build/inject/injectfile.txt: .
+      dockerfile: |
+        FROM busybox
+        COPY ./injectfile.txt /tmp/
+        RUN cat /tmp/injectfile.txt
