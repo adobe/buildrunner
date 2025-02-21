@@ -23,12 +23,14 @@ To run Buildrunner using an example configuration file, follow these steps from 
     .. code-block:: sh
 
         ./bin/buildrunner -f examples/<path-to-config-file>
+        or
+        buildrunner -f examples/<path-to-config-file>
 
     *Example:*
 
     .. code-block:: sh
 
-      ./bin/buildrunner -f examples/configs/build/basic/buildrunner.yaml
+      buildrunner -f examples/configs/build/basic/buildrunner.yaml
 
 Adding a New Example Configuration File
 =======================================
