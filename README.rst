@@ -1128,6 +1128,11 @@ Common Issues
 
 See `docs/common-issues <docs/common-issues.rst>`_.
 
+Example Configurations
+======================
+
+See `examples <examples/README.rst>`_.
+
 Contributing
 ============
 

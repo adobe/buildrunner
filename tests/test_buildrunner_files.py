@@ -117,6 +117,21 @@ def _get_test_runs(
     ]
 
 
+def _get_example_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]], int]]:
+    file_names = []
+    # Walk through the examples directory and find all files ending with buildrunner.yaml
+    for root, _, files in os.walk(test_dir):
+        for file in files:
+            file_name = os.path.join(root, file)
+            if file_name.endswith("buildrunner.yaml"):
+                file_names.append(file_name)
+
+    return [
+        (test_dir, file_name, _get_test_args(file_name), _get_exit_code(file_name))
+        for file_name in file_names
+    ]
+
+
 def _test_buildrunner_file(test_dir, file_name, args, exit_code):
     print(f"\n>>>> Testing Buildrunner file: {file_name}")
     with tempfile.TemporaryDirectory(prefix="buildrunner.results-") as temp_dir:
@@ -193,4 +208,12 @@ def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
 )
 def test_buildrunner_scan_dir(test_dir: str, file_name, args, exit_code):
     # The scan tests can be flaky, with errors like "TOOMANYREQUESTS: retry-after: 804.543µs, allowed: 44000/minute"
+    _test_buildrunner_file(test_dir, file_name, args, exit_code)
+
+
+@pytest.mark.parametrize(
+    "test_dir, file_name, args, exit_code",
+    _get_example_runs(test_dir=f"{TEST_DIR}/../examples"),
+)
+def test_example_configs(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)

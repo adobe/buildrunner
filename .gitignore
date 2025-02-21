@@ -1,5 +1,5 @@
 vendor*
-build
+build/*
 dist
 *.egg-info
 *.egg
@@ -13,6 +13,7 @@ dist
 
 .eggs
 venv*
+.venv
 .act*
 
 buildrunner/version.py

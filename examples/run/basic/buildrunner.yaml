@@ -1,0 +1,6 @@
+# Basic buildrunner configuration to run a simple Docker image.
+steps:
+  simple-run-step:
+    run:
+      image: busybox:latest
+      cmd: echo Hello World
