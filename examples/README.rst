@@ -11,23 +11,22 @@ To run Buildrunner using an example configuration file, follow these steps from 
 
 1. **Navigate to the Buildrunner repository directory.**
 
-2. **Install Buildrunner (Recommended: Use a Virtual Environment)**
-
-   It is recommended to install Buildrunner within a virtual environment to avoid conflicts with system-wide dependencies.
-
-   .. code-block:: sh
+2. **Install Buildrunner:**
+    .. code-block:: sh
 
       pip install .
 
+    *Tip: It is recommended to install Buildrunner within a virtual environment to avoid conflicts with system-wide dependencies.*
+
+
 3. **Execute Buildrunner with a specified configuration file:**
+    .. code-block:: sh
 
-   .. code-block:: sh
+        ./bin/buildrunner -f examples/<path-to-config-file>
 
-      ./bin/buildrunner -f examples/<path-to-config-file>
+    *Example:*
 
-   For example:
-
-   .. code-block:: sh
+    .. code-block:: sh
 
       ./bin/buildrunner -f examples/configs/build/basic/buildrunner.yaml
 
@@ -48,4 +47,4 @@ To contribute a new example configuration file, adhere to the following guidelin
    - If necessary, include a ``README.rst`` file in the same directory as the configuration file to provide additional details or instructions.
    - Any supporting files required for the configuration should be placed alongside the configuration file.
 
-Following these best practices ensures consistency, maintainability, and ease of use for all contributors and users.  
+Following these best practices ensures consistency, maintainability, and ease of use for all contributors and users.
