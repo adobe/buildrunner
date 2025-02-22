@@ -1,0 +1,12 @@
+# Example of a buildrunner.yaml file that specifies a multi-platform build step.
+# The 'platforms' field is optional and can be used to specify the platforms for the build step.
+# If the 'platforms' field is not specified, by default it will build a single platform, using the native platform of the machine running buildrunner.
+steps:
+  multi-platform-build-step:
+    build:
+      dockerfile: |
+        FROM busybox:latest
+        RUN echo Hello World
+      platforms:
+      - linux/amd64
+      - linux/arm64/v8
