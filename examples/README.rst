@@ -14,13 +14,13 @@ To run Buildrunner using an example configuration file, follow these steps from 
 2. **Execute Buildrunner with a specified configuration file:**
     .. code-block:: sh
 
-        PYTHONPATH=. ./bin/buildrunner -f examples/<path-to-config-file>
+      ./run-buildrunner.sh  -f examples/<path-to-config-file>
 
     *Example:*
 
     .. code-block:: sh
 
-      PYTHONPATH=. ./bin/buildrunner -f examples/build/basic/buildrunner.yaml
+      ./run-buildrunner.sh  examples/build/basic/buildrunner.yaml
 
 Adding a New Example Configuration File
 =======================================
