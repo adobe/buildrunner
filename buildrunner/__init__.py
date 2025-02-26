@@ -399,7 +399,12 @@ class BuildRunner:
                             multi_platform.set_cache_to(step_config.build.cache_to)
 
                         self._step_runner = BuildStepRunner(
-                            self, step_name, step_config, image_config, multi_platform
+                            self,
+                            step_name,
+                            step_config,
+                            image_config,
+                            multi_platform,
+                            self.buildrunner_config.container_labels
                         )
                         self._step_runner.run()
 

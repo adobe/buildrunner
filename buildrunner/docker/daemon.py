@@ -19,11 +19,12 @@ class DockerDaemonProxy:
     Class used to encapsulate Docker daemon information within a container.
     """
 
-    def __init__(self, docker_client, log, docker_registry):
+    def __init__(self, docker_client, log, docker_registry, container_labels):
         """ """
         self.docker_client = docker_client
         self.docker_registry = docker_registry
         self.log = log
+        self.container_labels = container_labels
         self._daemon_container = None
         self._env = {
             "DOCKER_HOST": DOCKER_DEFAULT_DOCKERD_URL,

@@ -83,6 +83,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._source_container = self._docker_client.create_container(
                 self.step_runner.build_runner.get_source_image(),
                 command="/bin/sh",
+                labels=self.step_runner.container_labels,
             )["Id"]
             self._docker_client.start(
                 self._source_container,
@@ -828,6 +829,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 self.step_runner.log,
                 buildrunner_config.global_config.docker_registry,
                 self.step_runner.multi_platform,
+                self.step_runner.container_labels,
             )
             self._sshagent.start(
                 buildrunner_config.get_ssh_keys_from_aliases(
@@ -840,6 +842,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._docker_client,
             self.step_runner.log,
             buildrunner_config.global_config.docker_registry,
+            self.step_runner.container_labels,
         )
         self._dockerdaemonproxy.start()
 
