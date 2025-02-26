@@ -4,8 +4,11 @@ steps:
   build-step-with-inject:
     build:
       inject:
-        examples/build/inject/injectfile.txt: .
+        # Step 1: Inject a file into the build context
+        # The file /injectfile.txt will be injected into the build context
+        examples/build/inject/injectfile.txt: /injectfile.txt
       dockerfile: |
         FROM busybox
-        COPY ./injectfile.txt /tmp/
+        # Step 2: Copy the injected file into the image or use it in some other way in the build process
+        COPY /injectfile.txt /tmp/
         RUN cat /tmp/injectfile.txt
