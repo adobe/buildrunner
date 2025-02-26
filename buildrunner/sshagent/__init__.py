@@ -89,7 +89,12 @@ class DockerSSHAgentProxy:
     """
 
     def __init__(
-        self, docker_client, log, docker_registry, multiplatform_image_builder, container_labels
+        self,
+        docker_client,
+        log,
+        docker_registry,
+        multiplatform_image_builder,
+        container_labels,
     ):
         """ """
         self.docker_client = docker_client
@@ -135,7 +140,6 @@ class DockerSSHAgentProxy:
             labels=self._container_labels,
             host_config=self.docker_client.create_host_config(
                 publish_all_ports=True,
-
             ),
         )["Id"]
         self.docker_client.start(

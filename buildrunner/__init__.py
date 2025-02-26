@@ -404,7 +404,7 @@ class BuildRunner:
                             step_config,
                             image_config,
                             multi_platform,
-                            self.buildrunner_config.container_labels
+                            self.buildrunner_config.container_labels,
                         )
                         self._step_runner.run()
 
