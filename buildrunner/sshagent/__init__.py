@@ -89,7 +89,12 @@ class DockerSSHAgentProxy:
     """
 
     def __init__(
-        self, docker_client, log, docker_registry, multiplatform_image_builder
+        self,
+        docker_client,
+        log,
+        docker_registry,
+        multiplatform_image_builder,
+        container_labels,
     ):
         """ """
         self.docker_client = docker_client
@@ -100,6 +105,7 @@ class DockerSSHAgentProxy:
         self._ssh_client = None
         self._ssh_channel = None
         self._multiplatform_image_builder = multiplatform_image_builder
+        self._container_labels = container_labels
 
     def get_info(self):
         """
@@ -131,6 +137,7 @@ class DockerSSHAgentProxy:
             command=[
                 f"{keys[0].get_name()} {keys[0].get_base64()}",
             ],
+            labels=self._container_labels,
             host_config=self.docker_client.create_host_config(
                 publish_all_ports=True,
             ),

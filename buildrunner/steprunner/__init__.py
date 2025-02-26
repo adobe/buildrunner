@@ -53,6 +53,7 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         step: Step,
         image_config,
         multi_platform: MultiplatformImageBuilder,
+        container_labels,
     ):
         """
         Constructor.
@@ -78,6 +79,7 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         # generate a unique step id
         self.id = str(uuid.uuid4())  # pylint: disable=invalid-name
         self.multi_platform = multi_platform
+        self.container_labels = container_labels
 
     def run(self):
         """
