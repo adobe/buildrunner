@@ -1,0 +1,16 @@
+# Description: This example demonstrates how to use the no-cache option in the build step.
+steps:
+  cache-build-step:
+    build:
+      no-cache: false
+      dockerfile: |
+        FROM alpine:latest
+        RUN apk update
+        RUN echo Hello World
+  no-cache-build-step:
+    build:
+      no-cache: true
+      dockerfile: |
+        FROM alpine:latest
+        RUN apk update
+        RUN echo Hello World
