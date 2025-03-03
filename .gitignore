@@ -20,3 +20,7 @@ buildrunner/version.py
 
 buildrunner.results
 curator.results
+
+# Ignore all .tar files
+# Manually running of some example files may create local .tar files
+*.tar
