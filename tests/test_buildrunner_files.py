@@ -119,11 +119,21 @@ def _get_test_runs(
 
 def _get_example_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]], int]]:
     file_names = []
+
+    # Files that should be excluded from the example tests
+    excluded_example_files = [
+        "examples/build/import/buildrunner.yaml",
+    ]
+
     # Walk through the examples directory and find all files ending with buildrunner.yaml
     for root, _, files in os.walk(test_dir):
         for file in files:
             file_name = os.path.join(root, file)
-            if file_name.endswith("buildrunner.yaml"):
+            if file_name.endswith("buildrunner.yaml") and not [
+                excluded
+                for excluded in excluded_example_files
+                if file_name.endswith(excluded)
+            ]:
                 file_names.append(file_name)
 
     return [

@@ -5,8 +5,8 @@ steps:
   multi-platform-build-step:
     build:
       dockerfile: |
-        FROM busybox:latest
-        RUN echo Hello World
+        FROM alpine:latest
+        LABEL custom_label="Buildrunner example label"
       platforms:
       - linux/amd64
-      - linux/arm64/v8
+      - linux/arm64

@@ -40,3 +40,8 @@ To contribute a new example configuration file, adhere to the following guidelin
    - Any supporting files required for the configuration should be placed alongside the configuration file.
 
 Following these best practices ensures consistency, maintainability, and ease of use for all contributors and users.
+
+Excluding Example Configuration Files from Unit Tests
+=====================================================
+
+To exclude an example configuration file from unit tests, add the file path to the ``excluded_example_files`` list in ``tests/test_buildrunner_files.py``.
