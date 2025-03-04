@@ -1,0 +1,18 @@
+# This example demonstrates how to use the buildargs field in the build step.
+# The buildargs field allows you to pass build-time variables to the Dockerfile.
+steps:
+  buildargs-step:
+    build:
+      buildargs:
+        MY_VERSION: 2.0
+      dockerfile: |
+        FROM alpine:latest
+        ARG MY_VERSION
+        LABEL version=$MY_VERSION
+
+    # To view the label in the built image do the following:
+    #  1. Uncomment the following 'push:' line
+    #  2. Run 'PYTHONPATH=. ./bin/buildrunner -f examples/build/buildargs/buildrunner.yaml'
+    #  3. Run 'docker image inspect my-images/buildargs-image:latest' to see the label.
+    #
+    # push: my-images/buildargs-image:latest

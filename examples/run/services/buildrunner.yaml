@@ -1,0 +1,27 @@
+# This example demonstrates how to run multiple services in a single step.
+# The services are defined in the services section of the run step.
+# Note: Change cmd to tail -f /dev/null to keep the services running for debugging.
+steps:
+  my-build-step:
+    build:
+      path: examples/run/services
+    commit:
+      repository: myimages/image1
+      tags: [ 'latest' ]
+  my-services-step:
+    run:
+      image: myimages/image1:latest
+      cmd: echo "Hello, World!" && sleep 1 && echo "Goodbye, World!"
+      services:
+        stats1:
+          build:
+            path: examples/run/services
+          cmd: echo "Hello, World!" && sleep 1 && echo "Goodbye, World!"
+        stats2:
+          build:
+            path: examples/run/services
+          cmd: echo "Hello, World!" && sleep 1 && echo "Goodbye, World!"
+        stats3:
+          build:
+            path: examples/run/services
+          cmd: echo "Hello, World!" && sleep 1 && echo "Goodbye, World!"

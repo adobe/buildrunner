@@ -3,5 +3,5 @@ steps:
   simple-build-step:
     build:
       dockerfile: |
-        FROM busybox:latest
+        FROM alpine:latest
         RUN echo Hello World

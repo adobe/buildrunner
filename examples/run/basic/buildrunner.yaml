@@ -2,5 +2,5 @@
 steps:
   simple-run-step:
     run:
-      image: busybox:latest
+      image: alpine:latest
       cmd: echo Hello World

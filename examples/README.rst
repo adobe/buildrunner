@@ -14,13 +14,13 @@ To run Buildrunner using an example configuration file, follow these steps from 
 2. **Execute Buildrunner with a specified configuration file:**
     .. code-block:: sh
 
-        PYTHONPATH=. ./bin/buildrunner -f examples/<path-to-config-file>
+      ./run-buildrunner.sh  -f examples/<path-to-config-file>
 
     *Example:*
 
     .. code-block:: sh
 
-      PYTHONPATH=. ./bin/buildrunner -f examples/build/basic/buildrunner.yaml
+      ./run-buildrunner.sh  examples/build/basic/buildrunner.yaml
 
 Adding a New Example Configuration File
 =======================================
@@ -40,3 +40,8 @@ To contribute a new example configuration file, adhere to the following guidelin
    - Any supporting files required for the configuration should be placed alongside the configuration file.
 
 Following these best practices ensures consistency, maintainability, and ease of use for all contributors and users.
+
+Excluding Example Configuration Files from Unit Tests
+=====================================================
+
+To exclude an example configuration file from unit tests, add the file path to the ``excluded_example_files`` list in ``tests/test_buildrunner_files.py``.

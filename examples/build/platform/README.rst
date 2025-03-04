@@ -1,0 +1,1 @@
+Contains an example of building a single-platform image.

@@ -1,0 +1,10 @@
+# Example of a buildrunner.yaml file that specifies a single platform build step.
+# The 'platform' field is optional and can be used to specify the platform for the build step.
+# If the 'platform' field is not specified, the default platform is native platform of the machine running buildrunner.
+steps:
+  single-platform-build-step:
+    build:
+      dockerfile: |
+        FROM alpine:latest
+        RUN echo Hello World
+      platform: linux/amd64
