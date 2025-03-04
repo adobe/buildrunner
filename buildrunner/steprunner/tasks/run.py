@@ -14,6 +14,7 @@ import pwd
 import threading
 import time
 import uuid
+
 import python_on_whales
 
 import buildrunner.docker
@@ -66,6 +67,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._docker_client = buildrunner.docker.new_client(
             timeout=step_runner.build_runner.docker_timeout,
         )
+        if self.step_runner.network_name and not self._docker_client.networks(
+            names=[self.step_runner.network_name]
+        ):
+            self._docker_client.create_network(self.step_runner.network_name)
         self._source_container = None
         self._service_runners = OrderedDict()
         self._service_links = {}
@@ -73,6 +78,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         self._dockerdaemonproxy = None
         self.runner = None
         self.images_to_remove = []
+
+    def __del__(self):
+        if self.step_runner.network_name and self._docker_client.networks(
+            names=[self.step_runner.network_name]
+        ):
+            self._docker_client.remove_network(self.step_runner.network_name)
 
     def _get_source_container(self):
         """
@@ -84,6 +95,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 self.step_runner.build_runner.get_source_image(),
                 command="/bin/sh",
                 labels=self.step_runner.container_labels,
+                networking_config=self._docker_client.create_networking_config(
+                    {
+                        self.step_runner.network_name: self._docker_client.create_endpoint_config()
+                    }
+                )
+                if self.step_runner.network_name
+                else None,
             )["Id"]
             self._docker_client.start(
                 self._source_container,
@@ -504,7 +522,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _user = service.user
 
         # determine if a hostname is specified
-        _hostname = service.hostname
+        _hostname = service.hostname or name
 
         # determine if a dns host is specified
         _dns = None
@@ -618,6 +636,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             containers=_containers,
             systemd=systemd,
             systemd_cgroup2=self.is_systemd_cgroup2(systemd, service, _image),
+            network=self.step_runner.network_name,
         )
         self._service_links[cont_name] = name
 
@@ -658,9 +677,17 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         Wait for listening port on named container
         """
-        ipaddr = self._docker_client.inspect_container(name)["NetworkSettings"][
-            "IPAddress"
-        ]
+        network_settings = self._docker_client.inspect_container(name).get(
+            "NetworkSettings", {}
+        )
+        if self.step_runner.network_name:
+            ipaddr = (
+                network_settings.get("Networks", {})
+                .get(self.step_runner.network_name, {})
+                .get("IPAddress", None)
+            )
+        else:
+            ipaddr = network_settings.get("IPAddress", None)
         socket_open = False
 
         if isinstance(wait_for_data, dict):
@@ -710,6 +737,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 nc_tester.start(
                     # The shell is the command
                     shell=f"-n -z {ipaddr} {port}",
+                    network=self.step_runner.network_name,
                 )
 
                 nc_tester.attach_until_finished()
@@ -734,12 +762,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
     def _resolve_service_ip(self, service_name):
         """
-        If service_name represents a running service, return it's IP address.
+        If service_name represents a running service, return its IP address.
         Otherwise, return the service_name
         """
         rval = service_name
         if isinstance(service_name, str) and service_name in self._service_runners:
-            ipaddr = self._service_runners[service_name].get_ip()
+            ipaddr = self._service_runners[service_name].get_ip(
+                self.step_runner.network_name
+            )
             if ipaddr is not None:
                 rval = ipaddr
         return rval
@@ -830,6 +860,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 buildrunner_config.global_config.docker_registry,
                 self.step_runner.multi_platform,
                 self.step_runner.container_labels,
+                self.step_runner.network_name,
             )
             self._sshagent.start(
                 buildrunner_config.get_ssh_keys_from_aliases(
@@ -843,6 +874,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.log,
             buildrunner_config.global_config.docker_registry,
             self.step_runner.container_labels,
+            self.step_runner.network_name,
         )
         self._dockerdaemonproxy.start()
 
@@ -1031,6 +1063,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             container_args["systemd_cgroup2"] = self.is_systemd_cgroup2(
                 container_args["systemd"], self.step, _run_image
             )
+            container_args["network"] = self.step_runner.network_name
 
             container_id = self.runner.start(
                 links=self._service_links, **container_args
