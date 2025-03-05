@@ -95,6 +95,7 @@ class DockerSSHAgentProxy:
         docker_registry,
         multiplatform_image_builder,
         container_labels,
+        network,
     ):
         """ """
         self.docker_client = docker_client
@@ -106,6 +107,7 @@ class DockerSSHAgentProxy:
         self._ssh_channel = None
         self._multiplatform_image_builder = multiplatform_image_builder
         self._container_labels = container_labels
+        self._network = network
 
     def get_info(self):
         """
@@ -138,6 +140,11 @@ class DockerSSHAgentProxy:
                 f"{keys[0].get_name()} {keys[0].get_base64()}",
             ],
             labels=self._container_labels,
+            networking_config=self.docker_client.create_networking_config(
+                {self._network: self.docker_client.create_endpoint_config()}
+            )
+            if self._network
+            else None,
             host_config=self.docker_client.create_host_config(
                 publish_all_ports=True,
             ),
@@ -154,9 +161,15 @@ class DockerSSHAgentProxy:
             _ssh_container = self.docker_client.inspect_container(
                 self._ssh_agent_container
             )
-            _ssh_host = _ssh_container.get("NetworkSettings", {}).get(
-                "IPAddress", _ssh_host
-            )
+            network_settings = _ssh_container.get("NetworkSettings", {})
+            if self._network:
+                _ssh_host = (
+                    network_settings.get("Networks", {})
+                    .get(self._network, {})
+                    .get("IPAddress", _ssh_host)
+                )
+            else:
+                _ssh_host = network_settings.get("IPAddress", _ssh_host)
             _ssh_port = 22
         else:
             # get the Docker server ip address and ssh port exposed by this
