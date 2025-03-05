@@ -20,7 +20,7 @@ To run Buildrunner using an example configuration file, follow these steps from 
 
     .. code-block:: sh
 
-      ./run-buildrunner.sh  examples/build/basic/buildrunner.yaml
+      ./run-buildrunner.sh -f examples/build/basic/buildrunner.yaml
 
 Adding a New Example Configuration File
 =======================================
