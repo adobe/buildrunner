@@ -9,9 +9,14 @@ Running Buildrunner with Example Configuration Files
 
 To run Buildrunner using an example configuration file, follow these steps from the root directory of the Buildrunner repository:
 
-1. **Navigate to the Buildrunner repository directory.**
+1. **Navigate to the Buildrunner repository directory**
 
-2. **Execute Buildrunner with a specified configuration file:**
+2. **Install Buildrunner Requirements**
+    .. code-block:: sh
+
+      pip install -r requirements.txt
+
+3. **Execute Buildrunner with a specified configuration file:**
     .. code-block:: sh
 
       ./run-buildrunner.sh  -f examples/<path-to-config-file>
