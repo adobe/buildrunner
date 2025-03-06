@@ -104,8 +104,6 @@ steps:
       image: {{ DOCKER_REGISTRY }}/rockylinux:8.5
       cmd: 'echo "hello" > /hello.txt'
       post-build:
-        # use a different container here to make sure inject overrides
-        #path: runservicecontainer
         inject:
           'tests/postbuildpath/Dockerfile': '/'
     push:
