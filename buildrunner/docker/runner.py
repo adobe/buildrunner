@@ -155,6 +155,7 @@ class DockerRunner:
         systemd_cgroup2: bool = False,
         cap_add=None,
         privileged=False,
+        network=None,
     ):  # pylint: disable=too-many-arguments,too-many-locals
         """
         Kwargs:
@@ -250,6 +251,18 @@ class DockerRunner:
         if entrypoint:
             kwargs["entrypoint"] = entrypoint
             del kwargs["command"]
+        if network:
+            kwargs["networking_config"] = (
+                self.docker_client.create_networking_config(
+                    {
+                        network: self.docker_client.create_endpoint_config(
+                            aliases=[hostname] if hostname else None
+                        )
+                    }
+                )
+                if network
+                else None
+            )
 
         if compare_version("1.10", self.docker_client.api_version) < 0:
             kwargs["dns"] = dns
@@ -654,7 +667,7 @@ class DockerRunner:
             pass
         return status
 
-    def get_ip(self):
+    def get_ip(self, network=None):
         """
         Return the ip address of the running container
         """
@@ -664,7 +677,15 @@ class DockerRunner:
                 inspection = self.docker_client.inspect_container(
                     self.container["Id"],
                 )
-                ipaddr = inspection.get("NetworkSettings", {}).get("IPAddress", None)
+                network_settings = inspection.get("NetworkSettings", {})
+                if network:
+                    ipaddr = (
+                        network_settings.get("Networks", {})
+                        .get(network, {})
+                        .get("IPAddress", None)
+                    )
+                else:
+                    ipaddr = network_settings.get("IPAddress", None)
         except docker.errors.APIError:
             pass
         return ipaddr

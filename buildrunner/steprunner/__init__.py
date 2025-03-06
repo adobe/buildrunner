@@ -80,6 +80,8 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         self.id = str(uuid.uuid4())  # pylint: disable=invalid-name
         self.multi_platform = multi_platform
         self.container_labels = container_labels
+        # network name is used to identify the network that the build step is running in
+        self.network_name = f"{build_runner.build_id}-{step_name}"
 
     def run(self):
         """

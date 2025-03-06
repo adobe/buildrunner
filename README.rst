@@ -690,8 +690,7 @@ Service Containers
 Service containers allow you to create and start additional containers that
 are linked to the primary build container. This is useful, for instance, if
 your unit or integration tests require an outside service, such as a database
-service. Service containers are instantiated in the order they are listed, and
-service containers can rely on previously instantiated service containers.
+service. Service containers are instantiated in the order they are listed.
 Service containers have the same injected environment variables and volume
 mounts as build containers do, but the /source mount is read-only.
 

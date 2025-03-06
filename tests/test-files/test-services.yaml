@@ -1,0 +1,22 @@
+steps:
+  my-services-step:
+    run:
+      image: rockylinux:8.5
+      volumes_from:
+        - stats1
+      cmds:
+        - timeout 20 sh -c 'while [ ! -e /results/stats1 ] || [ ! -e /results/stats2 ] || [ ! -e /results/stats3 ]; do sleep 5; done'
+      services:
+        stats1:
+          build: tests/runservicecontainer
+          cmd: until ping -c1 stats2 >/dev/null 2>&1 && ping -c1 stats3 >/dev/null 2>&1; do sleep 5; done && touch /results/stats1
+        stats2:
+          build: tests/runservicecontainer
+          volumes_from:
+            - stats1
+          cmd: until ping -c1 stats1 >/dev/null 2>&1 && ping -c1 stats3 >/dev/null 2>&1; do sleep 5; done && touch /results/stats2
+        stats3:
+          build: tests/runservicecontainer
+          volumes_from:
+            - stats1
+          cmd: until ping -c1 stats1 >/dev/null 2>&1 && ping -c1 stats2 >/dev/null 2>&1; do sleep 5; done && touch /results/stats3
