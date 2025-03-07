@@ -82,6 +82,8 @@ class BuildStepRunner:  # pylint: disable=too-many-instance-attributes
         self.container_labels = container_labels
         # network name is used to identify the network that the build step is running in
         self.network_name = f"{build_runner.build_id}-{step_name}"
+        if build_runner.run_config_file:
+            self.network_name += f"-{os.path.basename(os.path.dirname(os.path.abspath(build_runner.run_config_file)))}"
 
     def run(self):
         """

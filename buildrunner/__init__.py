@@ -89,6 +89,7 @@ class BuildRunner:
     ):  # pylint: disable=too-many-statements,too-many-branches,too-many-locals,too-many-arguments
         self.build_dir = build_dir
         self.build_results_dir = build_results_dir
+        self.run_config_file = run_config_file
         self.build_time = build_time
         self.build_number = build_number
         self.push = push
