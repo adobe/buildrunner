@@ -11,12 +11,18 @@ To run Buildrunner using an example configuration file, follow these steps from 
 
 1. **Navigate to the Buildrunner repository directory**
 
-2. **Install Buildrunner Requirements**
+2. **Create a virtual environment** (Recommended)**
+    .. code-block:: sh
+
+        python -m venv .venv
+        source .venv/bin/activate
+
+3. **Install Buildrunner Requirements**
     .. code-block:: sh
 
       pip install -r requirements.txt
 
-3. **Execute Buildrunner with a specified configuration file:**
+4. **Execute Buildrunner with a specified configuration file:**
     .. code-block:: sh
 
       ./run-buildrunner.sh  -f examples/<path-to-config-file>
