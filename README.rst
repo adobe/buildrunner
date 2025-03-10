@@ -1130,7 +1130,7 @@ See `docs/common-issues <docs/common-issues.rst>`_.
 Example Configurations
 ======================
 
-See `examples <examples/>`_.
+See `examples/ <examples/>`_.
 
 Contributing
 ============
