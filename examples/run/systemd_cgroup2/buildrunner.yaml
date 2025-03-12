@@ -1,0 +1,8 @@
+# Description: This example demonstrates how to use systemd for a run step with cgroup2.
+steps:
+  simple-run-step:
+    run:
+      image: centos:7
+      cmd: echo Hello World
+      systemd: True
+      systemd_cgroup2: true

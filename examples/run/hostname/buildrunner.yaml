@@ -1,0 +1,7 @@
+# Description: This example demonstrates how to use the hostname key to set the hostname of the container.
+steps:
+  simple-run-step:
+    run:
+      image: alpine:latest
+      cmd: hostname
+      hostname: the-best-hostname

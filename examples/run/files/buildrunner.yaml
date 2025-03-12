@@ -1,0 +1,8 @@
+# Description: This example demonstrates how to use the files key to copy files from the host to the container.
+steps:
+  simple-run-step:
+    run:
+      image: alpine:latest
+      files:
+        examples/run/files/data.txt: /data.txt
+      cmd: cat /data.txt

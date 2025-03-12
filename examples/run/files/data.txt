@@ -1,0 +1,1 @@
+This is a example file that could contain some kind of data.
