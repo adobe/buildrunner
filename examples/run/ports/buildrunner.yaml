@@ -1,0 +1,10 @@
+# Description: This example demonstrates how to use the `ports` field to expose a port from the container to the host.
+# Run this example with `--publish-ports` and run 'nc localhost 8081' from host to check if connection is made.
+steps:
+  simple-run-step:
+    run:
+      image: alpine:latest
+      # Wait 5 seconds before exiting if no connection is made
+      cmd: nc -l -p 8080 -w 5; echo "Don't fail for a timeout."
+      ports:
+        8080: 8081

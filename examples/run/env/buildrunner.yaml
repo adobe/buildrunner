@@ -1,0 +1,9 @@
+# Description: This is an example of how to use environment variables in a run step.
+steps:
+  simple-run-step:
+    run:
+      image: alpine:latest
+      env:
+        MY_VAR1: value1
+        MY_VAR2: value2
+      cmd: echo Hello World $MY_VAR1 $MY_VAR2

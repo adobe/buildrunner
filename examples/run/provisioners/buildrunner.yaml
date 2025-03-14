@@ -1,0 +1,7 @@
+steps:
+  simple-run-step:
+    run:
+      image: alpine:latest
+      cmd: echo Hello World
+      provisioners:
+        shell: examples/run/provisioners/my_script.sh

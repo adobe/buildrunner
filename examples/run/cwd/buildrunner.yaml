@@ -1,0 +1,7 @@
+# Description: This example demonstrates how to use the `cwd` field to change the working directory of a step.
+steps:
+  my-step:
+    run:
+      image: alpine:latest
+      cwd: /tmp
+      cmd: echo "Hello, World!" > hello.txt && cat /tmp/hello.txt

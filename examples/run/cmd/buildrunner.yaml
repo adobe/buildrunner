@@ -1,0 +1,12 @@
+# Description: This file contains the example of the `cmd` and `cmds` field in the `run` step.
+steps:
+  my-cmd-step:
+    run:
+      image: alpine:latest
+      cmd: echo "Hello, world!"
+  my-cmds-step:
+    run:
+      image: alpine:latest
+      cmds:
+      - echo "Hello, world!"
+      - echo "Goodbye, world!"

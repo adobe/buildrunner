@@ -1,0 +1,7 @@
+# Description: This example demonstrates how to pull the image before running the step.
+steps:
+  simple-run-step:
+    run:
+      image: alpine:latest
+      pull: true
+      cmd: echo Hello World

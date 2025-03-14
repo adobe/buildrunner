@@ -529,7 +529,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if service.dns:
             # If the dns host is set to a string and that string is a reference to a running service
             # container, pull the ip address out of the service container.
-            _dns = [self._resolve_service_ip(service.dns)]
+            _dns = self._resolve_service_ip(service.dns)
 
         # determine if a dns_search domain is specified
         _dns_search = service.dns_search
@@ -919,7 +919,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.step.dns:
             # If the dns host is set to a string and that string is a reference to a running service
             # container, pull the ip address out of the service container.
-            container_args["dns"] = [self._resolve_service_ip(self.step.dns)]
+            container_args["dns"] = self._resolve_service_ip(self.step.dns)
 
         # determine if a dns_search domain is specified
         if self.step.dns_search:

@@ -6,7 +6,6 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
-import base64
 import datetime
 import io
 import os.path
@@ -631,28 +630,51 @@ class DockerRunner:
         """
         Run the given script within the container.
         """
-        # write temp file with script contents
-        script_file_path = tempfile()
-        self.run(f"mkdir -p $(dirname {script_file_path})", console=console)
-        self.write_to_container_file(script, script_file_path)
-        self.run(f"chmod +x {script_file_path}", console=console)
+        container_script_path = self.write_to_container_file(script, console)
 
         # execute the script
         return self.run(
-            f"{script_file_path} {args}",
+            f"{container_script_path} {args}",
             console=console,
         )
 
-    def write_to_container_file(self, content, path):
+    def write_to_container_file(self, source_file, logger):
         """
         Writes contents to the given path within the container.
         """
-        # for now, we just take a str
-        buf_size = 1024
-        for index in range(0, len(content), buf_size):
-            self.run(
-                f'printf -- "{base64.standard_b64encode(content[index:index + buf_size])}" | base64 --decode >> {path}',
-            )
+        container_dir = "/tmp"
+        container_script_path = f"{container_dir}/{os.path.basename(source_file)}"
+        my_tar_file_path = tempfile(prefix="buildrunner-", suffix=".tar")
+
+        try:
+            # Create destination directory in container
+            self.run(f"mkdir -p {container_dir}", console=logger)
+
+            # Create tar file with script to put in container
+            with tarfile.open(my_tar_file_path, "w") as tar:
+                tar.add(source_file, arcname=os.path.basename(source_file))
+
+            # Put the script file in the container
+            with open(my_tar_file_path, "rb") as tar:
+                code = self.docker_client.put_archive(
+                    self.container["Id"],
+                    os.path.dirname(container_script_path),
+                    tar.read(),
+                )
+                if code:
+                    # Make the script executable in the container
+                    self.run(f"chmod +x {container_script_path}", console=logger)
+                else:
+                    logger.error(
+                        f"There was an issue putting the script in the container. Code: {code}"
+                    )
+
+        except Exception as e:
+            raise BuildRunnerContainerError(f"Error writing script to container: {e}")
+        finally:
+            if os.path.exists(my_tar_file_path):
+                os.remove(my_tar_file_path)
+            return container_script_path
 
     def _get_status(self):
         """

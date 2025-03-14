@@ -1,0 +1,7 @@
+# Description: This example demonstrates how to run a step as a different user.
+steps:
+  simple-run-step:
+    run:
+      image: alpine:latest
+      cmd: whoami
+      user: guest
