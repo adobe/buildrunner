@@ -1,0 +1,12 @@
+# Description: This example demonstrates how to commit an image to use it in later steps.
+steps:
+  single-push:
+    build:
+      dockerfile: |
+        FROM alpine:latest
+        RUN echo Hello World
+    commit: myimages/committedimage:latest
+  multi-push:
+    run:
+      image: myimages/committedimage:latest
+      cmd: echo Hello Again World
