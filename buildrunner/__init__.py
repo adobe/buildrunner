@@ -95,6 +95,7 @@ class BuildRunner:
         self.cleanup_images = cleanup_images
         self.cleanup_cache = cleanup_cache
         self.generated_images = []
+        self.removed_images = set()
         # The set of images (including tag) that were committed as part of this build
         # This is used to check if images should be pulled by default or not
         self.committed_images = set()
@@ -526,13 +527,17 @@ class BuildRunner:
                 # reverse the order of the images since child images would likely come after parent images
                 for _image in self.generated_images[::-1]:
                     try:
+                        if _image in self.removed_images:
+                            self.log.write(f"Image {_image} already removed\n")
+                            continue
                         _docker_client.remove_image(
                             _image,
                             noprune=False,
                             force=True,
                         )
+                        self.removed_images.add(_image)
                     except Exception as _ex:  # pylint: disable=broad-except
-                        self.log.write(f"Error removing image {_image}: {str(_ex)}\n")
+                        self.log.write(f"Unable to remove image {_image}: {str(_ex)}\n")
             else:
                 self.log.write("Keeping generated images\n")
             if self._source_archive:
