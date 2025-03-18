@@ -13,30 +13,33 @@ Pip
 ###
 
 If you wish to install buildrunner directly on your local machine, install via
-pip. This is best done when installing into a virtual environment using virtualenv.
-The following commands will create a new virtual environment, activate it, and
-install Buildrunner within it:
+pip. This can be done directly in your local environment or in a virtual
+environment.
+
+Local Environment
+-----------------
+To install Buildrunner in your local environment, run the following command:
 
 .. code:: bash
 
-  virtualenv buildrunner
+  pip install buildrunner
+
+The buildrunner executable is now available in your path.
+
+Virtual Environment
+-------------------
+To install Buildrunner in a virtual environment, first create a new virtual
+environment, activate it and install buildrunner.  This can be done with the following commands:
+
+.. code:: bash
+
+  python -m venv buildrunner
   source buildrunner/bin/activate
   pip install buildrunner
 
 The buildrunner executable is now available at buildrunner/bin/buildrunner and
 can be added to your path.
 
-.. tip::
-
-    If you are getting 404 errors for authenticated registries but you can pull them with
-    ``docker pull`` - messages similar to the following:
-
-    docker.errors.NotFound: 404 Client Error: Not Found ("manifest for <image> not found: manifest
-    unknown: The named manifest is not known to the registry.")
-
-    then you likely need to downgrade the installed python docker library version with ``pip
-    install docker==3.6.0``. Version 3.7.0 broke compatibility with buildrunner and docker credential
-    helpers.
 
 Docker Container
 ################
@@ -44,14 +47,15 @@ Docker Container
 Buildrunner can be run as a Docker container.  This works cross-platform and
 is the easiest way to keep up to date.
 
-To install, simply clone the `buildrunner repository
-<https://github.com/adobe/buildrunner>`_  and add the
-``scripts`` directory to your ``$PATH``.  ``scripts`` contains wrapper scripts
-that pass the appropriate context to the Docker container.  There is a `BASH
-<https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner>`__
-script and a Windows `batch file
-<https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner.bat>`_,
-which simply calls the ``BASH`` script.
+
+    1. Clone the `buildrunner repository <https://github.com/adobe/buildrunner>`_ 
+    2. Add the ``scripts/`` directory to your ``$PATH``.
+        The ``scripts/`` directory contains wrapper scripts that pass the appropriate context to the Docker container.  
+        There is a `BASH <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner>`__ script 
+        and a Windows `batch file <https://github.com/adobe/buildrunner/blob/master/scripts/buildrunner.bat>`_,
+        which simply calls the ``BASH`` script.
+
+You can now use the ``buildrunner`` command to run buildrunner in a Docker container.
 
 .. note:: WINDOWS USERS: This is the recommended method for Windows users, however, you must make
    sure that you are using the `BASH shell
