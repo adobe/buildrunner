@@ -129,5 +129,6 @@ To do this, follow these steps:
 
 .. note::
 
-    You can verify that you are using the correct buildrunner by typing "`which buildrunner`"
-    and ensuring that the path is to the virtual environment (i.e. `venv/`).
+   You can verify that you are using the correct buildrunner by typing ``which buildrunner``
+   and ensuring that the path is to the virtual environment (i.e. ``venv/``).
+
