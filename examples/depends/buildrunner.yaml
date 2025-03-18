@@ -1,0 +1,24 @@
+# Description: This example demonstrates how to use the depends keyword to specify the order of execution of steps in a build.
+version: 2.0
+steps:
+  step1:
+    run:
+      image: alpine:latest
+      cmd: echo "Hello from step1"
+  step2:
+    depends:
+      - step1
+      - step3
+    run:
+      image: alpine:latest
+      cmd: echo "Hello from step 2"
+  step3:
+    run:
+      image: alpine:latest
+      cmd: echo "Hello from step 3."
+  step4:
+    depends:
+      - step2
+    run:
+      image: alpine:latest
+      cmd: echo "Hello from step 4."
