@@ -123,6 +123,7 @@ def _get_example_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]]
     # Files that should be excluded from the example tests
     excluded_example_files = [
         "examples/build/import/buildrunner.yaml",
+        "examples/run/caches/buildrunner.yaml",
     ]
 
     # Walk through the examples directory and find all files ending with buildrunner.yaml
