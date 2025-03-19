@@ -34,6 +34,11 @@ Installation
 
 See `docs/installation <docs/installation.rst>`_.
 
+Development
+============
+
+See `docs/development <docs/development.rst>`_.
+
 Global Configuration
 ====================
 
