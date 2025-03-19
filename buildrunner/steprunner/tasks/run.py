@@ -70,7 +70,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.step_runner.network_name and not self._docker_client.networks(
             names=[self.step_runner.network_name]
         ):
-            self._docker_client.create_network(self.step_runner.network_name)
+            self._docker_client.create_network(
+                name=self.step_runner.network_name,
+                labels=self.step_runner.container_labels,
+            )
         self._source_container = None
         self._service_runners = OrderedDict()
         self._service_links = {}
