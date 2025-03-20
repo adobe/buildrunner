@@ -70,6 +70,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.step_runner.network_name and not self._docker_client.networks(
             names=[self.step_runner.network_name]
         ):
+            self.step_runner.log.write(
+                f"Creating network {self.step_runner.network_name}\n"
+            )
             self._docker_client.create_network(
                 name=self.step_runner.network_name,
                 labels=self.step_runner.container_labels,
@@ -86,6 +89,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.step_runner.network_name and self._docker_client.networks(
             names=[self.step_runner.network_name]
         ):
+            self.step_runner.log.write(
+                f"Deleting network {self.step_runner.network_name}\n"
+            )
             self._docker_client.remove_network(self.step_runner.network_name)
 
     def _get_source_container(self):
