@@ -70,6 +70,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.step_runner.network_name and not self._docker_client.networks(
             names=[self.step_runner.network_name]
         ):
+            self.step_runner.log.info(
+                f"Creating network {self.step_runner.network_name}"
+            )
             self._docker_client.create_network(
                 name=self.step_runner.network_name,
                 labels=self.step_runner.container_labels,
@@ -86,6 +89,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if self.step_runner.network_name and self._docker_client.networks(
             names=[self.step_runner.network_name]
         ):
+            self.step_runner.log.info(
+                f"Deleting network {self.step_runner.network_name}"
+            )
             self._docker_client.remove_network(self.step_runner.network_name)
 
     def _get_source_container(self):
@@ -109,8 +115,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._docker_client.start(
                 self._source_container,
             )
-            self.step_runner.log.write(
-                f"Created source container {self._source_container:.10}\n"
+            self.step_runner.log.info(
+                f"Created source container {self._source_container:.10}"
             )
         return self._source_container
 
@@ -154,7 +160,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         if not self.step.artifacts:
             return
-        self.step_runner.log.write("Gathering artifacts\n")
+        self.step_runner.log.info("Gathering artifacts")
 
         # use a small busybox image to list the files matching the glob
         artifact_lister = None
@@ -434,7 +440,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # Unused arg
         _ = new_artifact_file
 
-        self.step_runner.log.write(f"- found {file_type} {filename}\n")
+        self.step_runner.log.info(f"- found {file_type} {filename}")
 
         exit_code = artifact_lister.run(
             archive_command,
@@ -480,8 +486,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             _image = service.image
         assert _image
 
-        self.step_runner.log.write(
-            f'Creating service container "{name}" from image "{_image}"\n'
+        self.step_runner.log.info(
+            f'Creating service container "{name}" from image "{_image}"'
         )
         service_logger = ContainerLogger.for_service_container(name)
 
@@ -606,7 +612,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                 _volumes[f_local] = f_path
 
-                service_logger.write(f"Mounting {f_local} -> {f_path}\n")
+                service_logger.info(f"Mounting {f_local} -> {f_path}")
 
         # instantiate and start the runner
         image_config = DockerRunner.ImageConfig(
@@ -653,8 +659,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     # log=self.step_runner.log,
                 )
                 if exit_code != 0:
-                    service_logger.write(
-                        f'Service command "{service.cmd}" exited with code {exit_code}\n'
+                    service_logger.info(
+                        f'Service command "{service.cmd}" exited with code {exit_code}'
                     )
             else:
                 service_runner.attach_until_finished(service_logger)
@@ -672,8 +678,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         for wait_for_data in _wait_for:
             self.wait(cont_name, wait_for_data)
 
-        self.step_runner.log.write(
-            f'Started service container "{name}" ({service_container_id:.10})\n'
+        self.step_runner.log.info(
+            f'Started service container "{name}" ({service_container_id:.10})'
         )
 
     def wait(self, name, wait_for_data):
@@ -709,9 +715,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         start_time = time.time()
         while not socket_open:
             time_spent = int(time.time() - start_time)
-            self.step_runner.log.write(
+            self.step_runner.log.info(
                 f"Waiting for port {port} to be listening for connections in container {name} "
-                f"with IP address {ipaddr} ({time_spent}/{timeout} seconds elapsed)\n"
+                f"with IP address {ipaddr} ({time_spent}/{timeout} seconds elapsed)"
             )
 
             # check that the container is still available
@@ -759,8 +765,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     )
                 time.sleep(1)
 
-        self.step_runner.log.write(
-            f"Port {int(port)} is listening in container {name} with IP address {ipaddr}\n"
+        self.step_runner.log.info(
+            f"Port {int(port)} is listening in container {name} with IP address {ipaddr}"
         )
 
     def _resolve_service_ip(self, service_name):
@@ -784,8 +790,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # Default to configuration
         if self.step.pull is not None:
             pull_image = self.step.pull
-            self.step_runner.log.write(
-                f"Pulling image was overridden via config to {pull_image}\n"
+            self.step_runner.log.info(
+                f"Pulling image was overridden via config to {pull_image}"
             )
         else:
             # Default to pulling, but check if image was committed by buildrunner and set to false if so
@@ -795,8 +801,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 pull_image = (
                     config_image not in self.step_runner.build_runner.committed_images
                 )
-                self.step_runner.log.write(
-                    f"Pull was not specified in configuration, defaulting to {pull_image}\n"
+                self.step_runner.log.info(
+                    f"Pull was not specified in configuration, defaulting to {pull_image}"
                 )
 
         _run_image = self.step.image
@@ -808,14 +814,12 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             )
         _lrun_image = _run_image.lower()
         if _lrun_image != _run_image:
-            self.step_runner.log.write(
-                f"Forcing image name to lowercase: {_run_image} => {_lrun_image}\n"
+            self.step_runner.log.info(
+                f"Forcing image name to lowercase: {_run_image} => {_lrun_image}"
             )
             _run_image = _lrun_image
 
-        self.step_runner.log.write(
-            f'Creating build container from image "{_run_image}"\n'
-        )
+        self.step_runner.log.info(f'Creating build container from image "{_run_image}"')
         container_logger = ContainerLogger.for_build_container(self.step_runner.name)
         container_meta_logger = ContainerLogger.for_build_container(
             self.step_runner.name
@@ -1003,7 +1007,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                 container_args["volumes"][f_local] = f_path
 
-                container_meta_logger.write(f"Mounting {f_local} -> {f_path}\n")
+                container_meta_logger.info(f"Mounting {f_local} -> {f_path}")
 
         if self.step.caches:
             for key, value in self.step.caches.items():
@@ -1016,8 +1020,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         )
                     )
                     caches[cache_archive_file] = value
-                    container_meta_logger.write(
-                        f"Considering local cache `{cache_archive_file}` -> docker path `{value}`\n"
+                    container_meta_logger.info(
+                        f"Considering local cache `{cache_archive_file}` -> docker path `{value}`"
                     )
                 elif isinstance(value, list):
                     for cache_local in value:
@@ -1027,8 +1031,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                             )
                         )
                         caches[cache_archive_file] = key
-                        container_meta_logger.write(
-                            f"Considering local cache [{cache_archive_file}] -> docker path [{key}]\n"
+                        container_meta_logger.info(
+                            f"Considering local cache [{cache_archive_file}] -> docker path [{key}]"
                         )
                 else:
                     container_meta_logger.warning(
@@ -1074,7 +1078,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
             self.runner.restore_caches(container_meta_logger, caches)
 
-            self.step_runner.log.write(f"Started build container {container_id:.10}\n")
+            self.step_runner.log.info(f"Started build container {container_id:.10}")
 
             if _cmds:
                 # First ensure that the source directory is marked as safe for newer git versions
@@ -1083,7 +1087,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
                 # run each cmd
                 for _cmd in _cmds:
-                    container_meta_logger.write(f"cmd> {_cmd}\n")
+                    container_meta_logger.info(f"cmd> {_cmd}")
                     exit_code = self.runner.run(
                         _cmd,
                         console=container_logger,
@@ -1100,10 +1104,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             else:
                 self.runner.attach_until_finished(container_logger)
                 exit_code = self.runner.exit_code
-                container_meta_logger.write(f"Container exited with code {exit_code}\n")
+                container_meta_logger.info(f"Container exited with code {exit_code}")
 
             if exit_code:
-                container_meta_logger.write(
+                container_meta_logger.info(
                     "Skipping cache save due to failed exit code"
                 )
             else:
@@ -1136,7 +1140,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         Commit the run image and perform a docker build, prepending the run
         image to the Dockerfile.
         """
-        self.step_runner.log.write("Running post-build processing\n")
+        self.step_runner.log.info("Running post-build processing")
         post_build = self.step.post_build
         temp_tag = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
         python_on_whales.docker.image.tag(
@@ -1156,14 +1160,14 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
     def cleanup(self, context):  # pylint: disable=unused-argument
         if self.runner:
             if self.runner.container:
-                self.step_runner.log.write(
-                    f"Destroying build container {self.runner.container['Id']:.10}\n"
+                self.step_runner.log.info(
+                    f"Destroying build container {self.runner.container['Id']:.10}"
                 )
             self.runner.cleanup()
 
         if self._service_runners:
             for _sname, _srun in reversed(list(self._service_runners.items())):
-                self.step_runner.log.write(f'Destroying service container "{_sname}"\n')
+                self.step_runner.log.info(f'Destroying service container "{_sname}"')
                 _srun.cleanup()
 
         if self._dockerdaemonproxy:
@@ -1173,8 +1177,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._sshagent.stop()
 
         if self._source_container:
-            self.step_runner.log.write(
-                f"Destroying source container {self._source_container:.10}\n"
+            self.step_runner.log.info(
+                f"Destroying source container {self._source_container:.10}"
             )
             self._docker_client.remove_container(
                 self._source_container,
