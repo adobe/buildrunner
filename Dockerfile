@@ -48,7 +48,7 @@ COPY . /buildrunner-source
 RUN                                                              \
     cd /buildrunner-source &&                                    \
     sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
-    python3 setup.py install &&                                  \
+    pip install . && \
     rm -rf /buildrunner-source
 
 # The following will install docker-engine. It's not needed for the container to run,

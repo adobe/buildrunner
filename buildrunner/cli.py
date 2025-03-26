@@ -270,9 +270,9 @@ def parse_args(argv):
     return args
 
 
-def clean_cache(argv):
+def clean_cache():
     """Cache cleanup"""
-    args = parse_args(argv)
+    args = parse_args(sys.argv)
     BuildRunnerConfig.initialize_instance(
         push=False,
         build_number=1,
@@ -409,9 +409,9 @@ def initialize_br(args: argparse.Namespace) -> BuildRunner:
     )
 
 
-def main(argv):
+def main():
     """Main program execution."""
-    args = parse_args(argv)
+    args = parse_args(sys.argv)
 
     # are we just printing the version?
     if args.print_version:
@@ -431,4 +431,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())
