@@ -23,7 +23,6 @@ from typing import Optional
 from docker.utils import compare_version
 from retry import retry
 import docker.errors
-import six
 import timeout_decorator
 
 from buildrunner import BuildRunnerConfig
@@ -217,7 +216,7 @@ class DockerRunner:
             _port_list = list(ports.keys())
 
         # check args
-        if dns_search and isinstance(dns_search, six.string_types):
+        if dns_search and isinstance(dns_search, str):
             dns_search = dns_search.split(",")
 
         kwargs = {

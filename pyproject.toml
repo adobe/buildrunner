@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "buildrunner"
+version = "3.15"
+description = "Docker-based build tool"
+readme = "README.rst"
+requires-python = ">=3.6"
+license = {text = "MIT"}
+authors = [
+    {name = "Adobe", email = "noreply@adobe.com"}
+]
+urls = { "Homepage" = "https://github.com/adobe/buildrunner" }
+
+dynamic = ["dependencies", "optional-dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies = {test = { file = ["test-requirements.txt"] }}
+
+[project.scripts]
+buildrunner = "buildrunner.cli:main"
+buildrunner-cleanup = "buildrunner.cli:clean_cache"
+
+[tool.setuptools.package-data]
+"buildrunner" = ["SourceDockerfile"]
+"buildrunner.sshagent" = [
+    "SSHAgentProxyImage/Dockerfile",
+    "SSHAgentProxyImage/run.sh",
+    "SSHAgentProxyImage/login.sh"
+]
+
+[tool.setuptools.packages.find]
+exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
