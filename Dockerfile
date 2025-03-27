@@ -48,6 +48,7 @@ COPY . /buildrunner-source
 RUN                                                              \
     cd /buildrunner-source &&                                    \
     sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
+    python3 scripts/write-version.py &&                          \
     pip install . && \
     rm -rf /buildrunner-source
 
