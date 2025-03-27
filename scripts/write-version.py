@@ -10,8 +10,14 @@ import subprocess
 
 
 def main():
-    major = 3
-    minor = 15
+    base_dir = os.path.abspath(os.path.join(__file__, os.pardir, os.pardir))
+    base_version_file = os.path.join(base_dir, "BASE_VERSION")
+
+    with open(base_version_file, "r") as file:
+        base_version = file.read().strip()
+
+    major, minor = map(int, base_version.split(".")[:2])
+
     try:
         commit_count = (
             subprocess.check_output(["git", "rev-list", "--count", "HEAD"])
@@ -21,11 +27,7 @@ def main():
     except Exception:
         commit_count = "0"
 
-    version_file = os.path.join(
-        os.path.abspath(os.path.join(__file__, os.pardir, os.pardir)),
-        "buildrunner",
-        "version.py",
-    )
+    version_file = os.path.join(base_dir, "buildrunner", "version.py")
 
     version = f"{major}.{minor}.{commit_count}"
     with open(version_file, "w") as version_file:
