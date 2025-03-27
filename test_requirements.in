@@ -1,5 +1,6 @@
 pytest>=7.2.1
 pytest-randomly>=3.5.0
+pytest-retry>=1.7.0
 pytest-cov>=2.10.1
 pytest-xdist>=2.4.0
 graphlib-backport>=1.0.3

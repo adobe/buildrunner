@@ -33,3 +33,6 @@ buildrunner-cleanup = "buildrunner.cli:clean_cache"
 
 [tool.setuptools.packages.find]
 exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
+
+[tool.pytest.ini_options]
+retries = 2
