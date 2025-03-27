@@ -57,10 +57,10 @@ jobs:
         with:
           # Fetch all history instead of the latest commit
           fetch-depth: 0
+      - name: Write version file
+        run: python scripts/write-version.py
       - name: Get and set version in env
-        run: |
-          python scripts/write-version.py
-          echo "CURRENT_VERSION=$( python -c 'from buildrunner.version import __version__; print(__version__)' )" >> $GITHUB_ENV
+        run: echo "CURRENT_VERSION=$( python -c 'from buildrunner.version import __version__; print(__version__)' )" >> $GITHUB_ENV
       - name: Print current version
         run: echo CURRENT_VERSION ${{ env.CURRENT_VERSION }}
       - name: Tag commit
