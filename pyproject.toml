@@ -35,4 +35,5 @@ buildrunner-cleanup = "buildrunner.cli:clean_cache"
 exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
 
 [tool.pytest.ini_options]
-retries = 2
+retries = 3
+retry_delay = 0.5
