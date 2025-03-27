@@ -86,10 +86,12 @@ jobs:
     - name: Remove version file
       # This is just in case something else created it, destroy it to get a fresh version
       run: rm -f buildrunner/version.py
-    - name: Write version file
-      run: python scripts/write-version.py
+    - name: Install dependencies
+      run: pip install -r requirements.txt
     - name: Install wheel
       run: pip install wheel build
+    - name: Write version file
+      run: python scripts/write-version.py
     - name: Build
       run: python -m build
     - name: Check upload
