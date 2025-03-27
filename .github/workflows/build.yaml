@@ -17,7 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-        - 3.8
         - 3.9
         - '3.10'
         - '3.11'
@@ -59,7 +58,9 @@ jobs:
           # Fetch all history instead of the latest commit
           fetch-depth: 0
       - name: Get and set version in env
-        run: echo "CURRENT_VERSION=$( python setup.py --version )" >> $GITHUB_ENV
+        run: |
+          python scripts/write-version.py
+          echo "CURRENT_VERSION=$( python -c 'from buildrunner.version import __version__; print(__version__)' )" >> $GITHUB_ENV
       - name: Print current version
         run: echo CURRENT_VERSION ${{ env.CURRENT_VERSION }}
       - name: Tag commit
@@ -76,10 +77,12 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.9
     - name: Remove version file
       # This is just in case something else created it, destroy it to get a fresh version
       run: rm -f buildrunner/version.py
+    - name: Write version file
+      run: python scripts/write-version.py
     - name: Install wheel
       run: pip install wheel build
     - name: Build
@@ -103,7 +106,9 @@ jobs:
         # Fetch all history instead of the latest commit
         fetch-depth: 0
     - name: Get and set version in env
-      run: echo "CURRENT_VERSION=$( python setup.py --version )" >> $GITHUB_ENV
+      run: |
+        python scripts/write-version.py
+        echo "CURRENT_VERSION=$( python -c 'from buildrunner.version import __version__; print(__version__)' )" >> $GITHUB_ENV
     - name: Print current version
       run: echo CURRENT_VERSION ${{ env.CURRENT_VERSION }}
     - name: Docker Tags
