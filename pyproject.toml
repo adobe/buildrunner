@@ -17,7 +17,7 @@ dynamic = ["version", "dependencies", "optional-dependencies"]
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
-optional-dependencies = {test = { file = ["test-requirements.txt"] }}
+optional-dependencies = {test = { file = ["test_requirements.txt"] }}
 
 [project.scripts]
 buildrunner = "buildrunner.cli:main"
