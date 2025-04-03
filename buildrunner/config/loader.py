@@ -138,7 +138,11 @@ def _validate_version(config: dict) -> None:
             if "__version__" in line:
                 try:
                     version_values = (
-                        line.split("=")[1].strip().replace("'", "").split(".")
+                        line.split("=")[1]
+                        .strip()
+                        .replace("'", "")
+                        .replace('"', "")
+                        .split(".")
                     )
                     buildrunner_version = f"{version_values[0]}.{version_values[1]}"
                 except IndexError as exception:
