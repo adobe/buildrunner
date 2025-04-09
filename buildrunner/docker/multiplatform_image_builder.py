@@ -80,6 +80,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         cache_builders: Optional[List[str]] = None,
         cache_from: Optional[Union[dict, str]] = None,
         cache_to: Optional[Union[dict, str]] = None,
+        secrets: Optional[List[str]] = None,
     ):
         self._docker_registry = docker_registry
         self._build_registry = build_registry
@@ -89,6 +90,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._cache_builders = set(cache_builders if cache_builders else [])
         self._cache_from = cache_from
         self._cache_to = cache_to
+        self._secrets = secrets
         if self._cache_from or self._cache_to:
             LOGGER.info(
                 f'Configuring multiplatform builds to cache from {cache_from} and to {cache_to} '
@@ -197,17 +199,18 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         inject: dict,
         image_ref: str,
         platform: str,
-        path: str,
+        context_path: str,
         dockerfile: str,
         target: str,
         build_args: dict,
         builder: Optional[str],
         cache: bool = False,
         pull: bool = False,
+        secrets: Optional[List[str]] = None,
     ) -> None:
-        if not path or not os.path.isdir(path):
+        if not context_path or not os.path.isdir(context_path):
             LOGGER.warning(
-                f"Failed to inject {inject} for {image_ref} since path {path} isn't a directory."
+                f"Failed to inject {inject} for {image_ref} since path {context_path} isn't a directory."
             )
             return
 
@@ -217,14 +220,14 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         ) as tmp_dir:
             context_dir = os.path.join(tmp_dir, f"{dir_prefix}/")
             shutil.copytree(
-                path,
+                context_path,
                 context_dir,
                 ignore=shutil.ignore_patterns(dir_prefix, ".git"),
                 symlinks=True,
             )
 
             for src, dest in inject.items():
-                src_path = os.path.join(path, src)
+                src_path = os.path.join(context_path, src)
 
                 # Remove '/' prefix
                 if dest.startswith("/"):
@@ -265,6 +268,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 cache=cache,
                 pull=pull,
                 stream_logs=True,
+                secrets=secrets,
                 **self._get_build_cache_options(builder),
             )
             self._log_buildx(logs_itr, platform)
@@ -294,6 +298,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         inject: dict,
         cache: bool = False,
         pull: bool = False,
+        secrets: Optional[List[str]] = None,
     ) -> None:
         """
         Builds a single image for the given platform.
@@ -307,6 +312,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             target (str): The name of the stage to build in a multi-stage Dockerfile
             build_args (dict): The build args to pass to docker.
             inject (dict): The files to inject into the build context.
+            secrets (List[str]): The secrets to pass to docker.
         """
         assert os.path.isdir(path) and os.path.exists(dockerfile), (
             f"Either path {path} ({os.path.isdir(path)}) or file "
@@ -321,32 +327,37 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             f"Building image for platform {platform} with {builder or 'default'} builder"
         )
 
+        # Build kwargs for the buildx build command
+        build_kwargs = {
+            "builder": builder,
+            "cache": cache,
+            "context_path": path,
+            "pull": pull,
+            "target": target,
+        }
+
+        # Only pass secrets if they are provided
+        if secrets:
+            build_kwargs["secrets"] = secrets
+
         if inject and isinstance(inject, dict):
             self._build_with_inject(
                 inject=inject,
                 image_ref=image_ref,
                 platform=platform,
-                path=path,
                 dockerfile=dockerfile,
-                target=target,
                 build_args=build_args,
-                builder=builder,
-                cache=cache,
-                pull=pull,
+                **build_kwargs,
             )
         else:
             logs_itr = docker.buildx.build(
-                path,
                 tags=[image_ref],
                 platforms=[platform],
                 load=True,
                 file=dockerfile,
-                target=target,
                 build_args=build_args,
-                builder=builder,
-                cache=cache,
-                pull=pull,
                 stream_logs=True,
+                **build_kwargs,
                 **self._get_build_cache_options(builder),
             )
             self._log_buildx(logs_itr, platform)
@@ -398,11 +409,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         path: str = ".",
         file: str = "Dockerfile",
         target: Optional[str] = None,
-        use_threading: bool = True,
+        use_threading: bool = False,
         build_args: dict = None,
         inject: dict = None,
         cache: bool = False,
         pull: bool = False,
+        secrets: Optional[List[str]] = None,
     ) -> BuiltImageInfo:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
@@ -498,6 +510,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 inject,
                 cache,
                 pull,
+                secrets,
             )
             LOGGER.debug(f"Building {repo} for {platform}")
             if use_threading:
