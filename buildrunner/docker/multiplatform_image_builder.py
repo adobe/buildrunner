@@ -198,19 +198,15 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self,
         inject: dict,
         image_ref: str,
+        path: str,
         platform: str,
-        context_path: str,
         dockerfile: str,
-        target: str,
         build_args: dict,
-        builder: Optional[str],
-        cache: bool = False,
-        pull: bool = False,
-        secrets: Optional[List[str]] = None,
+        build_kwargs: dict,
     ) -> None:
-        if not context_path or not os.path.isdir(context_path):
+        if not path or not os.path.isdir(path):
             LOGGER.warning(
-                f"Failed to inject {inject} for {image_ref} since path {context_path} isn't a directory."
+                f"Failed to inject {inject} for {image_ref} since path {path} isn't a directory."
             )
             return
 
@@ -220,14 +216,14 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         ) as tmp_dir:
             context_dir = os.path.join(tmp_dir, f"{dir_prefix}/")
             shutil.copytree(
-                context_path,
+                path,
                 context_dir,
                 ignore=shutil.ignore_patterns(dir_prefix, ".git"),
                 symlinks=True,
             )
 
             for src, dest in inject.items():
-                src_path = os.path.join(context_path, src)
+                src_path = os.path.join(path, src)
 
                 # Remove '/' prefix
                 if dest.startswith("/"):
@@ -259,17 +255,13 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
             logs_itr = docker.buildx.build(
                 context_dir,
-                tags=[image_ref],
-                platforms=[platform],
-                load=True,
-                target=target,
-                builder=builder,
                 build_args=build_args,
-                cache=cache,
-                pull=pull,
+                load=True,
+                platforms=[platform],
                 stream_logs=True,
-                secrets=secrets,
-                **self._get_build_cache_options(builder),
+                tags=[image_ref],
+                **build_kwargs,
+                **self._get_build_cache_options(build_kwargs.get("builder")),
             )
             self._log_buildx(logs_itr, platform)
 
@@ -328,29 +320,31 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         )
 
         # Build kwargs for the buildx build command
-        build_kwargs = {
-            "builder": builder,
-            "cache": cache,
-            "context_path": path,
-            "pull": pull,
-            "target": target,
-        }
-
-        # Only pass secrets if they are provided
+        build_kwargs = {}
+        if builder:
+            build_kwargs["builder"] = builder
+        if cache:
+            build_kwargs["cache"] = cache
+        if pull:
+            build_kwargs["pull"] = pull
         if secrets:
             build_kwargs["secrets"] = secrets
+        if target:
+            build_kwargs["target"] = target
 
         if inject and isinstance(inject, dict):
             self._build_with_inject(
+                path=path,
                 inject=inject,
                 image_ref=image_ref,
                 platform=platform,
                 dockerfile=dockerfile,
                 build_args=build_args,
-                **build_kwargs,
+                build_kwargs=build_kwargs,
             )
         else:
             logs_itr = docker.buildx.build(
+                path,
                 tags=[image_ref],
                 platforms=[platform],
                 load=True,
