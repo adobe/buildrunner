@@ -150,7 +150,7 @@ class Config(BaseModel, extra="forbid"):
 
     @field_validator("steps")
     @classmethod
-    def validate_steps(cls, vals) -> None:
+    def validate_steps(cls, vals, info) -> None:
         """
         Validate the config file
 
@@ -161,12 +161,20 @@ class Config(BaseModel, extra="forbid"):
         if not vals:
             raise ValueError('The "steps" configuration was not provided')
 
-        # Checks to see if there is a mutli-platform build step in the config
+        # Checks steps for mutli-platform or secrets
         has_multi_platform_build = False
+        has_secrets = False
         for step in vals.values():
             has_multi_platform_build = (
                 has_multi_platform_build or step.is_multi_platform()
             )
+            has_secrets = has_secrets or step.has_secrets()
+
+        if has_secrets:
+            if info.data.get("use_legacy_builder"):
+                raise ValueError(
+                    "Build secrets are not supported with the legacy builder. Please set use-legacy-builder to false in order to use secrets in your build."
+                )
 
         if has_multi_platform_build:
             mp_push_tags = set()

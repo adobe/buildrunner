@@ -355,9 +355,9 @@ shows the different configuration options available:
         # More info about secrets: https://docs.docker.com/build/building/secrets/
         secrets:
           # Example of a secret that is a file
-          - id=secret1,src=examples/build/secrets/secret1.txt
+          - id=secret1,src=<path to the secret file>
           # Example of a secret that is an environment variable
-          - id=secret2,env=SECRET2
+          - id=secret2,env=<environment variable name>
 
 
 .. _Build Secrets:

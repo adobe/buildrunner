@@ -243,3 +243,9 @@ class Step(BaseModel, extra="forbid"):
         Check if the step is a multi-platform build step
         """
         return self.build and self.build.platforms is not None
+
+    def has_secrets(self):
+        """
+        Check if the step has secrets
+        """
+        return self.build and self.build.secrets is not None
