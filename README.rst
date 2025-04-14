@@ -377,7 +377,7 @@ see https://docs.docker.com/build/building/secrets/.
 In order to use secrets in buildrunner, you need to do the following:
 
 #. Update the buildrunner configuration file
-    * Set ``use-legacy-builder`` to ``false``
+    * Set ``use-legacy-builder`` to ``false`` or add ``platforms`` to the ``build`` section
     * Add the secrets to the ``secrets`` section in the ``build`` section
 #. Update the Dockerfile to use the secrets
     * Add the ``--mount`` at the beginning of each RUN command that needs the secret

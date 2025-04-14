@@ -163,17 +163,22 @@ class Config(BaseModel, extra="forbid"):
 
         # Checks steps for mutli-platform or secrets
         has_multi_platform_build = False
-        has_secrets = False
+
+        #  Check for multi-platform builds and secrets validation
         for step in vals.values():
             has_multi_platform_build = (
                 has_multi_platform_build or step.is_multi_platform()
             )
-            has_secrets = has_secrets or step.has_secrets()
 
-        if has_secrets:
-            if info.data.get("use_legacy_builder"):
+            # If the step has secrets and the builder is legacy or no platforms are set for the step, raise an error
+            if (
+                step.has_secrets()
+                and not step.is_multi_platform()
+                and info.data.get("use_legacy_builder")
+            ):
                 raise ValueError(
-                    "Build secrets are not supported with the legacy builder. Please set use-legacy-builder to false in order to use secrets in your build."
+                    "Build secrets are not supported with the legacy builder. Please set use-legacy-builder to false"
+                    " or add platforms to the build section in order to use secrets in your build."
                 )
 
         if has_multi_platform_build:
