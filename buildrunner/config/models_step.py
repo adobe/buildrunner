@@ -80,6 +80,7 @@ class StepBuild(StepTask):
     cache_to: Optional[Union[str, Dict[str, str]]] = None
     # import is a python reserved keyword so we need to alias it
     import_param: Optional[str] = Field(alias="import", default=None)
+    secrets: Optional[List[str]] = None
 
 
 class RunAndServicesBase(StepTask):
@@ -242,3 +243,9 @@ class Step(BaseModel, extra="forbid"):
         Check if the step is a multi-platform build step
         """
         return self.build and self.build.platforms is not None
+
+    def has_secrets(self):
+        """
+        Check if the step has secrets
+        """
+        return self.build and self.build.secrets is not None

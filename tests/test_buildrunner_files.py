@@ -124,6 +124,8 @@ def _get_example_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]]
     excluded_example_files = [
         "examples/build/import/buildrunner.yaml",
         "examples/run/caches/buildrunner.yaml",
+        # This file is not supported in the github actions runner
+        "examples/build/secrets/platforms-buildrunner.yaml",
     ]
 
     # Walk through the examples directory and find all files ending with buildrunner.yaml

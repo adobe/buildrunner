@@ -238,6 +238,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     inject=self.to_inject,
                     cache=not self.nocache,
                     pull=self.pull,
+                    secrets=self.step.secrets,
                 )
 
                 # Set expected number of platforms

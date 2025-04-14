@@ -350,6 +350,60 @@ shows the different configuration options available:
         # image is passed to subsequent steps.
         import: path/to/image/archive.tar
 
+        # Specify the secrets that should be used when building your image,
+        # similar to the --secret option used by Docker
+        # More info about secrets: https://docs.docker.com/build/building/secrets/
+        secrets:
+          # Example of a secret that is a file
+          - id=secret1,src=<path to the secret file>
+          # Example of a secret that is an environment variable
+          - id=secret2,env=<environment variable name>
+
+.. _Build Secrets:
+
+Build Secrets
+=============
+
+Buildrunner supports specifying secrets that should be used when building your image,
+similar to the --secret option used by Docker. This is done by adding the ``secrets``
+section to the ``build`` section. This is a list of secrets that should be used when
+building the image. The string should be in the format of ``id=secret1,src=<location of the file>``
+when the secret is a file or ``id=secret2,env=<environment variable name>`` when the secret is an environment variable.
+This syntax is the same as the syntax used by Docker to build with secrets.
+More info about building with secrets in docker and the syntax of the secret string
+see https://docs.docker.com/build/building/secrets/.
+
+In order to use secrets in buildrunner, you need to do the following:
+
+#. Update the buildrunner configuration file
+    * Set ``use-legacy-builder`` to ``false`` or add ``platforms`` to the ``build`` section
+    * Add the secrets to the ``secrets`` section in the ``build`` section
+#. Update the Dockerfile to use the secrets
+    * Add the ``--mount`` at the beginning of each RUN command that needs the secret
+
+.. code:: yaml
+
+  use-legacy-builder: false
+  steps:
+    build-my-container:
+      build:
+        dockerfile: |
+          FROM alpine:latest
+          # Using secrets inline
+          RUN --mount=type=secret,id=secret1 \
+              --mount=type=secret,id=secret2 \
+              echo Using secrets in my build - secret1 file located at /run/secrets/secret1 with contents $(cat /run/secrets/secret1) and secret2=$(cat /run/secrets/secret2)
+          # Using secrets in environment variables
+          RUN --mount=type=secret,id=secret1 \
+              --mount=type=secret,id=secret2 \
+              SECRET1_FILE=/run/secrets/secret1 \
+              SECRET2_VARIABLE=$(cat /run/secrets/secret2) \
+              && echo Using secrets in my build - secret1 file located at $SECRET1_FILE with contents $(cat $SECRET1_FILE) and secret2=$SECRET2_VARIABLE
+        secrets:
+          # Example of a secret that is a file
+          - id=secret1,src=examples/build/secrets/secret1.txt
+          # Example of a secret that is an environment variable
+          - id=secret2,env=SECRET2
 
 .. _Running Containers:
 
