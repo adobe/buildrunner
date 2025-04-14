@@ -359,7 +359,6 @@ shows the different configuration options available:
           # Example of a secret that is an environment variable
           - id=secret2,env=<environment variable name>
 
-
 .. _Build Secrets:
 
 Build Secrets
@@ -390,22 +389,21 @@ In order to use secrets in buildrunner, you need to do the following:
       build:
         dockerfile: |
           FROM alpine:latest
+          # Using secrets inline
+          RUN --mount=type=secret,id=secret1 \
+              --mount=type=secret,id=secret2 \
+              echo "Using secrets in my build - secret1 file located at /run/secrets/secret1 with contents $(cat /run/secrets/secret1) and secret2=$(cat /run/secrets/secret2)"
+          # Using secrets in environment variables
           RUN --mount=type=secret,id=secret1 \
               --mount=type=secret,id=secret2 \
               SECRET1_FILE=/run/secrets/secret1 \
               SECRET2_VARIABLE=$(cat /run/secrets/secret2) \
-              echo "Using secrets in my build - secret1: $(cat $SECRET1_FILE) secret2: $SECRET2_VARIABLE"
+              && echo "Using secrets in my build - secret1 file located at $SECRET1_FILE with contents $(cat $SECRET1_FILE) and secret2=$SECRET2_VARIABLE"
         secrets:
           # Example of a secret that is a file
           - id=secret1,src=examples/build/secrets/secret1.txt
           # Example of a secret that is an environment variable
           - id=secret2,env=SECRET2
-
-
-
-
-
-
 
 .. _Running Containers:
 
