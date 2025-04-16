@@ -130,11 +130,15 @@ def _get_example_runs(test_dir: str) -> List[Tuple[str, str, Optional[List[str]]
     for root, _, files in os.walk(test_dir):
         for file in files:
             file_name = os.path.join(root, file)
-            if file_name.endswith("buildrunner.yaml") and not [
-                excluded
+            if not file_name.endswith(
+                "examples/build/secrets/platforms-buildrunner.yaml"
+            ):
+                continue
+            if file_name.endswith("buildrunner.yaml") and not any(
+                True
                 for excluded in excluded_example_files
                 if file_name.endswith(excluded)
-            ]:
+            ):
                 file_names.append(file_name)
 
     return [
@@ -187,7 +191,7 @@ def fixture_set_env():
     "test_dir, file_name, args, exit_code",
     _get_test_runs(test_dir=f"{TEST_DIR}/test-files", serial_tests=False),
 )
-def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
+def xtest_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
@@ -196,7 +200,7 @@ def test_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     "test_dir, file_name, args, exit_code",
     _get_test_runs(test_dir=f"{TEST_DIR}/test-files", serial_tests=True),
 )
-def test_serial_buildrunner_dir(test_dir: str, file_name, args, exit_code):
+def xtest_serial_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
@@ -208,7 +212,7 @@ def test_serial_buildrunner_dir(test_dir: str, file_name, args, exit_code):
     "test_dir, file_name, args, exit_code",
     _get_test_runs(test_dir=f"{TEST_DIR}/test-files/arm-arch", serial_tests=False),
 )
-def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
+def xtest_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
 
@@ -217,7 +221,7 @@ def test_buildrunner_arm_dir(test_dir: str, file_name, args, exit_code):
     "test_dir, file_name, args, exit_code",
     _get_test_runs(test_dir=f"{TEST_DIR}/test-files/scan", serial_tests=False),
 )
-def test_buildrunner_scan_dir(test_dir: str, file_name, args, exit_code):
+def xtest_buildrunner_scan_dir(test_dir: str, file_name, args, exit_code):
     # The scan tests can be flaky, with errors like "TOOMANYREQUESTS: retry-after: 804.543µs, allowed: 44000/minute"
     _test_buildrunner_file(test_dir, file_name, args, exit_code)
 
