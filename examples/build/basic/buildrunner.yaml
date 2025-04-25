@@ -1,7 +1,0 @@
-# Basic buildrunner configuration to build a simple Docker image.
-steps:
-  simple-build-step:
-    build:
-      dockerfile: |
-        FROM alpine:latest
-        RUN echo Hello World

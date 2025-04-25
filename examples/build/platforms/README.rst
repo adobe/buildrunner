@@ -1,1 +1,0 @@
-Contains an example of building a multi-platform image.

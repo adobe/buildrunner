@@ -1,6 +1,0 @@
-# Description: This example demonstrates how to use the `image` key to specify the image to use in a run step.
-steps:
-  run-step:
-    run:
-      image: alpine:latest
-      cmd: echo "Hello, World!" && sleep 1 && echo "Goodbye, World!"

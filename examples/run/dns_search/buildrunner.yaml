@@ -1,7 +1,0 @@
-steps:
-  my-step:
-    run:
-      image: alpine:latest
-      cmds:
-        - cat /etc/resolv.conf
-      dns_search: mydomain.com

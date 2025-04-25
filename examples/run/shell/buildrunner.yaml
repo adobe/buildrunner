@@ -1,7 +1,0 @@
-# Description: This example demonstrates how to use the shell attribute to specify the shell to use when executing the run step.
-steps:
-  my-step:
-    run:
-      image: alpine:latest
-      shell: /bin/sh
-      cmd: echo "Hello, World!" && sleep 1 && echo "Goodbye, World!"
