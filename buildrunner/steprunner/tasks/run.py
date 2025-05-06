@@ -172,6 +172,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             artifact_lister = DockerRunner(
                 image_config,
                 log=self.step_runner.log,
+                # Log run messages at a debug level
+                run_log_debug=True,
             )
             # NOTE: see if we can use archive commands to eliminate the need for
             #       the /stepresults volume when we can move to api v1.20
@@ -440,7 +442,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # Unused arg
         _ = new_artifact_file
 
-        self.step_runner.log.info(f"- found {file_type} {filename}")
+        self.step_runner.log.debug(f"- found {file_type} {filename}")
 
         exit_code = artifact_lister.run(
             archive_command,

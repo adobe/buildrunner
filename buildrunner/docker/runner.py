@@ -18,7 +18,7 @@ from os.path import isfile, join, getmtime
 from pathlib import Path
 import tarfile
 from types import GeneratorType
-from typing import Optional
+from typing import Optional, Union
 
 from docker.utils import compare_version
 from retry import retry
@@ -31,7 +31,7 @@ from buildrunner.docker import (
     force_remove_container,
     BuildRunnerContainerError,
 )
-from buildrunner.loggers import ContainerLogger, DockerPullProgress
+from buildrunner.loggers import ConsoleLogger, ContainerLogger, DockerPullProgress
 from buildrunner.utils import (
     acquire_flock_open_read_binary,
     acquire_flock_open_write_binary,
@@ -75,7 +75,13 @@ class DockerRunner:
             self.pull_image = pull_image
             self.platform = platform
 
-    def __init__(self, image_config, dockerd_url=None, log=None):
+    def __init__(
+        self,
+        image_config,
+        dockerd_url=None,
+        log: Union[ContainerLogger, None] = None,
+        run_log_debug: bool = False,
+    ):
         image_name = image_config.image_name
         pull_image = image_config.pull_image
         image_platform = image_config.platform
@@ -91,6 +97,7 @@ class DockerRunner:
             # Disable timeouts for running commands
             timeout=0,
         )
+        self.run_log_debug = run_log_debug
         self.container = None
         self.shell = None
         self.committed_image = None
@@ -131,6 +138,21 @@ class DockerRunner:
             if log:
                 log.write("\nImage pulled successfully\n")
 
+    def _run_log(
+        self,
+        log: Union[ConsoleLogger, ContainerLogger, None],
+        output: Union[str, bytes],
+    ):
+        """
+        Log a message to the given log stream at a debug or info level depending on configuration.
+        """
+        if log:
+            for line in log.clean_output(output).split("\n"):
+                if self.run_log_debug:
+                    log.debug(line)
+                else:
+                    log.info(line)
+
     def start(
         self,
         shell="/bin/sh",
@@ -154,7 +176,7 @@ class DockerRunner:
         cap_add=None,
         privileged=False,
         network=None,
-    ):  # pylint: disable=too-many-arguments,too-many-locals
+    ):
         """
         Kwargs:
           volumes (dict): mount the local dir (key) to the given container
@@ -549,7 +571,6 @@ class DockerRunner:
                         f"It will not be saved again to `{local_cache_archive_file}`\n"
                     )
 
-    # pylint: disable=too-many-branches,too-many-arguments
     def run(self, cmd, console=None, stream=True, log=None, workdir=None):
         """
         Run the given command in the container.
@@ -577,8 +598,7 @@ class DockerRunner:
                 "Cannot call run if container cmd not shell"
             )
 
-        if log:
-            log.write(f"Executing: {cmdv}\n")
+        self._run_log(log, f"Executing: {cmdv}")
 
         create_res = self.docker_client.exec_create(
             self.container["Id"],
@@ -591,17 +611,13 @@ class DockerRunner:
             stream=stream,
         )
         if isinstance(output_buffer, (bytes, str)):
-            if console:
-                console.write(output_buffer)
-            if log:
-                log.write(output_buffer)
+            self._run_log(console, output_buffer)
+            self._run_log(log, output_buffer)
         elif hasattr(output_buffer, "next") or isinstance(output_buffer, GeneratorType):
             try:
                 for line in output_buffer:
-                    if console:
-                        console.write(line)
-                    if log:
-                        log.write(line)
+                    self._run_log(console, line)
+                    self._run_log(log, line)
             except socket.timeout:
                 # Ignore timeouts since we check for the exit code anyways at the end
                 pass

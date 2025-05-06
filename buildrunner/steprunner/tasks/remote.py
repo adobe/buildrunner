@@ -117,8 +117,8 @@ class RemoteBuildStepRunnerTask(BuildStepRunnerTask):
                                 )
                         self.step_runner.log.write("\nGathered artifacts:\n")
                         for _art in _arts:
-                            self.step_runner.log.write(
-                                f"- found {os.path.basename(_art)}\n",
+                            self.step_runner.log.debug(
+                                f"- found {os.path.basename(_art)}",
                             )
                         self.step_runner.log.write("\n")
 
