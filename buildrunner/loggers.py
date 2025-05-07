@@ -92,16 +92,20 @@ class ConsoleLogger:
     def __init__(self, name: str):
         self.logger = logging.getLogger(name)
 
+    @staticmethod
+    def clean_output(output: Union[bytes, str]) -> str:
+        if not isinstance(output, str):
+            output = str(output, encoding=ENCODING, errors="replace")
+        if output and output[-1] == "\n":
+            output = output[:-1]
+        return output
+
     def write(self, output: Union[bytes, str]):
         """
         Write the given text to stdout and streams decorating output to stdout
         with color.
         """
-        if not isinstance(output, str):
-            output = str(output, encoding=ENCODING, errors="replace")
-        if output and output[-1] == "\n":
-            output = output[:-1]
-        for line in output.split("\n"):
+        for line in self.clean_output(output).split("\n"):
             self.logger.info(line)
 
     # Delegates all methods to the logger if they don't exist (allowing the logger methods to be used directly)
