@@ -4,9 +4,17 @@
 steps:
   test-build_dir_mount:
     run:
+      services:
+        service1:
+          image: {{ DOCKER_REGISTRY }}/ubuntu:latest
+          files:
+            # Obvious directory that should succeed
+            .: /test_services_dir
+          cmd: |
+            set -eux
+            [ -d /test_services_dir ]
       image: {{ DOCKER_REGISTRY }}/ubuntu:latest
       files:
-        # Obvious directory that should succeed
         .: /test_dir
       cmds:
         - |

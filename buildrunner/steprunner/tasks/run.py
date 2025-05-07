@@ -467,6 +467,38 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 properties,
             )
 
+    def _get_local_file(
+        self, buildrunner_config: BuildRunnerConfig, file_alias: str
+    ) -> str:
+        """
+        Lookup file alias from global config or as a local file.
+        :param buildrunner_config: buildrunner global configuration
+        :param file_alias: the file alias
+        :return: the local file to use (if available)
+        :raises BuildRunnerConfigurationError: the file alias is not found and is not a valid local file
+        """
+        f_local = buildrunner_config.get_local_files_from_alias(file_alias)
+        if not f_local:
+            f_local = os.path.realpath(
+                os.path.join(self.step_runner.build_runner.build_dir, file_alias)
+            )
+            if (
+                f_local != self.step_runner.build_runner.build_dir
+                and not f_local.startswith(
+                    self.step_runner.build_runner.build_dir + os.path.sep
+                )
+            ):
+                raise BuildRunnerConfigurationError(
+                    f'Mount path of "{file_alias}" attempts to step out of '
+                    f'source directory "{self.step_runner.build_runner.build_dir}"'
+                )
+
+            if not os.path.exists(f_local):
+                raise BuildRunnerConfigurationError(
+                    f"Cannot find valid alias for files entry '{file_alias}' nor path at '{f_local}'"
+                )
+        return f_local
+
     # pylint: disable=too-many-statements,too-many-branches,too-many-locals
     def _start_service_container(self, name, service: Service):
         """
@@ -603,11 +635,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if service.files:
             for f_alias, f_path in service.files.items():
                 # lookup file from alias
-                f_local = buildrunner_config.get_local_files_from_alias(f_alias)
-                if not f_local or not os.path.exists(f_local):
-                    raise BuildRunnerConfigurationError(
-                        f"Cannot find valid local file for alias '{f_alias}'"
-                    )
+                f_local = self._get_local_file(buildrunner_config, f_alias)
 
                 if f_path[-3:] not in [":ro", ":rw"]:
                     f_path = f_path + ":ro"
@@ -980,29 +1008,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # see if we need to inject any files
         if self.step.files:
             for f_alias, f_path in self.step.files.items():
-                # lookup file from alias
-                f_local = buildrunner_config.get_local_files_from_alias(
-                    f_alias,
-                )
-                if not f_local:
-                    f_local = os.path.realpath(
-                        os.path.join(self.step_runner.build_runner.build_dir, f_alias)
-                    )
-                    if (
-                        f_local != self.step_runner.build_runner.build_dir
-                        and not f_local.startswith(
-                            self.step_runner.build_runner.build_dir + os.path.sep
-                        )
-                    ):
-                        raise BuildRunnerConfigurationError(
-                            f'Mount path of "{f_alias}" attempts to step out of '
-                            f'source directory "{self.step_runner.build_runner.build_dir}"'
-                        )
-
-                    if not os.path.exists(f_local):
-                        raise BuildRunnerConfigurationError(
-                            f"Cannot find valid alias for files entry '{f_alias}' nor path at '{f_local}'"
-                        )
+                f_local = self._get_local_file(buildrunner_config, f_alias)
 
                 if f_path[-3:] not in [":ro", ":rw"]:
                     f_path = f_path + ":ro"
