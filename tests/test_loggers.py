@@ -9,6 +9,7 @@ from buildrunner import loggers
 
 @pytest.fixture(autouse=True)
 def fixture_override_colors():
+    loggers.ContainerLogger.LOGGERS = {}
     original_build_colors = loggers.ContainerLogger.BUILD_LOG_COLORS
     original_service_colors = loggers.ContainerLogger.SERVICE_LOG_COLORS
     loggers.ContainerLogger.BUILD_LOG_COLORS = loggers.ColorQueue("yellow", "blue")
