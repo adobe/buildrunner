@@ -615,9 +615,27 @@ class DockerRunner:
             self._run_log(log, output_buffer)
         elif hasattr(output_buffer, "next") or isinstance(output_buffer, GeneratorType):
             try:
-                for line in output_buffer:
-                    self._run_log(console, line)
-                    self._run_log(log, line)
+                # Buffer chunks into complete lines
+                line_buffer = b""
+                for chunk in output_buffer:
+                    if isinstance(chunk, str):
+                        chunk = chunk.encode("utf-8")
+                    line_buffer += chunk
+
+                    # Process complete lines
+                    while b"\n" in line_buffer:
+                        line, line_buffer = line_buffer.split(b"\n", 1)
+                        if (
+                            line or line_buffer
+                        ):  # Don't log empty lines unless there's more content
+                            line_with_newline = line + b"\n"
+                            self._run_log(console, line_with_newline)
+                            self._run_log(log, line_with_newline)
+
+                # Process any remaining content in buffer
+                if line_buffer:
+                    self._run_log(console, line_buffer)
+                    self._run_log(log, line_buffer)
             except socket.timeout:
                 # Ignore timeouts since we check for the exit code anyways at the end
                 pass
