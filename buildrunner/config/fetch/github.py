@@ -16,7 +16,11 @@ from ...errors import (
 )
 
 
-def v3_fetch_file(parsed_url, gh_config: GithubModel):
+def _clean_nones(items):
+    return list(filter(None, items))
+
+
+def _fetch_file(parsed_url, gh_config: GithubModel):
     """
     Fetch files using Github v3 protocol.
     """
@@ -30,11 +34,13 @@ def v3_fetch_file(parsed_url, gh_config: GithubModel):
 
     auth = (username, gh_config.app_token)
     url = "/".join(
-        (
-            endpoint,
-            version,
-            "users",
-            username,
+        _clean_nones(
+            [
+                endpoint,
+                version,
+                "users",
+                username,
+            ]
         )
     )
     resp = requests.get(url, auth=auth, timeout=180)
@@ -47,7 +53,7 @@ def v3_fetch_file(parsed_url, gh_config: GithubModel):
         raise ValueError('URL must begin with "/"')
 
     fpath = parsed_url.path.split("/")
-    ubuild = [endpoint, version, "repos", fpath[1], fpath[2], "contents"]
+    ubuild = _clean_nones([endpoint, version, "repos", fpath[1], fpath[2], "contents"])
     ubuild.extend(fpath[3:])
     url = "/".join(ubuild)
     resp = requests.get(url, auth=auth, timeout=180)
@@ -97,9 +103,9 @@ def fetch_file(parsed_url, config: GlobalConfig):
         )
 
     ver = nlcfg.version
-    # NOTE: potentially the v3_fetch_file() works for other github API versions.
-    if ver == "v3":
-        contents = v3_fetch_file(parsed_url, nlcfg)
+    # NOTE: potentially the _fetch_file() works for other github API versions.
+    if ver == "v3" or ver is None:
+        contents = _fetch_file(parsed_url, nlcfg)
     else:
         raise NotImplementedError(f"No version support for github API version {ver}")
 

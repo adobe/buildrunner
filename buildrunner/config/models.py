@@ -30,7 +30,7 @@ DEFAULT_TO_LEGACY_BUILDER = True
 
 class GithubModel(BaseModel, extra="forbid"):
     endpoint: str
-    version: str
+    version: str = None
     username: str = os.getenv("USER", os.getenv("LOGNAME"))
     app_token: str = ""
 
