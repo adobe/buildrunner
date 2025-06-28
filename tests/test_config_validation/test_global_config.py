@@ -65,7 +65,7 @@ def fixture_override_master_config_file(tmp_path):
         """,
             ["Extra inputs are not permitted"],
         ),
-        # Valid github config
+        # Valid github configs
         (
             """
           github:
@@ -75,6 +75,16 @@ def fixture_override_master_config_file(tmp_path):
               username: 'USERNAME'
               app_token: 'APP_TOKEN'
           """,
+            [],
+        ),
+        (
+            """
+              github:
+                company_github:
+                  endpoint: 'https://api.github.com'
+                  username: 'USERNAME'
+                  app_token: 'APP_TOKEN'
+              """,
             [],
         ),
         # Invalid github config

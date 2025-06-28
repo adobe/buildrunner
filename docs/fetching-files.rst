@@ -57,7 +57,7 @@ The ``github://`` facility requires the following configuration entries:
   github:
     LABEL:
       endpoint: 'https://HOSTNAME/API_PATH'
-      version: 'VERSION'
+      version: 'VERSION' // optional
       username: 'USERNAME'
       app_token: 'APP_TOKEN'
 
@@ -69,6 +69,16 @@ The following is suggested for an entry to reference files for GitHub Enterprise
     company_github:
       endpoint: 'https://git.company.com/api'
       version: 'v3'
+      username: 'USERNAME'
+      app_token: 'APP_TOKEN'
+
+The following is suggested for an entry to reference files for GitHub.com:
+
+.. code:: yaml
+
+  github:
+    github:
+      endpoint: 'https://api.github.com'
       username: 'USERNAME'
       app_token: 'APP_TOKEN'
 
