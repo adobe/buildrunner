@@ -288,7 +288,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         target: str,
         build_args: dict,
         inject: dict,
-        cache: bool = False,
+        cache: Optional[bool] = None,
         pull: bool = False,
         secrets: Optional[List[str]] = None,
     ) -> None:
@@ -323,7 +323,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         build_kwargs = {}
         if builder:
             build_kwargs["builder"] = builder
-        if cache:
+        # Handle both no cache and cache
+        if cache is not None:
             build_kwargs["cache"] = cache
         if pull:
             build_kwargs["pull"] = pull
@@ -406,7 +407,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         use_threading: bool = True,
         build_args: dict = None,
         inject: dict = None,
-        cache: bool = False,
+        cache: Optional[bool] = None,
         pull: bool = False,
         secrets: Optional[List[str]] = None,
     ) -> BuiltImageInfo:
