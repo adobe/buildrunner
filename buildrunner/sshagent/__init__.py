@@ -245,16 +245,13 @@ class DockerSSHAgentProxy:
         # kill ssh connection thread
         self.log.write("Closing ssh-agent container connection\n")
         if self._ssh_client:
-            # pylint: disable=W0212
             if self._ssh_client._agent:
                 try:
                     self._ssh_client._agent.close()
-                # pylint: disable=W0703
                 except Exception as _ex:
                     self.log.write(f"Error stopping ssh-agent: {_ex}\n")
             try:
                 self._ssh_client.close()
-            # pylint: disable=W0703
             except Exception as _ex:
                 self.log.write(f"Error stopping ssh-agent connection: {_ex}\n")
 
@@ -263,11 +260,14 @@ class DockerSSHAgentProxy:
             self.log.write(
                 f"Destroying ssh-agent container {self._ssh_agent_container:.10}\n"
             )
-            self.docker_client.remove_container(
-                self._ssh_agent_container,
-                force=True,
-                v=True,
-            )
+            try:
+                self.docker_client.remove_container(
+                    self._ssh_agent_container,
+                    force=True,
+                    v=True,
+                )
+            except Exception as _ex:
+                self.log.write(f"Error destroying ssh-agent container: {_ex}\n")
 
     def get_ssh_agent_image(self):
         """

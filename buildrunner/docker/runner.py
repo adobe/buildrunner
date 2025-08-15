@@ -327,11 +327,16 @@ class DockerRunner:
                         )
                         if container_ids:
                             for container_id in container_ids:
-                                self.docker_client.remove_container(
-                                    container_id["Id"],
-                                    force=True,
-                                    v=True,
-                                )
+                                try:
+                                    self.docker_client.remove_container(
+                                        container_id["Id"],
+                                        force=True,
+                                        v=True,
+                                    )
+                                except Exception as _ex:
+                                    print(
+                                        f'Unable to delete docker container with id "{container_id["Id"]}"'
+                                    )
                         else:
                             print(
                                 f'Unable to find docker container with name or label "{container}"'
@@ -340,11 +345,16 @@ class DockerRunner:
                         print(
                             f'Unable to find docker container with name or label "{container}"'
                         )
-            self.docker_client.remove_container(
-                self.container["Id"],
-                force=True,
-                v=True,
-            )
+            try:
+                self.docker_client.remove_container(
+                    self.container["Id"],
+                    force=True,
+                    v=True,
+                )
+            except docker.errors.NotFound:
+                print(
+                    f'Unable to delete docker container with id "{self.container["Id"]}"'
+                )
 
         self.container = None
 
@@ -353,16 +363,16 @@ class DockerRunner:
         logger: ContainerLogger, local_cache_archive_file: str, docker_path: str
     ) -> Optional[str]:
         if os.path.exists(local_cache_archive_file):
-            logger.write(
-                f"Using cache {local_cache_archive_file} for destination path {docker_path}\n"
+            logger.info(
+                f"Using cache {local_cache_archive_file} for destination path {docker_path}"
             )
             return local_cache_archive_file
         cache_dir = os.path.dirname(local_cache_archive_file)
 
         if not os.path.exists(cache_dir):
-            logger.write(
+            logger.info(
                 f"Cache directory {cache_dir} does not exist, "
-                f"skipping restore of archive {local_cache_archive_file}\n"
+                f"skipping restore of archive {local_cache_archive_file}"
             )
             return None
 
@@ -381,14 +391,14 @@ class DockerRunner:
                     local_cache_archive_match = curr_archive_file
 
         if local_cache_archive_match is None:
-            logger.write(
+            logger.info(
                 f"Not able to restore cache {docker_path} since "
-                f"there was no matching prefix for `{local_cache_archive_file}`\n"
+                f"there was no matching prefix for `{local_cache_archive_file}`"
             )
             return None
-        logger.write(
+        logger.info(
             f"Found cache {local_cache_archive_match} matching prefix {local_cache_archive_file} "
-            f"for destination path {docker_path}\n"
+            f"for destination path {docker_path}"
         )
 
         return local_cache_archive_match
@@ -422,9 +432,9 @@ class DockerRunner:
         restored_cache_src = set()
         for local_cache_archive_file, docker_path in caches.items():
             if docker_path in restored_cache_src:
-                logger.write(
+                logger.info(
                     f"Cache for destination path {docker_path} has already been matched and restored to the container, "
-                    f"skipping {local_cache_archive_file}\n"
+                    f"skipping {local_cache_archive_file}"
                 )
                 continue
 
@@ -507,13 +517,13 @@ class DockerRunner:
             file_obj = acquire_flock_open_write_binary(
                 lock_file=cache_history_log, logger=logger, mode="a"
             )
-            logger.write(
+            logger.info(
                 f"File lock acquired. Attempting to write cache history log to {cache_history_log}"
             )
             file_obj.write(log_str)
         finally:
             release_flock(file_obj, logger)
-            logger.write("Writing to cache history log completed. Released file lock.")
+            logger.info("Writing to cache history log completed, released file lock")
 
     def save_caches(
         self, logger: ContainerLogger, caches: OrderedDict, env_vars: dict = dict()
@@ -526,10 +536,10 @@ class DockerRunner:
             for local_cache_archive_file, docker_path in caches.items():
                 if docker_path not in saved_cache_src:
                     saved_cache_src.add(docker_path)
-                    logger.write(
-                        f"Saving cache `{docker_path}` "
+                    logger.info(
+                        f"Saving cache {docker_path} "
                         f"running on container {self.container['Id']} "
-                        f"to local cache `{local_cache_archive_file}`\n"
+                        f"to local cache {local_cache_archive_file}"
                     )
 
                     log_line = (
@@ -551,9 +561,7 @@ class DockerRunner:
                         file_obj = acquire_flock_open_write_binary(
                             lock_file=local_cache_archive_file, logger=logger
                         )
-                        logger.write(
-                            "File lock acquired. Attempting to write to cache."
-                        )
+                        logger.info("File lock acquired. Attempting to write to cache.")
                         self._write_cache(docker_path, file_obj)
                     except Exception as e:
                         raise BuildRunnerSavingCache(
@@ -564,11 +572,11 @@ class DockerRunner:
                         assert tarfile.is_tarfile(
                             local_cache_archive_file
                         ), f"Failed to create cache {local_cache_archive_file} tar file."
-                        logger.write("Writing to cache completed. Released file lock.")
+                        logger.info("Writing to cache completed. Released file lock.")
                 else:
-                    logger.write(
+                    logger.info(
                         f"The following `{docker_path}` in docker has already been saved. "
-                        f"It will not be saved again to `{local_cache_archive_file}`\n"
+                        f"It will not be saved again to `{local_cache_archive_file}`"
                     )
 
     def run(self, cmd, console=None, stream=True, log=None, workdir=None):

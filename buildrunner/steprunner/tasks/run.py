@@ -92,7 +92,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.log.info(
                 f"Deleting network {self.step_runner.network_name}"
             )
-            self._docker_client.remove_network(self.step_runner.network_name)
+            try:
+                self._docker_client.remove_network(self.step_runner.network_name)
+            except Exception as _ex:
+                self.step_runner.log.error(f"Error removing network: {_ex}")
 
     def _get_source_container(self):
         """
@@ -1119,9 +1122,15 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     "Skipping cache save due to failed exit code"
                 )
             else:
-                self.runner.save_caches(
-                    container_meta_logger, caches, container_args.get("environment")
-                )
+                try:
+                    self.runner.save_caches(
+                        container_meta_logger, caches, container_args.get("environment")
+                    )
+                except Exception as _ex:
+                    container_meta_logger.error(
+                        f"Error saving caches, ignoring: {_ex}",
+                    )
+                    # Failing to save caches should not fail the build, just continue as normal
 
         finally:
             if self.runner:
