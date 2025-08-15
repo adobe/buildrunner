@@ -242,9 +242,7 @@ def _acquire_flock_open(
             f"PID:{pid} failed to acquire file lock for {lock_file} after timeout of {timeout_seconds} seconds"
         )
 
-    logger.info(
-        f"PID:{pid} file opened and lock acquired for {lock_file} ({lock_file_obj})"
-    )
+    logger.info(f"PID:{pid} file opened and lock acquired for {lock_file}")
 
     return lock_file_obj
 
@@ -308,4 +306,4 @@ def release_flock(
         return
     portalocker.unlock(lock_file_obj)
     lock_file_obj.close()
-    logger.write(f"PID:{os.getpid()} released and closed file {lock_file_obj}")
+    logger.info(f"PID:{os.getpid()} released and closed file {lock_file_obj.name}")

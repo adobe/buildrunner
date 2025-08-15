@@ -104,9 +104,12 @@ class DockerDaemonProxy:
         self.log.write(
             f"Destroying Docker daemon container {self._daemon_container:.10}\n"
         )
-        if self._daemon_container:
-            self.docker_client.remove_container(
-                self._daemon_container,
-                force=True,
-                v=True,
-            )
+        try:
+            if self._daemon_container:
+                self.docker_client.remove_container(
+                    self._daemon_container,
+                    force=True,
+                    v=True,
+                )
+        except Exception as _ex:
+            self.log.write(f"Failed to remove Docker daemon container: {_ex}\n")
