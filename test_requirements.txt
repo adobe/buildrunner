@@ -21,7 +21,7 @@ execnet==1.9.0
     # via pytest-xdist
 filelock==3.13.1
     # via virtualenv
-graphlib-backport==1.0.3
+graphlib-backport==1.1.0
     # via -r test_requirements.in
 identify==2.5.33
     # via pre-commit
@@ -33,7 +33,7 @@ lsprotocol==2023.0.0
     #   ruff-lsp
 nodeenv==1.8.0
     # via pre-commit
-packaging==23.1
+packaging==24.2
     # via
     #   pytest
     #   pytest-rerunfailures
@@ -64,7 +64,7 @@ pytest-retry==1.7.0
     # via -r test_requirements.in
 pytest-xdist==3.3.1
     # via -r test_requirements.in
-pyyaml==6.0.1
+pyyaml==6.0.2
     # via pre-commit
 ruff==0.1.8
     # via
@@ -72,7 +72,7 @@ ruff==0.1.8
     #   ruff-lsp
 ruff-lsp==0.0.48
     # via -r test_requirements.in
-typing-extensions==4.9.0
+typing-extensions==4.13.0
     # via ruff-lsp
 virtualenv==20.24.1
     # via pre-commit

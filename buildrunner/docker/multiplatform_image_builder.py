@@ -633,7 +633,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 docker.pull(native_image.image_ref)
                 for tagged_image_ref in tagged_image.image_refs:
                     docker.tag(native_image.image_ref, tagged_image_ref)
-                    LOGGER.debug(
+                    LOGGER.info(
                         f"Tagged {native_image.image_ref} as {tagged_image_ref}"
                     )
                 docker.image.remove(native_image.image_ref, force=True)
