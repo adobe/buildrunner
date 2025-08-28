@@ -1,0 +1,7 @@
+
+platform-builders:
+  linux/arm/v6: builder1
+  linux/arm/v7: builder2
+  linux/arm/v8: builder3
+  linux/arm64: builder1
+  linux/arm64/v8: builder2

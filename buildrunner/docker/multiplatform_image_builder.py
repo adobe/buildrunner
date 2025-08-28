@@ -8,6 +8,7 @@ with the terms of the Adobe license agreement accompanying it.
 import logging
 import os
 import platform as python_platform
+import random
 import re
 import shutil
 import tempfile
@@ -76,7 +77,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         docker_registry: Optional[str] = None,
         build_registry: Optional[str] = MP_LOCAL_REGISTRY,
         temp_dir: str = os.getcwd(),
-        platform_builders: Optional[Dict[str, str]] = None,
+        platform_builders: Optional[Union[Dict[str, List[str]], Dict[str, str]]] = None,
         cache_builders: Optional[List[str]] = None,
         cache_from: Optional[Union[dict, str]] = None,
         cache_to: Optional[Union[dict, str]] = None,
@@ -311,9 +312,23 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             f"'{dockerfile}' ({os.path.exists(dockerfile)}) does not exist!"
         )
 
-        builder = (
+        # Get the builder for the platform
+        builders = (
             self._platform_builders.get(platform) if self._platform_builders else None
         )
+        builder = None
+
+        if builders:
+            if isinstance(builders, str):
+                builder = builders
+            elif isinstance(builders, list):
+                # Randomly select a builder from the list
+                builder = random.choice(builders)
+            else:
+                raise BuildRunnerConfigurationError(
+                    f"Invalid platform builders configuration for platform {platform}"
+                )
+
         LOGGER.debug(f"Building image {image_ref} for platform {platform}")
         LOGGER.info(
             f"Building image for platform {platform} with {builder or 'default'} builder"
