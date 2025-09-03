@@ -120,6 +120,36 @@ def fixture_override_master_config_file(tmp_path):
                 "disable-multi-platform:  Input should be a valid boolean, unable to interpret input (bool_parsing)"
             ],
         ),
+        (
+            """
+          platform-builders:
+            linux/amd64:
+              - builder1
+              - builder2
+            linux/arm64:
+              - builder3
+          """,
+            [],
+        ),
+        (
+            """
+          platform-builders:
+            linux/amd64: builder1
+            linux/arm64: builder2
+          """,
+            [],
+        ),
+        (
+            """
+          platform-builders:
+            - builder1
+            - builder2
+          """,
+            [
+                "  platform-builders.dict[str,str]:  Input should be a valid dictionary (dict_type)",
+                "  platform-builders.dict[str,list[str]]:  Input should be a valid dictionary (dict_type)",
+            ],
+        ),
     ],
 )
 def test_config_data(

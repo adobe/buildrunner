@@ -124,7 +124,7 @@ class GlobalConfig(BaseModel, extra="forbid"):
     build_registry: Optional[str] = Field(
         alias="build-registry", default=MP_LOCAL_REGISTRY
     )
-    platform_builders: Optional[Dict[str, str]] = Field(
+    platform_builders: Optional[Union[Dict[str, str], Dict[str, List[str]]]] = Field(
         alias="platform-builders", default=None
     )
     security_scan: GlobalSecurityScanConfig = Field(

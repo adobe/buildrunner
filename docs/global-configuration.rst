@@ -99,8 +99,16 @@ they are used when put into the global configuration file:
   # and therefore this must be configured in buildrunner itself to perform builds
   # across multiple builders for different platforms. Any platform not specified
   # here will use the default configured buildx builder.
+  # 
+  # Each platform can be configured with either a single builder (string) or
+  # a list of builders (array of strings). When using a list, buildrunner will
+  # randomly select one builder for each build.
   platform-builders:
     platform1: builder1
+    platform2:
+      - builder1
+      - builder2
+      - builder3
 
   # Configures caching *for multi-platform builds only*
   docker-build-cache:

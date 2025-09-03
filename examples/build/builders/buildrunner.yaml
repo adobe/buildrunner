@@ -1,0 +1,17 @@
+# Example of a buildrunner.yaml file that specifies a multi-platform build step in order to test the builders.
+
+# Execute using:
+# ./run-buildrunner.sh -f examples/build/builders/buildrunner.yaml -c examples/build/builders/global-config-list.yaml
+
+steps:
+  multi-platform-build-step:
+    build:
+      dockerfile: |
+        FROM alpine:latest
+        LABEL custom_label="Buildrunner example label"
+      platforms:
+      - linux/arm/v6
+      - linux/arm/v7
+      - linux/arm/v8
+      - linux/arm64
+      - linux/arm64/v8

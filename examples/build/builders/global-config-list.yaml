@@ -1,0 +1,20 @@
+# This is a global configuration file that lists the builders for each platform.
+platform-builders:
+  linux/arm/v6:
+    - builder1
+    - builder2
+    - builder3
+  linux/arm/v7:
+    - builder1
+    - builder2
+    - builder3
+  linux/arm/v8:
+    - builder1
+    - builder2
+    - builder3
+  linux/arm64:
+    - builder1
+    - builder2
+    - builder3
+  linux/arm64/v8:
+    - builder1
