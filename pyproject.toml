@@ -28,7 +28,7 @@ dependencies = [
     "graphlib-backport>=1.0.3",
     "timeout-decorator>=0.5.0",
     "python-on-whales>=0.70.1",
-    "pydantic==2.4.2",
+    "pydantic>=2.11.7",
     "retry2>=0.9.5",
     "colorlog>=6.8.0",
     "rich>=13",
