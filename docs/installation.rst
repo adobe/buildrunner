@@ -3,42 +3,49 @@
 ##############
 
 There are two different options for installing Buildrunner.  Each option
-depends on `Docker <http://www.docker.com/getdocker>`_.  Windows also depends
-on ``BASH``, which can be found at `Git Bash <https://git-for-windows.github.io/>`_.
+depends on `Docker <http://www.docker.com/getdocker>`_.  Windows may also depend
+on ``BASH``, which can be found at `Git Bash <https://git-for-windows.github.io/>`_. Powershell may also be used
+directly on Windows if that is preferred.
 
 .. contents::
    :local:
 
-Pip
-###
+Astral UV
+#########
 
-If you wish to install buildrunner directly on your local machine, install via
-pip. This can be done directly in your local environment or in a virtual
-environment.
+If you wish to install buildrunner directly on your local machine, installation via
+`uv <https://github.com/astral-sh/uv?tab=readme-ov-file#installation>`_ is extremely simple. UV automatically
+manages python versions, virtual environments, and dependencies.
 
-Local Environment
------------------
-To install Buildrunner in your local environment, run the following command:
+Installation
+============
+To install Buildrunner, run the following command:
 
 .. code:: bash
 
-  pip install buildrunner
+  uv tool install buildrunner
 
 The buildrunner executable is now available in your path.
 
-Virtual Environment
--------------------
-To install Buildrunner in a virtual environment, first create a new virtual
-environment, activate it and install buildrunner.  This can be done with the following commands:
+Alternatively, you can use the ``uvx`` command to run buildrunner:
 
 .. code:: bash
 
-  python -m venv buildrunner
-  source buildrunner/bin/activate
-  pip install buildrunner
+   uvx buildrunner
+   # Run with a specific python version
+   uvx -p3.12 buildrunner
 
-The buildrunner executable is now available at buildrunner/bin/buildrunner and
-can be added to your path.
+Development Installation
+========================
+To install Buildrunner for development from source:
+
+.. code:: bash
+
+  git clone https://github.com/adobe/buildrunner.git
+  cd buildrunner
+  uv sync
+
+The buildrunner executable is now available via ``uv run buildrunner``.
 
 
 Docker Container

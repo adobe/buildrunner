@@ -8,6 +8,13 @@
 3.0
 ###
 
+* 3.17
+
+  * Add python 3.13 support
+  * Migrate to uv for dependency management
+
+* ... undocumented versions, see GitHub tagged releases ...
+
 * 3.0
 
   * Add python 3.11 support

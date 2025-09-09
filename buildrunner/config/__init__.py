@@ -203,17 +203,15 @@ class BuildRunnerConfig:
             "BUILDRUNNER_STEPS": steps_to_run,
         }
         if vcs:
-            context.update(
-                {
-                    "VCSINFO_NAME": str(vcs.name),
-                    "VCSINFO_BRANCH": str(vcs.branch),
-                    "VCSINFO_NUMBER": str(vcs.number),
-                    "VCSINFO_ID": str(vcs.id),
-                    "VCSINFO_SHORT_ID": str(vcs.id)[:7],
-                    "VCSINFO_MODIFIED": str(vcs.modified),
-                    "VCSINFO_RELEASE": str(vcs.release),
-                }
-            )
+            context.update({
+                "VCSINFO_NAME": str(vcs.name),
+                "VCSINFO_BRANCH": str(vcs.branch),
+                "VCSINFO_NUMBER": str(vcs.number),
+                "VCSINFO_ID": str(vcs.id),
+                "VCSINFO_SHORT_ID": str(vcs.id)[:7],
+                "VCSINFO_MODIFIED": str(vcs.modified),
+                "VCSINFO_RELEASE": str(vcs.release),
+            })
 
         # Add the global env vars before any other context vars
         for cur_context in contexts:

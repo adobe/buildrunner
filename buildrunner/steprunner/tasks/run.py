@@ -107,11 +107,9 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 self.step_runner.build_runner.get_source_image(),
                 command="/bin/sh",
                 labels=self.step_runner.container_labels,
-                networking_config=self._docker_client.create_networking_config(
-                    {
-                        self.step_runner.network_name: self._docker_client.create_endpoint_config()
-                    }
-                )
+                networking_config=self._docker_client.create_networking_config({
+                    self.step_runner.network_name: self._docker_client.create_endpoint_config()
+                })
                 if self.step_runner.network_name
                 else None,
             )["Id"]
@@ -374,7 +372,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             workdir = None
             if arch_props["type"] == "tar":
                 suffix = arch_props.get(
-                    "suffix", f'.{arch_props["type"]}.{arch_props["compression"]}'
+                    "suffix", f".{arch_props['type']}.{arch_props['compression']}"
                 )
                 output_file_name = arch_props["name"] + suffix
                 new_artifact_file = "/stepresults/" + output_file_name
@@ -388,22 +386,18 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                     "-cv",
                 ]
                 if os.path.dirname(artifact_file):
-                    archive_command.extend(
-                        (
-                            "-C",
-                            os.path.dirname(artifact_file),
-                        )
-                    )
-                archive_command.extend(
-                    (
-                        "-f",
-                        new_artifact_file,
-                        filename,
-                    )
-                )
+                    archive_command.extend((
+                        "-C",
+                        os.path.dirname(artifact_file),
+                    ))
+                archive_command.extend((
+                    "-f",
+                    new_artifact_file,
+                    filename,
+                ))
 
             elif arch_props["type"] == "zip":
-                output_file_name = f'{arch_props["name"]}.{arch_props["type"]}'
+                output_file_name = f"{arch_props['name']}.{arch_props['type']}"
                 new_artifact_file = "/stepresults/" + output_file_name
                 archive_command = [
                     "zip",
@@ -862,12 +856,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         _source_container = self._get_source_container()
         _container_name = str(uuid.uuid4())
         _env_defaults = dict(buildrunner_config.env)
-        _env_defaults.update(
-            {
-                "BUILDRUNNER_SOURCE_CONTAINER": _source_container,
-                "BUILDRUNNER_BUILD_CONTAINER": _container_name,
-            }
-        )
+        _env_defaults.update({
+            "BUILDRUNNER_SOURCE_CONTAINER": _source_container,
+            "BUILDRUNNER_BUILD_CONTAINER": _container_name,
+        })
         container_args = {
             "name": _container_name,
             "hostname": None,

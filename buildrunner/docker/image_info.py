@@ -35,7 +35,7 @@ class TaggedImageInfo(BaseModel):
         return [f"{self.repo}:{tag}" for tag in self.tags]
 
     def __str__(self) -> str:
-        return f'{self.repo}:{",".join(self.tags)}'
+        return f"{self.repo}:{','.join(self.tags)}"
 
 
 class BuiltTaggedImage(BaseModel):

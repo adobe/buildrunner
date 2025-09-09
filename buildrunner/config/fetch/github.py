@@ -34,14 +34,12 @@ def _fetch_file(parsed_url, gh_config: GithubModel):
 
     auth = (username, gh_config.app_token)
     url = "/".join(
-        _clean_nones(
-            [
-                endpoint,
-                version,
-                "users",
-                username,
-            ]
-        )
+        _clean_nones([
+            endpoint,
+            version,
+            "users",
+            username,
+        ])
     )
     resp = requests.get(url, auth=auth, timeout=180)
     if resp.status_code != 200:

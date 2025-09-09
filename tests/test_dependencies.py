@@ -7,82 +7,62 @@ from buildrunner.config import loader
 
 
 class TestDependencies(unittest.TestCase):
-    config = OrderedDict(
-        [
-            (
-                "steps",
-                OrderedDict(
-                    [
+    config = OrderedDict([
+        (
+            "steps",
+            OrderedDict([
+                (
+                    "step1",
+                    OrderedDict([
                         (
-                            "step1",
-                            OrderedDict(
-                                [
-                                    (
-                                        "run",
-                                        OrderedDict(
-                                            [
-                                                ("image", "docker.io/ubuntu:latest"),
-                                                ("cmd", 'echo "Hello from step 1"'),
-                                            ]
-                                        ),
-                                    )
-                                ]
-                            ),
-                        ),
-                        (
-                            "step2",
-                            OrderedDict(
-                                [
-                                    ("depends", ["step3", "step4"]),
-                                    (
-                                        "run",
-                                        OrderedDict(
-                                            [
-                                                ("image", "docker.io/ubuntu:latest"),
-                                                ("cmd", 'echo "Hello from step 2"'),
-                                            ]
-                                        ),
-                                    ),
-                                ]
-                            ),
-                        ),
-                        (
-                            "step3",
-                            OrderedDict(
-                                [
-                                    (
-                                        "run",
-                                        OrderedDict(
-                                            [
-                                                ("image", "docker.io/ubuntu:latest"),
-                                                ("cmd", 'echo "Hello from step 3"'),
-                                            ]
-                                        ),
-                                    )
-                                ]
-                            ),
-                        ),
-                        (
-                            "step4",
-                            OrderedDict(
-                                [
-                                    (
-                                        "run",
-                                        OrderedDict(
-                                            [
-                                                ("image", "docker.io/ubuntu:latest"),
-                                                ("cmd", 'echo "Hello from step 4"'),
-                                            ]
-                                        ),
-                                    )
-                                ]
-                            ),
-                        ),
-                    ]
+                            "run",
+                            OrderedDict([
+                                ("image", "docker.io/ubuntu:latest"),
+                                ("cmd", 'echo "Hello from step 1"'),
+                            ]),
+                        )
+                    ]),
                 ),
-            )
-        ]
-    )
+                (
+                    "step2",
+                    OrderedDict([
+                        ("depends", ["step3", "step4"]),
+                        (
+                            "run",
+                            OrderedDict([
+                                ("image", "docker.io/ubuntu:latest"),
+                                ("cmd", 'echo "Hello from step 2"'),
+                            ]),
+                        ),
+                    ]),
+                ),
+                (
+                    "step3",
+                    OrderedDict([
+                        (
+                            "run",
+                            OrderedDict([
+                                ("image", "docker.io/ubuntu:latest"),
+                                ("cmd", 'echo "Hello from step 3"'),
+                            ]),
+                        )
+                    ]),
+                ),
+                (
+                    "step4",
+                    OrderedDict([
+                        (
+                            "run",
+                            OrderedDict([
+                                ("image", "docker.io/ubuntu:latest"),
+                                ("cmd", 'echo "Hello from step 4"'),
+                            ]),
+                        )
+                    ]),
+                ),
+            ]),
+        )
+    ])
 
     KEYWORD_VERSION = "version"
     KEYWORD_STEPS = "steps"

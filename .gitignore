@@ -16,8 +16,6 @@ venv*
 .venv
 .act*
 
-buildrunner/version.py
-
 buildrunner.results
 curator.results
 

@@ -140,9 +140,9 @@ class DockerSSHAgentProxy:
                 f"{keys[0].get_name()} {keys[0].get_base64()}",
             ],
             labels=self._container_labels,
-            networking_config=self.docker_client.create_networking_config(
-                {self._network: self.docker_client.create_endpoint_config()}
-            )
+            networking_config=self.docker_client.create_networking_config({
+                self._network: self.docker_client.create_endpoint_config()
+            })
             if self._network
             else None,
             host_config=self.docker_client.create_host_config(

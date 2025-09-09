@@ -32,7 +32,7 @@ def test_find_native_platform(
             platform,
             BuiltTaggedImage(
                 repo="repo1",
-                tag=f'{run_id}-{platform.replace("/", "-")}',
+                tag=f"{run_id}-{platform.replace('/', '-')}",
                 digest="12345",
                 platform=platform,
             ),

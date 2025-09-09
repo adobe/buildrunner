@@ -201,7 +201,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
         if not self.dockerfile:
             raise BuildRunnerConfigurationError(
-                "Cannot find a Dockerfile in the given path " "or inject configurations"
+                "Cannot find a Dockerfile in the given path or inject configurations"
             )
 
         buildrunner_config = BuildRunnerConfig.get_instance()

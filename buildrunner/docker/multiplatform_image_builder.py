@@ -5,6 +5,7 @@ All Rights Reserved.
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
+
 import logging
 import os
 import platform as python_platform
@@ -94,8 +95,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         self._secrets = secrets
         if self._cache_from or self._cache_to:
             LOGGER.info(
-                f'Configuring multiplatform builds to cache from {cache_from} and to {cache_to} '
-                f'for builders {", ".join(cache_builders) if cache_builders else "(all)"}'
+                f"Configuring multiplatform builds to cache from {cache_from} and to {cache_to} "
+                f"for builders {', '.join(cache_builders) if cache_builders else '(all)'}"
             )
 
         self._built_images: List[BuiltImageInfo] = []
@@ -144,12 +145,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
             # If any assert fails something changed in the registry image and we need to update this code
             assert len(ports) == 1, f"Expected 1 port, but got {len(ports)}"
-            assert isinstance(
-                ports.get("5000/tcp")[0], dict
-            ), f"Expected dict, but got {type(ports.get('5000/tcp')[0])}"
-            assert (
-                ports.get("5000/tcp")[0].get("HostIp") == "0.0.0.0"
-            ), f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
+            assert isinstance(ports.get("5000/tcp")[0], dict), (
+                f"Expected dict, but got {type(ports.get('5000/tcp')[0])}"
+            )
+            assert ports.get("5000/tcp")[0].get("HostIp") == "0.0.0.0", (
+                f"Expected HostIp to be 0.0.0.0 but got {ports.get('5000/tcp')[0].get('HostIp')}"
+            )
 
             self._mp_registry_info = RegistryInfo(
                 container.name, "localhost", ports.get("5000/tcp")[0].get("HostPort")
@@ -250,9 +251,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 )
                 shutil.copy(dockerfile, f"{context_dir}/Dockerfile")
 
-            assert os.path.isdir(
-                context_dir
-            ), f"Failed to create context dir {context_dir}"
+            assert os.path.isdir(context_dir), (
+                f"Failed to create context dir {context_dir}"
+            )
 
             logs_itr = docker.buildx.build(
                 context_dir,
@@ -400,9 +401,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         """Returns the platform to build for single platform flag"""
 
         assert isinstance(platforms, list), f"Expected list, but got {type(platforms)}"
-        assert (
-            len(platforms) > 0
-        ), f"Expected at least one platform, but got {len(platforms)}"
+        assert len(platforms) > 0, (
+            f"Expected at least one platform, but got {len(platforms)}"
+        )
 
         native_platform = self.get_native_platform()
 
@@ -493,7 +494,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         threads = []
         LOGGER.info(
-            f'Starting builds for {len(platforms)} platforms in {"parallel" if use_threading else "sequence"}'
+            f"Starting builds for {len(platforms)} platforms in {'parallel' if use_threading else 'sequence'}"
         )
 
         # Since threading may be used, use a simple queue to communicate with the build method
@@ -541,9 +542,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         while not queue.empty():
             image_ref, image_digest = queue.get()
-            assert (
-                image_ref in image_info_by_image_ref
-            ), f"Image ref {image_ref} is missing in generated info"
+            assert image_ref in image_info_by_image_ref, (
+                f"Image ref {image_ref} is missing in generated info"
+            )
             image_info = image_info_by_image_ref.pop(image_ref)
             built_image.add_platform_image(
                 image_info.get("platform"),
@@ -552,7 +553,9 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                     digest=image_digest,
                 ),
             )
-        assert not image_info_by_image_ref, f"Image refs were not generated successfully, unclaimed refs: {image_info_by_image_ref}"
+        assert not image_info_by_image_ref, (
+            f"Image refs were not generated successfully, unclaimed refs: {image_info_by_image_ref}"
+        )
 
         if cleanup_dockerfile and dockerfile and os.path.exists(dockerfile):
             os.remove(dockerfile)
