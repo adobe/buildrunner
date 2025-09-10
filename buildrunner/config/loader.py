@@ -251,22 +251,18 @@ def _fetch_template(
         jtemplate = jenv.from_string(contents)
 
         config_context = copy.deepcopy(env)
-        config_context.update(
-            {
-                "CONFIG_FILE": cfg_file,
-                "CONFIG_DIR": os.path.dirname(cfg_file),
-                "read_yaml_file": functools.partial(
-                    jinja_context.read_yaml_file, env, _log_generated_file, log_file
-                ),
-                "raise": jinja_context.raise_exception_jinja,
-                "strftime": functools.partial(jinja_context.strftime, build_time),
-                "env": os.environ,
-                # This is stored after the initial env is set
-                "DOCKER_REGISTRY": global_config.docker_registry
-                if global_config
-                else None,
-            }
-        )
+        config_context.update({
+            "CONFIG_FILE": cfg_file,
+            "CONFIG_DIR": os.path.dirname(cfg_file),
+            "read_yaml_file": functools.partial(
+                jinja_context.read_yaml_file, env, _log_generated_file, log_file
+            ),
+            "raise": jinja_context.raise_exception_jinja,
+            "strftime": functools.partial(jinja_context.strftime, build_time),
+            "env": os.environ,
+            # This is stored after the initial env is set
+            "DOCKER_REGISTRY": global_config.docker_registry if global_config else None,
+        })
 
         if ctx:
             config_context.update(ctx)

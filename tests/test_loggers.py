@@ -227,28 +227,41 @@ def test_docker_pull_progress(progress_mock):
 
         progress.status_report({})
         progress.status_report({"status": None})
-        progress.status_report(
-            {"status": "Downloading", "id": "1", "progressDetail": {"total": 100}}
-        )
-        progress.status_report(
-            {"status": "Downloading", "progressDetail": {"total": 10}}
-        )
-        progress.status_report(
-            {"status": "Downloading", "id": "0", "progressDetail": {"total": 10}}
-        )
-        progress.status_report(
-            {"status": "Downloading", "id": "1", "progressDetail": {"current": 10}}
-        )
-        progress.status_report(
-            {"status": "Downloading", "id": "2", "progressDetail": {"total": 10}}
-        )
+        progress.status_report({
+            "status": "Downloading",
+            "id": "1",
+            "progressDetail": {"total": 100},
+        })
+        progress.status_report({
+            "status": "Downloading",
+            "progressDetail": {"total": 10},
+        })
+        progress.status_report({
+            "status": "Downloading",
+            "id": "0",
+            "progressDetail": {"total": 10},
+        })
+        progress.status_report({
+            "status": "Downloading",
+            "id": "1",
+            "progressDetail": {"current": 10},
+        })
+        progress.status_report({
+            "status": "Downloading",
+            "id": "2",
+            "progressDetail": {"total": 10},
+        })
         progress.status_report({"status": "Downloading", "id": "failure"})
-        progress.status_report(
-            {"status": "Extracting", "id": "1", "progressDetail": {"current": 5}}
-        )
-        progress.status_report(
-            {"status": "Extracting", "id": "2", "progressDetail": {"current": 10}}
-        )
+        progress.status_report({
+            "status": "Extracting",
+            "id": "1",
+            "progressDetail": {"current": 5},
+        })
+        progress.status_report({
+            "status": "Extracting",
+            "id": "2",
+            "progressDetail": {"current": 10},
+        })
     progress_instance.__exit__.assert_called_once()
 
     assert progress_instance.add_task.call_args_list == [

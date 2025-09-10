@@ -263,9 +263,9 @@ def test__security_scan_trivy_parse_results(input_results, parsed_results):
 def test__security_scan_trivy_parse_results_max_score_threshold(
     max_score_threshold, exception_raised
 ):
-    security_scan_config = GlobalSecurityScanConfig(
-        **{"max-score-threshold": max_score_threshold}
-    )
+    security_scan_config = GlobalSecurityScanConfig(**{
+        "max-score-threshold": max_score_threshold
+    })
     input_results = {
         "Results": [
             {

@@ -37,7 +37,7 @@ See `docs/installation <docs/installation.rst>`_.
 Development
 ============
 
-See `docs/development <docs/development.rst>`_.
+See `docs/development <docs/development.rst>`__.
 
 Global Configuration
 ====================
@@ -1202,7 +1202,8 @@ The test suite is located in the `tests subdirectory <tests>`_. These tests are 
 on every PR build and every build.
 
 The test suite can be invoked manually from the top of the source directory by using
-``pytest`` after installing all of the requirements and test requirements with ``pip``.
+``uv run pytest`` after installing dependencies with ``uv sync``. See
+`docs/development <docs/development.rst>`__ for more information.
 
 
 .. Links

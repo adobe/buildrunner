@@ -273,13 +273,11 @@ class DockerRunner:
             del kwargs["command"]
         if network:
             kwargs["networking_config"] = (
-                self.docker_client.create_networking_config(
-                    {
-                        network: self.docker_client.create_endpoint_config(
-                            aliases=[hostname] if hostname else None
-                        )
-                    }
-                )
+                self.docker_client.create_networking_config({
+                    network: self.docker_client.create_endpoint_config(
+                        aliases=[hostname] if hostname else None
+                    )
+                })
                 if network
                 else None
             )
@@ -543,13 +541,13 @@ class DockerRunner:
                     )
 
                     log_line = (
-                        f'{datetime.datetime.now().strftime("%m/%d/%Y %H:%M:%S")} - '
+                        f"{datetime.datetime.now().strftime('%m/%d/%Y %H:%M:%S')} - "
                         f'The cache file "{local_cache_archive_file}" '
                         f'was written by step "{env_vars.get("BUILDRUNNER_STEP_NAME")}" in '
                         f'"{env_vars.get("VCSINFO_NAME")}:{env_vars.get("VCSINFO_BRANCH")}:{env_vars.get("VCSINFO_SHORT_ID")}" '
-                        f'on host '
+                        f"on host "
                         f'"{socket.gethostname()}" [{env_vars.get("BUILDRUNNER_ARCH")}] '
-                        '\n'
+                        "\n"
                     )
 
                     self.write_cache_history_log(
@@ -569,9 +567,9 @@ class DockerRunner:
                         )
                     finally:
                         release_flock(file_obj, logger)
-                        assert tarfile.is_tarfile(
-                            local_cache_archive_file
-                        ), f"Failed to create cache {local_cache_archive_file} tar file."
+                        assert tarfile.is_tarfile(local_cache_archive_file), (
+                            f"Failed to create cache {local_cache_archive_file} tar file."
+                        )
                         logger.info("Writing to cache completed. Released file lock.")
                 else:
                     logger.info(

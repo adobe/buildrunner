@@ -1,7 +1,6 @@
 FROM python:3.11-bookworm
 
 ENV BUILDRUNNER_CONTAINER 1
-ENV PIP_DEFAULT_TIMEOUT 60
 
 # Install the docker client for multiplatform builds
 RUN apt update && \
@@ -31,26 +30,18 @@ RUN                                                         \
         python3-dev &&                                      \
     apt clean all
 
-# Install requirements first and then buildrunner itself for better docker image layer caching
-# HACK - For some reason, 'python3 setup.py install' produces an error with 'jaraco-classes' package
-# but replacing it with 'jaraco.classes' in the requirements.txt works. ¯\_(ツ)_/¯
-COPY *requirements.txt /tmp/setup/
-RUN                                                              \
-    cd /tmp/setup &&                                                   \
-    python3 -m pip install -U pip &&                             \
-    sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
-    python3 -m pip install                                       \
-        -r requirements.txt &&                                   \
-    python3 -m pip install                                       \
-        -r test_requirements.txt &&                              \
-    rm -rf /tmp/setup
-COPY . /buildrunner-source
-RUN                                                              \
-    cd /buildrunner-source &&                                    \
-    sed -i s/jaraco-classes/jaraco.classes/ requirements.txt &&  \
-    python3 scripts/write-version.py &&                          \
-    pip install . && \
-    rm -rf /buildrunner-source
+WORKDIR /app
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/
+
+# Install dependencies first to leverage Docker cache
+COPY pyproject.toml uv.lock README.rst /app/
+RUN uv sync --locked --no-install-project --no-dev
+
+# Install the project separately for optimal layer caching
+COPY buildrunner /app/buildrunner
+RUN uv sync --locked --no-dev
 
 # The following will install docker-engine. It's not needed for the container to run,
 # but was very helpful during development
@@ -63,5 +54,5 @@ RUN                                                              \
 #    apt-get update; \
 #    apt-get -y install docker-engine
 
-ENTRYPOINT ["/usr/local/bin/buildrunner"]
+ENTRYPOINT ["uv", "run", "buildrunner"]
 CMD []

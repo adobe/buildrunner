@@ -66,9 +66,10 @@ def fixture_setup_runner():
 
 @pytest.fixture(name="log_output")
 def fixture_log_output():
-    with mock.patch(
-        "buildrunner.loggers.logging"
-    ) as logging_mock, io.StringIO() as stream:
+    with (
+        mock.patch("buildrunner.loggers.logging") as logging_mock,
+        io.StringIO() as stream,
+    ):
         logging_mock.getLogger().info.side_effect = lambda msg: stream.write(f"{msg}\n")
         yield stream
 
@@ -154,9 +155,9 @@ def test_restore_cache_basic(runner, tmp_dir_name, mock_logger, log_output):
     docker_path = "/root/cache"
 
     caches = OrderedDict()
-    caches[
-        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
-    ] = docker_path
+    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = (
+        docker_path
+    )
 
     runner.restore_caches(mock_logger, caches)
 
@@ -222,9 +223,9 @@ def test_restore_cache_prefix_matching(runner, tmp_dir_name, mock_logger, log_ou
     caches[
         f"{tmp_dir_name}/{cache_name_checksum}.{BuildRunner.get_cache_archive_ext()}"
     ] = docker_path
-    caches[
-        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
-    ] = docker_path
+    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = (
+        docker_path
+    )
 
     runner.restore_caches(mock_logger, caches)
 
@@ -303,9 +304,9 @@ def test_save_cache_basic(runner, tmp_dir_name, mock_logger):
 
     caches = OrderedDict()
     tarfile_name = f"{cache_name}.{BuildRunner.get_cache_archive_ext()}"
-    caches[
-        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
-    ] = docker_path
+    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = (
+        docker_path
+    )
     runner.save_caches(mock_logger, caches)
 
     files = [f for f in os.listdir(tmp_dir_name) if isfile(join(tmp_dir_name, f))]
@@ -351,9 +352,9 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     caches = OrderedDict()
     tarfile_name = f"{cache_name}.{BuildRunner.get_cache_archive_ext()}"
 
-    caches[
-        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
-    ] = docker_path
+    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = (
+        docker_path
+    )
     caches[
         f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"
     ] = docker_path
@@ -384,9 +385,9 @@ def test_save_cache_multiple_cache_keys(runner, tmp_dir_name, mock_logger):
     caches[
         f"{tmp_dir_name}/{cache_name_venv}.{BuildRunner.get_cache_archive_ext()}"
     ] = docker_path
-    caches[
-        f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"
-    ] = docker_path
+    caches[f"{tmp_dir_name}/{cache_name}.{BuildRunner.get_cache_archive_ext()}"] = (
+        docker_path
+    )
     caches[
         f"{tmp_dir_name}/{cache_name_maven}.{BuildRunner.get_cache_archive_ext()}"
     ] = docker_path

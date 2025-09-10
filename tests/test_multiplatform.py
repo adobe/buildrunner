@@ -152,13 +152,13 @@ def test_tag_native_platform(platforms, expected_image_tags):
             use_threading=False,
         )
 
-        assert (
-            built_image is not None and len(built_image.built_images) == 1
-        ), f"Failed to build for {platforms}"
+        assert built_image is not None and len(built_image.built_images) == 1, (
+            f"Failed to build for {platforms}"
+        )
         missing_images = _actual_images_match_expected(built_image, expected_image_tags)
-        assert (
-            missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+        assert missing_images == [], (
+            f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+        )
 
         mpib.tag_native_platform(built_image)
         # Check that the image was tagged and present
@@ -190,13 +190,13 @@ def test_tag_native_platform_multiple_tags(name, platforms, expected_image_tags)
             use_threading=False,
         )
 
-        assert (
-            built_image is not None and len(built_image.built_images) == 1
-        ), f"Failed to build {name} for {platforms}"
+        assert built_image is not None and len(built_image.built_images) == 1, (
+            f"Failed to build {name} for {platforms}"
+        )
         missing_images = _actual_images_match_expected(built_image, expected_image_tags)
-        assert (
-            missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+        assert missing_images == [], (
+            f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+        )
 
         built_image.add_tagged_image(repo=name, tags=tags)
         mpib.tag_native_platform(built_image)
@@ -229,15 +229,15 @@ def test_tag_native_platform_keep_images(name, platforms, expected_image_tags):
                 use_threading=False,
             )
 
-            assert (
-                built_image is not None and len(built_image.built_images) == 1
-            ), f"Failed to build {name} for {platforms}"
+            assert built_image is not None and len(built_image.built_images) == 1, (
+                f"Failed to build {name} for {platforms}"
+            )
             missing_images = _actual_images_match_expected(
                 built_image, expected_image_tags
             )
-            assert (
-                missing_images == []
-            ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+            assert missing_images == [], (
+                f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+            )
 
             built_image.add_tagged_image(repo=name, tags=["latest"])
             mpib.tag_native_platform(built_image)
@@ -292,9 +292,9 @@ def test_push():
                 try:
                     docker.image.pull(build_name)
                 except DockerException as err:
-                    assert (
-                        False
-                    ), f"Failed to find/pull {build_name} from remote registry: {err}"
+                    assert False, (
+                        f"Failed to find/pull {build_name} from remote registry: {err}"
+                    )
                 found_image = docker.image.list(filters={"reference": f"{build_name}"})
                 assert len(found_image) == 1
 
@@ -339,7 +339,9 @@ def test_push_with_dest_names():
                     try:
                         docker.image.pull(dest_name)
                     except DockerException as err:
-                        assert False, f"Failed to find/pull {dest_name} from remote registry: {err}"
+                        assert False, (
+                            f"Failed to find/pull {dest_name} from remote registry: {err}"
+                        )
                     found_image = docker.image.list(
                         filters={"reference": f"{dest_name}"}
                     )
@@ -400,9 +402,9 @@ def test_build(
         assert len(built_image.built_images) == len(expected_image_tags)
 
         missing_images = _actual_images_match_expected(built_image, expected_image_tags)
-        assert (
-            missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+        assert missing_images == [], (
+            f"Failed to find {missing_images} in {[image.repo for image in built_image.built_images]}"
+        )
 
 
 @pytest.mark.serial
@@ -454,9 +456,9 @@ def test_build_multiple_builds(
         missing_images = _actual_images_match_expected(
             built_image1, expected_image_tags1
         )
-        assert (
-            missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_image1.built_images1]}"
+        assert missing_images == [], (
+            f"Failed to find {missing_images} in {[image.repo for image in built_image1.built_images1]}"
+        )
 
         # Check set 2
         assert len(built_image2.built_images) == len(platforms2)
@@ -464,9 +466,9 @@ def test_build_multiple_builds(
         missing_images = _actual_images_match_expected(
             built_image2, expected_image_tags2
         )
-        assert (
-            missing_images == []
-        ), f"Failed to find {missing_images} in {[image.repo for image in built_image2.built_images]}"
+        assert missing_images == [], (
+            f"Failed to find {missing_images} in {[image.repo for image in built_image2.built_images]}"
+        )
 
     assert mock_build.call_count == 4
     image_name = mock_build.call_args.kwargs["tags"][0].rsplit(":", 1)[0]
@@ -573,9 +575,9 @@ def test_use_build_registry():
             )
 
             # Check that the registry is running and only one is found with that name
-            assert (
-                mpib._mp_registry_info is None
-            ), "The local registry should not have been started when using a build registry"
+            assert mpib._mp_registry_info is None, (
+                "The local registry should not have been started when using a build registry"
+            )
     finally:
         registry_mpib._stop_local_registry()
 

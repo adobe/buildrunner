@@ -11,7 +11,5 @@ dist
 
 .eggs
 
-buildrunner/version.py
-
 buildrunner.results
 curator.results

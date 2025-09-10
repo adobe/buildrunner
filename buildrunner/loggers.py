@@ -171,7 +171,7 @@ class ContainerLogger(ConsoleLogger):
         """
         Write the contents of the buffer to the log.
         """
-        line = f'{self._line_prefix}{"".join(self._buffer)}'
+        line = f"{self._line_prefix}{''.join(self._buffer)}"
         self._buffer.clear()
         super().write(line)
 

@@ -1,9 +1,10 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build"]
+build-backend = "uv_build"
 
 [project]
 name = "buildrunner"
+version = "3.17"
 description = "Docker-based build tool"
 readme = "README.rst"
 requires-python = ">=3.9"
@@ -13,24 +14,73 @@ authors = [
 ]
 urls = { "Homepage" = "https://github.com/adobe/buildrunner" }
 
-dynamic = ["version", "dependencies", "optional-dependencies"]
+dependencies = [
+    "Jinja2>=2.11.2",
+    "PyYAML>=6.0",
+    "bcrypt>=3.2.0",
+    "decorator>=5.1.0",
+    "docker>=6.1.2",
+    "fabric>=2.5.0",
+    "paramiko>=2.10.3,<4.0.0",
+    "requests>=2.27.0",
+    "twine>=6.1.0",
+    "vcsinfo>=2.1.105",
+    "graphlib-backport>=1.0.3",
+    "timeout-decorator>=0.5.0",
+    "python-on-whales>=0.70.1",
+    "pydantic>=2.11.7",
+    "retry2>=0.9.5",
+    "colorlog>=6.8.0",
+    "rich>=13",
+    "portalocker>=2.10.1",
+]
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
-optional-dependencies = {test = { file = ["test_requirements.txt"] }}
-version = {attr = "buildrunner.version.__version__"}
+[dependency-groups]
+dev = [
+    "pytest>=7.2.1",
+    "pytest-randomly>=3.5.0",
+    "pytest-retry>=1.7.0",
+    "pytest-cov>=2.10.1",
+    "pytest-xdist>=2.4.0",
+    "graphlib-backport>=1.0.3",
+    "ruff>=0.12.7",
+    "ruff-lsp>=0.0.45",
+    "pre-commit>=3.6",
+    "pytest-rerunfailures>=14.0",
+]
 
 [project.scripts]
 buildrunner = "buildrunner.cli:main"
 buildrunner-cleanup = "buildrunner.cli:clean_cache"
 
-[tool.setuptools.package-data]
-"buildrunner" = ["SourceDockerfile"]
-"buildrunner.sshagent" = [
-    "SSHAgentProxyImage/Dockerfile",
-    "SSHAgentProxyImage/run.sh",
-    "SSHAgentProxyImage/login.sh"
-]
+[tool.uv.build-backend]
+module-name = "buildrunner"
+module-root = ""
+source-exclude = ["buildrunner/test"]
+wheel-exclude = ["buildrunner/test"]
 
-[tool.setuptools.packages.find]
-exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
+[tool.pytest.ini_options]
+addopts = "--strict-markers"
+markers = [
+    "serial",
+]
+retries = 2
+
+[tool.ruff]
+preview = true
+
+[tool.ruff.lint]
+extend-select = ["CPY"]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*" = ["CPY"]
+
+[tool.ruff.lint.flake8-copyright]
+min-file-size = 200
+notice-rgx = '''"""
+Copyright [(2)\d{3}]* Adobe
+All Rights Reserved.
+
+NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
+with the terms of the Adobe license agreement accompanying it.
+"""'''

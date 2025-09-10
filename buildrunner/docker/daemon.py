@@ -85,9 +85,9 @@ class DockerDaemonProxy:
             volumes=_volumes,
             host_config=self.docker_client.create_host_config(binds=_binds),
             labels=self.container_labels,
-            networking_config=self.docker_client.create_networking_config(
-                {self.network: self.docker_client.create_endpoint_config()}
-            )
+            networking_config=self.docker_client.create_networking_config({
+                self.network: self.docker_client.create_endpoint_config()
+            })
             if self.network
             else None,
         )["Id"]

@@ -5,6 +5,7 @@ All Rights Reserved.
 NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
+
 import logging
 import os
 import tempfile
@@ -183,16 +184,14 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                 continue
             for cur_vuln in result.get("Vulnerabilities"):
                 score = cur_vuln.get("CVSS", {}).get("nvd", {}).get("V3Score")
-                vulnerabilities.append(
-                    {
-                        "cvss_v3_score": score,
-                        "severity": cur_vuln.get("Severity"),
-                        "vulnerability_id": cur_vuln.get("VulnerabilityID"),
-                        "pkg_name": cur_vuln.get("PkgName"),
-                        "installed_version": cur_vuln.get("InstalledVersion"),
-                        "primary_url": cur_vuln.get("PrimaryURL"),
-                    }
-                )
+                vulnerabilities.append({
+                    "cvss_v3_score": score,
+                    "severity": cur_vuln.get("Severity"),
+                    "vulnerability_id": cur_vuln.get("VulnerabilityID"),
+                    "pkg_name": cur_vuln.get("PkgName"),
+                    "installed_version": cur_vuln.get("InstalledVersion"),
+                    "primary_url": cur_vuln.get("PrimaryURL"),
+                })
                 if score:
                     max_score = max(max_score, score)
 
@@ -332,9 +331,9 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
         built_image = context.get("mp_built_image")
         if built_image:
             # These are used in the image artifacts below, and should match for all tagged images
-            built_image_ids_str = ",".join(
-                [image.trunc_digest for image in built_image.built_images]
-            )
+            built_image_ids_str = ",".join([
+                image.trunc_digest for image in built_image.built_images
+            ])
             built_image_id_with_platforms = [
                 f"{image.platform}:{image.trunc_digest}"
                 for image in built_image.built_images
@@ -414,13 +413,11 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
                     )
 
                     if not self._commit_only:
-                        self.step_runner.build_runner.repo_tags_to_push.append(
-                            (
-                                f"{repo.repository}:{tag}",
-                                # Used to be insecure registry, but this is now deprecated/removed
-                                False,
-                            )
-                        )
+                        self.step_runner.build_runner.repo_tags_to_push.append((
+                            f"{repo.repository}:{tag}",
+                            # Used to be insecure registry, but this is now deprecated/removed
+                            False,
+                        ))
 
                 # add image as artifact
                 if not self._commit_only:
