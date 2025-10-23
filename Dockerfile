@@ -54,5 +54,5 @@ RUN uv sync --locked --no-dev
 #    apt-get update; \
 #    apt-get -y install docker-engine
 
-ENTRYPOINT ["uv", "run", "buildrunner"]
+ENTRYPOINT ["uv", "--project", "/app", "run", "--no-sync", "buildrunner"]
 CMD []

@@ -27,7 +27,8 @@ To install Buildrunner, run the following command:
 
 The buildrunner executable is now available in your path.
 
-Alternatively, you can use the ``uvx`` command to run buildrunner:
+Alternatively, you can use the ``uvx`` command to run buildrunner directly which will automatically download and
+install buildrunner into an isolated environment, which is then cached for subsequent runs:
 
 .. code:: bash
 
@@ -51,6 +52,11 @@ The buildrunner executable is now available via ``uv run buildrunner``.
 Docker Container
 ################
 
+.. warning::
+    This method of running buildrunner is now deprecated in favor of using Astral UV
+    as described above. The scripts may be removed in a future release and a warning has been
+    added to all script runs.
+
 Buildrunner can be run as a Docker container.  This works cross-platform and
 is the easiest way to keep up to date.
 
@@ -64,8 +70,7 @@ is the easiest way to keep up to date.
 
 You can now use the ``buildrunner`` command to run buildrunner in a Docker container.
 
-.. note:: WINDOWS USERS: This is the recommended method for Windows users, however, you must make
-   sure that you are using the `BASH shell
+.. note:: WINDOWS USERS: Make sure that you are using the `BASH shell
    <https://www.laptopmag.com/articles/use-bash-shell-windows-10>`_ enhancements for Windows or that
    you have something installed that enables the use of ``sh``, or else this method will not work.
    If you are using WSL and the hyper-v installation of docker:

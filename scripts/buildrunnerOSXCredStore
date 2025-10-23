@@ -28,6 +28,10 @@ else
     docker_sock="//var/run/docker.sock"
 fi
 
+echo "WARNING: This script is being deprecated and will be removed in a future release."
+echo "         Please install uv (https://docs.astral.sh/uv/getting-started/installation)"
+echo "         and then run 'uv tool install buildrunner' or 'uvx buildrunner' as documented"
+echo "         here: https://github.com/adobe/buildrunner/blob/main/docs/installation.rst"
 docker run \
   $env_vars \
   -v /$HOME:$HOME \
