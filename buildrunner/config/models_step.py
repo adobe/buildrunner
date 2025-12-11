@@ -202,7 +202,7 @@ class Step(BaseModel, extra="forbid"):
     remote: Optional[StepRemote] = None
     run: Optional[StepRun] = None
     depends: Optional[List[str]] = None
-    pypi_push: Optional[StepPypiPush] = Field(alias="pypi-push", default=None)
+    pypi_push: Optional[List[StepPypiPush]] = Field(alias="pypi-push", default=None)
 
     @field_validator("build", mode="before")
     @classmethod
@@ -215,12 +215,17 @@ class Step(BaseModel, extra="forbid"):
 
     @field_validator("pypi_push", mode="before")
     @classmethod
-    def transform_pypi_push(cls, val) -> Optional[dict]:
-        if not isinstance(val, str):
-            return val
-        return {
-            "repository": val,
-        }
+    def transform_pypi_push(cls, vals, info: ValidationInfo) -> Optional[List[dict]]:
+        if not vals:
+            return vals
+        if not isinstance(vals, list):
+            vals = [vals]
+        for index, val in enumerate(vals):
+            if not val:
+                raise ValueError(f"{info.field_name}.{index} must be a valid value")
+            if isinstance(val, str):
+                vals[index] = {"repository": val}
+        return vals
 
     @field_validator("commit", "push", mode="before")
     @classmethod
