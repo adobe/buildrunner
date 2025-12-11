@@ -6,6 +6,8 @@ NOTICE: Adobe permits you to use, modify, and distribute this file in accordance
 with the terms of the Adobe license agreement accompanying it.
 """
 
+from typing import List, Optional
+
 from buildrunner.config.models_step import StepPypiPush
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
@@ -13,13 +15,31 @@ from buildrunner.errors import (
 from buildrunner.steprunner.tasks import BuildStepRunnerTask
 
 
+class PypiRepoDefinition:
+    """
+    Contains the definition for a PyPi push repository.
+    """
+
+    def __init__(
+        self,
+        repository: str,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
+        skip_existing: bool = False,
+    ):
+        self.repository = repository
+        self.username = username
+        self.password = password
+        self.skip_existing = skip_existing
+
+
 class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
     """
     Class used to push the resulting python packages to the given repository.
     """
 
-    def __init__(self, step_runner, step: StepPypiPush):
-        super().__init__(step_runner, step)
+    def __init__(self, step_runner, pypi_pushes: List[StepPypiPush]):
+        super().__init__(step_runner, pypi_pushes[0])
 
         if not self.step_runner.build_runner.push:
             # Was not invoked with ``--push`` so just skip this.  This avoids twine
@@ -27,40 +47,50 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
             # is not even interested in pushing.
             return
 
-        self._repository = step.repository
-        self._username = step.username
-        self._password = step.password
-        self._skip_existing = step.skip_existing
+        self._repos = [
+            PypiRepoDefinition(
+                push.repository,
+                push.username,
+                push.password,
+                push.skip_existing,
+            )
+            for push in pypi_pushes
+        ]
 
-        if self._repository not in self.step_runner.build_runner.pypi_packages:
-            # Importing here avoids twine dependency when it is unnecessary
-            import twine.settings  # pylint: disable=import-outside-toplevel
-            import twine.exceptions  # pylint: disable=import-outside-toplevel
+        imported = False
+        for repo in self._repos:
+            if repo.repository not in self.step_runner.build_runner.pypi_packages:
+                if not imported:
+                    # Importing here avoids twine dependency when it is unnecessary
+                    import twine.settings  # pylint: disable=import-outside-toplevel
+                    import twine.exceptions  # pylint: disable=import-outside-toplevel
 
-            try:
-                if self._username is not None and self._password is not None:
-                    upload_settings = twine.settings.Settings(
-                        repository_url=self._repository,
-                        username=self._username,
-                        password=self._password,
-                        disable_progress_bar=True,
-                        skip_existing=self._skip_existing,
-                    )
-                else:
-                    upload_settings = twine.settings.Settings(
-                        repository_name=self._repository,
-                        disable_progress_bar=True,
-                        skip_existing=self._skip_existing,
-                    )
-            except twine.exceptions.InvalidConfiguration as twe:
-                raise BuildRunnerConfigurationError(
-                    f'Pypi is unable to find an entry for "{self._repository}" in your .pypirc.\n'
-                ) from twe
+                    imported = True
 
-            self.step_runner.build_runner.pypi_packages[self._repository] = {
-                "upload_settings": upload_settings,
-                "packages": [],
-            }
+                try:
+                    if repo.username is not None and repo.password is not None:
+                        upload_settings = twine.settings.Settings(
+                            repository_url=repo.repository,
+                            username=repo.username,
+                            password=repo.password,
+                            disable_progress_bar=True,
+                            skip_existing=repo.skip_existing,
+                        )
+                    else:
+                        upload_settings = twine.settings.Settings(
+                            repository_name=repo.repository,
+                            disable_progress_bar=True,
+                            skip_existing=repo.skip_existing,
+                        )
+                except twine.exceptions.InvalidConfiguration as twe:
+                    raise BuildRunnerConfigurationError(
+                        f'Pypi is unable to find an entry for "{repo.repository}" in your .pypirc.\n'
+                    ) from twe
+
+                self.step_runner.build_runner.pypi_packages[repo.repository] = {
+                    "upload_settings": upload_settings,
+                    "packages": [],
+                }
 
     def run(self, context):
         if not self.step_runner.build_runner.push:
@@ -68,7 +98,7 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
             return
 
         self.step_runner.log.write(
-            f'Preparing resulting packages for push to "{self._repository}".\n'
+            f"Preparing resulting packages for push to {'/'.join(repo.repository for repo in self._repos)}.\n"
         )
 
         # get python-sdist packages for this step only
@@ -79,13 +109,9 @@ class PypiPushBuildStepRunnerTask(BuildStepRunnerTask):
                 and "type" in _attributes
                 and _attributes["type"] in ("python-wheel", "python-sdist")
             ):
-                self.step_runner.build_runner.pypi_packages[self._repository][
-                    "packages"
-                ].append(
-                    f"{self.step_runner.build_runner.build_results_dir}/{_artifact}"
-                )
-
-
-# Local Variables:
-# fill-column: 100
-# End:
+                for repo in self._repos:
+                    self.step_runner.build_runner.pypi_packages[repo.repository][
+                        "packages"
+                    ].append(
+                        f"{self.step_runner.build_runner.build_results_dir}/{_artifact}"
+                    )

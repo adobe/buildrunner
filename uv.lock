@@ -93,7 +93,7 @@ wheels = [
 
 [[package]]
 name = "buildrunner"
-version = "3.17"
+version = "3.18"
 source = { editable = "." }
 dependencies = [
     { name = "bcrypt" },

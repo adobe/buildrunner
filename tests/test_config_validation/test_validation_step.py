@@ -1,6 +1,6 @@
 import pytest
 
-from buildrunner.config.models_step import StepPushCommit
+from buildrunner.config.models_step import StepPushCommit, StepPypiPush
 
 
 @pytest.mark.parametrize(
@@ -365,7 +365,11 @@ def test_transforms(assert_generate_and_validate_config_errors):
         {
             "steps": {
                 "build": {"build": "."},
-                "pypi": {"pypi-push": "pypi1"},
+                "pypi-str": {"pypi-push": "pypi1"},
+                "pypi-list-str": {"pypi-push": ["pypi1", "pypi2"]},
+                "pypi-dict": {
+                    "pypi-push": {"repository": "pypi1", "skip_existing": True}
+                },
                 "commit-str": {"commit": "commit1"},
                 "push-str": {"push": "push1"},
                 "push-list-str": {"push": ["push2", "push3"]},
@@ -376,7 +380,16 @@ def test_transforms(assert_generate_and_validate_config_errors):
         [],
     )
     assert config.steps["build"].build.path == "."
-    assert config.steps["pypi"].pypi_push.repository == "pypi1"
+    assert config.steps["pypi-str"].pypi_push == [
+        StepPypiPush(repository="pypi1"),
+    ]
+    assert config.steps["pypi-list-str"].pypi_push == [
+        StepPypiPush(repository="pypi1"),
+        StepPypiPush(repository="pypi2"),
+    ]
+    assert config.steps["pypi-dict"].pypi_push == [
+        StepPypiPush(repository="pypi1", skip_existing=True),
+    ]
     assert config.steps["commit-str"].commit == [
         StepPushCommit(repository="commit1", push=False),
     ]

@@ -1075,9 +1075,9 @@ additional tags.
 
 Pushing To PyPI Repository
 ==========================
-The 'pypi-push' step attribute is used to push a python package to a remote PyPI
-repository. If an artifact with a type of ``python-sdist`` or ``python-wheel`` is present
-in the artifacts for the step, those packages will be pushed.
+The 'pypi-push' step attribute is used to push a python package to remote PyPI
+repositories. If an artifact with a type of ``python-sdist`` or ``python-wheel`` is present
+in the artifacts for the step, those packages will be pushed to all defined repositories.
 
 The push only occurs if the --push argument is used, similar to how pushing docker
 images to remote docker registries works
@@ -1113,6 +1113,28 @@ doing this:
           "dist/*.whl": { type: 'python-wheel' }
       pypi-push:
         repository: https://artifactory.example.com/artifactory/api/pypi/pypi-myownrepo
+        username: myuser
+        password: mypass
+        # Used to skip uploading the artifact is the same version has already been uploaded
+        skip_existing: true
+
+As with the ``push`` option, ``pypi-push`` may also defined multiple repositories as a list of strings
+or a list of dictionary entries:
+
+.. code:: yaml
+
+  steps:
+    pypi:
+      run:
+        image: python:2
+        cmds:
+          - python -m build
+        artifacts:
+          "dist/*.tar.gz": { type: 'python-sdist' }
+          "dist/*.whl": { type: 'python-wheel' }
+      pypi-push:
+      - pypi-myownrepo1
+      - repository: https://artifactory.example.com/artifactory/api/pypi/pypi-myownrepo2
         username: myuser
         password: mypass
 
