@@ -59,6 +59,25 @@ def _actual_images_match_expected(
     return missing_images
 
 
+@pytest.mark.parametrize(
+    "ret_value",
+    [
+        None,
+        "",
+        "digest123",
+    ],
+)
+@patch(
+    "buildrunner.docker.multiplatform_image_builder.docker.buildx.imagetools.inspect"
+)
+def test__get_image_digest(inspect_mock, ret_value):
+    if ret_value is None:
+        inspect_mock.return_value.config = None
+    else:
+        inspect_mock.return_value.config.digest = ret_value
+    assert MultiplatformImageBuilder._get_image_digest("image1") is ret_value
+
+
 def test_start_local_registry():
     with MultiplatformImageBuilder() as mpib:
         mpib._start_local_registry()
