@@ -87,6 +87,7 @@ they are used when put into the global configuration file:
   # Overrides the 'platforms' configuration (a.k.a. multi-platform builds)
   # in order to build only single-platform image builds regardless of
   # the configuration in the buildrunner.yaml file.
+  # This can also be set via the --disable-multi-platform CLI flag.
   disable-multi-platform: true/false (defaults to false)
 
   # Optionally uses a registry for temporary multi-platform builds

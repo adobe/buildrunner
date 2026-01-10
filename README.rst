@@ -1178,6 +1178,22 @@ Fetching Files
 
 See `docs/fetching-files <docs/fetching-files.rst>`_.
 
+Disabling Multi-Platform Builds
+===============================
+
+Multi-platform builds can be slow during local development since Docker may need to emulate
+non-native architectures. To speed things up, use the ``--disable-multi-platform`` flag:
+
+.. code:: bash
+
+  buildrunner --disable-multi-platform -f buildrunner.yaml
+
+This overrides any ``platforms`` configuration in the buildrunner.yaml file and builds only
+for the native architecture of the machine running buildrunner.
+
+You can also set this permanently in your global configuration file using the
+``disable-multi-platform`` option (see `docs/global-configuration <docs/global-configuration.rst>`_).
+
 Cleaning Cache
 ==============
 

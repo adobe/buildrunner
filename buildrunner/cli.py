@@ -215,8 +215,8 @@ def parse_args(argv):
 
     parser.add_argument(
         "--disable-multi-platform",
-        default=None,
-        choices=["true", "false"],
+        default=False,
+        action="store_true",
         dest="disable_multi_platform",
         help="overrides the 'platforms' configuration and global config; to disable multi-platform builds",
     )
@@ -355,10 +355,8 @@ def _get_global_config_overrides(args: argparse.Namespace) -> dict:
     :return: the overrides (if any specified)
     """
     overrides = {}
-    if args.disable_multi_platform is not None:
-        overrides["disable-multi-platform"] = _get_true_value(
-            args.disable_multi_platform
-        )
+    if args.disable_multi_platform:
+        overrides["disable-multi-platform"] = True
     return {
         **overrides,
         **_get_security_scan_options(args),
