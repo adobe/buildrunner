@@ -24,9 +24,8 @@ class MockedArgs(argparse.Namespace):
 @pytest.mark.parametrize(
     "args, config_file_contents, result",
     [
-        ({"disable_multi_platform": None}, None, {}),
-        ({"disable_multi_platform": "false"}, None, {"disable-multi-platform": False}),
-        ({"disable_multi_platform": "true"}, None, {"disable-multi-platform": True}),
+        ({"disable_multi_platform": False}, None, {}),
+        ({"disable_multi_platform": True}, None, {"disable-multi-platform": True}),
         (
             {"security_scan_scanner": "scanner1", "security_scan_version": None},
             None,
