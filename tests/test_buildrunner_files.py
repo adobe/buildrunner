@@ -63,7 +63,10 @@ def _get_test_args(file_name: str) -> Optional[List[str]]:
         # Override platform to arm
         return ["--platform", "linux/arm64/v8"]
 
-    if file_name == "test-platform-override-arm.yaml":
+    if (
+        file_name == "test-platform-override-arm.yaml"
+        or file_name == "test-buildrunner-arch.yaml"
+    ):
         # Override platform to amd
         return ["--platform", "linux/amd64"]
 

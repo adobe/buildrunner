@@ -44,6 +44,7 @@ def fixture_initialize_config(tmp_path):
         steps_to_run=None,
         log_generated_files=False,
         global_config_overrides={},
+        platform=None,
     )
 
 

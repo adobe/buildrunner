@@ -1,0 +1,16 @@
+use-legacy-builder: false
+steps:
+  build:
+    build:
+      dockerfile: |
+        FROM {{ DOCKER_REGISTRY }}/ubuntu:latest
+        ARG TARGETPLATFORM
+        RUN if [ "${TARGETPLATFORM}" != "linux/amd64" ]; then echo "TARGETPLATFORM is ${TARGETPLATFORM}"; exit 1; fi
+    commit: test-platform
+  test-platform:
+    run:
+      image: test-platform:{{ BUILDRUNNER_BUILD_DOCKER_TAG }}
+      cmds:
+      - if [ "$(uname -m)" != "x86_64" ]; then echo "uname platform is $(uname -m)"; exit 1; fi
+      - if [ "{{ BUILDRUNNER_ARCH }}" != "linux/amd64" ]; then echo "BUILDRUNNER_ARCH is {{ BUILDRUNNER_ARCH }}"; exit 1; fi
+
