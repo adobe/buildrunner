@@ -144,6 +144,7 @@ class BuildRunner:
             tmp_files=self.tmp_files,
             global_config_overrides=global_config_overrides,
             container_labels=container_labels,
+            platform=platform,
         )
         self.buildrunner_config = BuildRunnerConfig.get_instance()
 

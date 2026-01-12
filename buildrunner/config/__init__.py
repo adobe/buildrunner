@@ -9,7 +9,7 @@ with the terms of the Adobe license agreement accompanying it.
 import getpass
 import logging
 import os
-import platform
+import platform as system_platform
 import tempfile
 from typing import List, Optional
 
@@ -71,6 +71,7 @@ class BuildRunnerConfig:
         log_generated_files: bool,
         build_time: int,
         global_config_overrides: dict,
+        platform: Optional[str],
         # Arbitrary labels to add to all started containers, of the form key1=value1,key2=value2
         container_labels: Optional[str] = None,
         # May be passed in to add temporary files to this list as they are created
@@ -97,6 +98,7 @@ class BuildRunnerConfig:
             build_id=build_id,
             vcs=vcs,
             steps_to_run=steps_to_run,
+            platform=platform,
         )
         self.run_config = (
             self._load_run_config(run_config_file) if load_run_config else None
@@ -182,6 +184,7 @@ class BuildRunnerConfig:
         build_id: str,
         vcs: Optional[vcsinfo.VCS],
         steps_to_run: Optional[List[str]],
+        platform: Optional[str],
     ) -> dict:
         """
         Generate the Jinja configuration context for substitution
@@ -195,7 +198,7 @@ class BuildRunnerConfig:
         """
 
         context = {
-            "BUILDRUNNER_ARCH": str(platform.machine()),
+            "BUILDRUNNER_ARCH": str(platform or system_platform.machine()),
             "BUILDRUNNER_BUILD_NUMBER": str(build_number),
             "BUILDRUNNER_BUILD_ID": str(build_id),
             "BUILDRUNNER_BUILD_DOCKER_TAG": str(self.default_tag),

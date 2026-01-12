@@ -424,7 +424,9 @@ Buildrunner injects special environment variables and volume mounts into every
 run container. The following environment variables are set and available in
 every run container:
 
-:``BUILDRUNNER_ARCH``: the architecture of the current device (x86_64, aarch64, etc), equivalent to ``platform.machine()``
+:``BUILDRUNNER_ARCH``: the architecture of the current device (x86_64, aarch64, etc), equivalent to
+                       ``platform.machine()``. Note that the ``--platform`` argument will override this value if
+                       specified.
 :``BUILDRUNNER_BUILD_NUMBER``: the build number
 :``BUILDRUNNER_BUILD_ID``: a unique id identifying the build (includes vcs and build number
                            information), e.g. "main-1791.Ia09cc5.M0-1661374484"
