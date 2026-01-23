@@ -45,6 +45,7 @@ def build_image(
     buildargs=None,
     platform=None,
     target=None,
+    copy_source_path=True,
 ):
     """
     Build a Docker image using the DockerBuilder class.
@@ -64,6 +65,7 @@ def build_image(
         buildargs (dict): Build arguments to pass to the Docker client.
         platform (str): Platform to build the image for.
         target (str): Target stage to build.
+        copy_source_path (bool): Whether to copy the source path into the build context.
     Returns:
         str: The ID of the built image.
     """
@@ -77,6 +79,7 @@ def build_image(
         timeout=timeout,
         docker_registry=docker_registry,
         temp_dir=temp_dir,
+        copy_source_path=copy_source_path,
     )
     try:
         exit_code = builder.build(
@@ -112,12 +115,14 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
         timeout=None,
         docker_registry=None,
         temp_dir=None,
+        copy_source_path=True,
     ):  # pylint: disable=too-many-arguments
         self.path = path
         self.inject = inject
         self.temp_dir = temp_dir
         self.dockerfile = None
         self.cleanup_dockerfile = False
+        self.copy_source_path = copy_source_path
 
         self.dockerfile, self.cleanup_dockerfile = get_dockerfile(
             dockerfile, self.temp_dir
@@ -184,7 +189,7 @@ class DockerBuilder:  # pylint: disable=too-many-instance-attributes
 
             _fileobj = tempfile.NamedTemporaryFile(dir=self.temp_dir)
             with tarfile.open(mode="w", fileobj=_fileobj) as tfile:
-                if self.path:
+                if self.path and self.copy_source_path:
                     tfile.add(self.path, arcname=".")
                 if self.inject:
                     for to_inject, dest in self.inject.items():
