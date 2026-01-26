@@ -238,7 +238,12 @@ shows the different configuration options available:
         # contained in the path configuration above.
         #
         # NOTE: you do not need to specify a path attribute if you inject all
-        # of the files you need, including a Dockerfile
+        # of the files you need, including a Dockerfile. When the path attribute
+        # is NOT explicitly specified (either as 'path: .' or 'build: .'), the
+        # source directory will NOT be copied into the build context. This
+        # optimization improves build performance by avoiding unnecessary file
+        # copying. Any files needed by the Dockerfile must be explicitly injected
+        # when not specifying a path.
         #
         # NOTE: if the destination is a directory then it must be indicated with
         # an ending "/" or a "." component.

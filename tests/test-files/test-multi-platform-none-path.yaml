@@ -14,11 +14,13 @@ steps:
       repository: adobe/buildrunner-mp-path-test
       tags: [ 'latest' ]
 
-  # Test to may sure MP builds work without specifying a path
-  # Path is derived from the dockerfile path
+  # Test to make sure MP builds work without specifying a path
+  # Files needed by the Dockerfile are injected explicitly
   build-container-single-platform-dockerfile:
     build:
       dockerfile: tests/test-files/multiplatform/Dockerfile.none.path
+      inject:
+        tests/test-files/multiplatform/buildrunner-path-test.txt: .
       platforms:
         - linux/amd64
         - linux/arm64

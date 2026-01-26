@@ -205,6 +205,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         dockerfile: str,
         build_args: dict,
         build_kwargs: dict,
+        copy_source_path: bool = True,
     ) -> None:
         if not path or not os.path.isdir(path):
             LOGGER.warning(
@@ -217,12 +218,18 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             dir=self._temp_dir, prefix=dir_prefix
         ) as tmp_dir:
             context_dir = os.path.join(tmp_dir, f"{dir_prefix}/")
-            shutil.copytree(
-                path,
-                context_dir,
-                ignore=shutil.ignore_patterns(dir_prefix, ".git"),
-                symlinks=True,
-            )
+
+            if copy_source_path:
+                # Copy the entire source path as the build context
+                shutil.copytree(
+                    path,
+                    context_dir,
+                    ignore=shutil.ignore_patterns(dir_prefix, ".git"),
+                    symlinks=True,
+                )
+            else:
+                # Create an empty context directory
+                os.makedirs(context_dir, exist_ok=True)
 
             for src, dest in inject.items():
                 src_path = os.path.join(path, src)
@@ -236,7 +243,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 # Check to see if the dest dir exists, if not create it
                 dest_dir = os.path.dirname(dest_path)
                 if not os.path.isdir(dest_dir):
-                    os.mkdir(dest_dir)
+                    os.makedirs(dest_dir, exist_ok=True)
 
                 # Copy source to destination
                 if os.path.isdir(src_path):
@@ -296,6 +303,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         cache: Optional[bool] = None,
         pull: bool = False,
         secrets: Optional[List[str]] = None,
+        copy_source_path: bool = True,
     ) -> None:
         """
         Builds a single image for the given platform.
@@ -310,6 +318,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             build_args (dict): The build args to pass to docker.
             inject (dict): The files to inject into the build context.
             secrets (List[str]): The secrets to pass to docker.
+            copy_source_path (bool): Whether to copy the source path into the build context.
         """
         assert os.path.isdir(path) and os.path.exists(dockerfile), (
             f"Either path {path} ({os.path.isdir(path)}) or file "
@@ -361,6 +370,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 dockerfile=dockerfile,
                 build_args=build_args,
                 build_kwargs=build_kwargs,
+                copy_source_path=copy_source_path,
             )
         else:
             logs_itr = docker.buildx.build(
@@ -429,6 +439,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         cache: Optional[bool] = None,
         pull: bool = False,
         secrets: Optional[List[str]] = None,
+        copy_source_path: bool = True,
     ) -> BuiltImageInfo:
         """
         Builds multiple images for the given platforms. One image will be built for each platform.
@@ -441,6 +452,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         :arg inject: The files to inject into the build context. Defaults to None.
         :arg cache: If true, enables cache, defaults to False
         :arg pull: If true, pulls image before build, defaults to False
+        :arg copy_source_path: Whether to copy the source path into the build context. Defaults to True.
         :return: A BuiltImageInfo instance that describes the built images for each platform and can be used to track
                  final images as well
         """
@@ -525,6 +537,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 cache,
                 pull,
                 secrets,
+                copy_source_path,
             )
             LOGGER.debug(f"Building {repo} for {platform}")
             if use_threading:

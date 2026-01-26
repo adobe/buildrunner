@@ -47,6 +47,8 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
 
         self._import = step.import_param
         self.path = step.path
+        # Track whether path was explicitly specified in the config
+        self._path_explicitly_specified = step.path is not None
         self.dockerfile = step.dockerfile
         self.target = step.target
         self.nocache = step.no_cache
@@ -239,6 +241,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     cache=not self.nocache,
                     pull=self.pull,
                     secrets=self.step.secrets,
+                    copy_source_path=self._path_explicitly_specified,
                 )
 
                 # Set expected number of platforms
@@ -275,6 +278,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                     buildargs=self.buildargs,
                     platform=self.platform,
                     target=self.target,
+                    copy_source_path=self._path_explicitly_specified,
                 )
                 context["image"] = image
                 self.step_runner.build_runner.generated_images.append(image)
