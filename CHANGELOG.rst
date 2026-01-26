@@ -12,6 +12,7 @@
 
   * Add python 3.13 support
   * Migrate to uv for dependency management
+  * Optimize Docker build context: source directory is no longer copied when path is not explicitly specified, improving build performance when using only inject or dockerfile attributes
 
 * ... undocumented versions, see GitHub tagged releases ...
 

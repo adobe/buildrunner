@@ -15,5 +15,5 @@
 ### Merge requirements satisfied?
 - [ ] I have updated the documentation or no documentation changes are required.
 - [ ] I have added tests to cover my changes.
-- [ ] I have updated the base version in ``BASE_VERSION`` (if appropriate).
+- [ ] I have updated the base ``version`` in [pyproject.toml](../pyproject.toml) (if appropriate).
 

@@ -1,4 +1,7 @@
 # This example demonstrates how to use the inject field to inject a file into the build context.
+# Note: This example does NOT specify a 'path' attribute. When path is not explicitly specified,
+# the source directory is NOT copied into the build context, which improves build performance by
+# avoiding unnecessary file copying. Only the explicitly injected files are included in the build context.
 # See buildrunner documentation for more information.
 steps:
   build-step-with-inject:
