@@ -7,6 +7,7 @@ steps:
       dockerfile: |
         FROM {{ DOCKER_REGISTRY }}/busybox:latest
         RUN echo "Testing multiplatform image tags"
+      pull: true
       platforms:
         - linux/amd64
         - linux/arm64
@@ -20,6 +21,7 @@ steps:
       dockerfile: |
         FROM {{ DOCKER_REGISTRY }}/busybox:latest
         RUN echo "Testing multiplatform image tags"
+      pull: true
       platforms:
         - linux/amd64
         - linux/arm64
