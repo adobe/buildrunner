@@ -1,8 +1,6 @@
 import os
 import tempfile
 import json
-import platform
-import sys
 import pytest
 
 
@@ -211,102 +209,14 @@ def test_multiplatform_image_tags_separate_artifacts():
             ),
         ]
 
-        # Print troubleshooting info for GitHub Actions
-        print("\n" + "=" * 80)
-        print("TROUBLESHOOTING: test_multiplatform_image_tags_separate_artifacts")
-        print("=" * 80)
-        print(f"Platform: {platform.system()} {platform.machine()}")
-        print(f"Python: {sys.version}")
-        print(f"Working directory: {os.getcwd()}")
-        print(f"Temp directory: {temp_dir}")
-        print(f"Command line: {' '.join(command_line)}")
-        print(f"Config file: {test_dir_path}/config-files/etc-buildrunner.yaml")
-
-        # Print Docker info
-        try:
-            import subprocess
-
-            docker_version = subprocess.run(
-                ["docker", "version", "--format", "{{.Server.Version}}"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if docker_version.returncode == 0:
-                print(f"Docker version: {docker_version.stdout.strip()}")
-
-            buildx_version = subprocess.run(
-                ["docker", "buildx", "version"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if buildx_version.returncode == 0:
-                print(f"Buildx version: {buildx_version.stdout.strip()}")
-
-            # Check for busybox images in cache
-            busybox_images = subprocess.run(
-                [
-                    "docker",
-                    "images",
-                    "busybox",
-                    "--format",
-                    "{{.Repository}}:{{.Tag}} {{.ID}}",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if busybox_images.returncode == 0 and busybox_images.stdout.strip():
-                print("Cached busybox images:")
-                for line in busybox_images.stdout.strip().split("\n"):
-                    print(f"  {line}")
-        except Exception as docker_info_err:
-            print(f"Could not get Docker info: {docker_info_err}")
-
-        print("=" * 80 + "\n")
-
-        try:
-            result = test_runner.run_tests(
-                command_line,
-                master_config_file=f"{test_dir_path}/config-files/etc-buildrunner.yaml",
-                global_config_files=[
-                    f"{test_dir_path}/config-files/etc-buildrunner.yaml",
-                    f"{test_dir_path}/config-files/dot-buildrunner.yaml",
-                ],
-            )
-            print(f"\nTROUBLESHOOTING: Test runner returned exit code: {result}")
-
-            # List files in temp directory for debugging
-            if os.path.exists(temp_dir):
-                print(f"TROUBLESHOOTING: Files in {temp_dir}:")
-                for root, dirs, files in os.walk(temp_dir):
-                    for file in files:
-                        filepath = os.path.join(root, file)
-                        size = os.path.getsize(filepath)
-                        print(f"  {filepath} ({size} bytes)")
-
-            # If test failed, print the build log
-            if result != 0:
-                build_log_path = os.path.join(temp_dir, "build.log")
-                if os.path.exists(build_log_path):
-                    print("\nTROUBLESHOOTING: Build log contents (last 100 lines):")
-                    print("-" * 80)
-                    with open(build_log_path, "r") as log_file:
-                        lines = log_file.readlines()
-                        for line in lines[-100:]:
-                            print(line.rstrip())
-                    print("-" * 80)
-                else:
-                    print(f"\nTROUBLESHOOTING: Build log not found at {build_log_path}")
-
-            assert 0 == result, f"Expected exit code 0, got {result}"
-        except Exception as e:
-            print(f"\nTROUBLESHOOTING: Exception caught: {type(e).__name__}: {e}")
-            import traceback
-
-            traceback.print_exc()
-            raise
+        assert 0 == test_runner.run_tests(
+            command_line,
+            master_config_file=f"{test_dir_path}/config-files/etc-buildrunner.yaml",
+            global_config_files=[
+                f"{test_dir_path}/config-files/etc-buildrunner.yaml",
+                f"{test_dir_path}/config-files/dot-buildrunner.yaml",
+            ],
+        )
 
         artifacts_file = f"{temp_dir}/artifacts.json"
         assert os.path.exists(artifacts_file)
