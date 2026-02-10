@@ -354,7 +354,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         # Handle both no cache and cache
         if cache is not None:
             build_kwargs["cache"] = cache
-        if pull:
+        if pull is not None:
             build_kwargs["pull"] = pull
         if secrets:
             build_kwargs["secrets"] = secrets
