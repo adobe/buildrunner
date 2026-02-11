@@ -21,7 +21,6 @@ serial_test_files = [
     "test-general.yaml",
     "test-push-artifact-buildx.yaml",
     "test-multiplatform-image-tags.yaml",
-    "test-build_dir_mount.yaml",
 ]
 
 

@@ -1151,40 +1151,40 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         self.step_runner.log.info("Running post-build processing")
         post_build = self.step.post_build
-
-        # Commit the run container to get the image ID
+        temp_tag_local = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
         committed_image = self.runner.commit(self.step_runner.log)
+        python_on_whales.docker.image.tag(
+            committed_image,
+            temp_tag_local,
+        )
+        self.images_to_remove.append(temp_tag_local)
 
-        # Create a temp tag with registry prefix so BuildKit can access it
-        # BuildKit needs base images to be in a registry, not just local Docker daemon
-        temp_tag_name = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
+        temp_tag = temp_tag_local
 
-        # Check if using multiplatform builder (which has a registry)
-        if self.step_runner.multi_platform and hasattr(
-            self.step_runner.multi_platform, "_build_registry_address"
-        ):
-            # Tag and push to the build registry so BuildKit can access it
-            registry_address = self.step_runner.multi_platform._build_registry_address()
-            temp_tag = f"{registry_address}/{temp_tag_name}"
-            python_on_whales.docker.image.tag(committed_image, temp_tag)
-            self.step_runner.log.info(f"Pushing temp image to registry: {temp_tag}")
-            python_on_whales.docker.push(temp_tag)
-            self.images_to_remove.append(temp_tag)
-            # Mark as committed so build logic doesn't try to pull it
-            self.step_runner.build_runner.committed_images.add(temp_tag)
-        else:
-            # Legacy builder path - just use local tag
-            temp_tag = temp_tag_name
-            python_on_whales.docker.image.tag(committed_image, temp_tag)
-            self.images_to_remove.append(temp_tag)
+        # Force use of legacy builder for post-build since we're using a locally committed image
+        # Buildx with certain builders (like docker-container) cannot access local images
+        buildrunner_config = BuildRunnerConfig.get_instance()
+        original_use_legacy_builder = buildrunner_config.run_config.use_legacy_builder
+        if not original_use_legacy_builder:
+            self.step_runner.log.info(
+                "Forcing use of legacy builder for post-build step (committed image is local)"
+            )
+            buildrunner_config.run_config.use_legacy_builder = True
 
         post_build.pull = False
-        build_image_task = BuildBuildStepRunnerTask(
-            self.step_runner, post_build, image_to_prepend_to_dockerfile=temp_tag
-        )
-        _build_context = {}
-        build_image_task.run(_build_context)
-        context["run-image"] = _build_context.get("image", None)
+        try:
+            build_image_task = BuildBuildStepRunnerTask(
+                self.step_runner, post_build, image_to_prepend_to_dockerfile=temp_tag
+            )
+            _build_context = {}
+            build_image_task.run(_build_context)
+            context["run-image"] = _build_context.get("image", None)
+        finally:
+            # Restore the original builder setting
+            if not original_use_legacy_builder:
+                buildrunner_config.run_config.use_legacy_builder = (
+                    original_use_legacy_builder
+                )
 
     def cleanup(self, context):  # pylint: disable=unused-argument
         if self.runner:
