@@ -1151,12 +1151,32 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         self.step_runner.log.info("Running post-build processing")
         post_build = self.step.post_build
-        temp_tag = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
-        python_on_whales.docker.image.tag(
-            self.runner.commit(self.step_runner.log),
-            temp_tag,
-        )
-        self.images_to_remove.append(temp_tag)
+
+        # Commit the run container to get the image ID
+        committed_image = self.runner.commit(self.step_runner.log)
+
+        # Create a temp tag with registry prefix so BuildKit can access it
+        # BuildKit needs base images to be in a registry, not just local Docker daemon
+        temp_tag_name = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
+
+        # Check if using multiplatform builder (which has a registry)
+        if self.step_runner.multi_platform and hasattr(
+            self.step_runner.multi_platform, "_build_registry_address"
+        ):
+            # Tag and push to the build registry so BuildKit can access it
+            registry_address = self.step_runner.multi_platform._build_registry_address()
+            temp_tag = f"{registry_address}/{temp_tag_name}"
+            python_on_whales.docker.image.tag(committed_image, temp_tag)
+            self.step_runner.log.info(f"Pushing temp image to registry: {temp_tag}")
+            python_on_whales.docker.push(temp_tag)
+            self.images_to_remove.append(temp_tag)
+            # Mark as committed so build logic doesn't try to pull it
+            self.step_runner.build_runner.committed_images.add(temp_tag)
+        else:
+            # Legacy builder path - just use local tag
+            temp_tag = temp_tag_name
+            python_on_whales.docker.image.tag(committed_image, temp_tag)
+            self.images_to_remove.append(temp_tag)
 
         post_build.pull = False
         build_image_task = BuildBuildStepRunnerTask(
