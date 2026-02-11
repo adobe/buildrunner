@@ -1151,15 +1151,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         """
         self.step_runner.log.info("Running post-build processing")
         post_build = self.step.post_build
-        temp_tag_local = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
+        temp_tag = f"buildrunner-post-build-tag-{str(uuid.uuid4())}"
         committed_image = self.runner.commit(self.step_runner.log)
-        python_on_whales.docker.image.tag(
-            committed_image,
-            temp_tag_local,
-        )
-        self.images_to_remove.append(temp_tag_local)
-
-        temp_tag = temp_tag_local
+        python_on_whales.docker.image.tag(committed_image, temp_tag)
+        self.images_to_remove.append(temp_tag)
 
         # Force use of legacy builder for post-build since we're using a locally committed image
         # Buildx with certain builders (like docker-container) cannot access local images
