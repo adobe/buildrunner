@@ -87,53 +87,6 @@ def _add_default_tag_to_tags(config: Union[str, dict], default_tag: str) -> dict
     return config
 
 
-def _get_step_tag(default_tag: str, step_name: str, max_length: int = 128) -> str:
-    """
-    Get a step-specific tag from a default tag and step name.
-
-    This function creates unique tags per build step by appending the step name to
-    the default tag. This is necessary when multiple build steps push to the same
-    Docker repository, as it prevents tag collisions (multiple build steps using the same default tag).
-
-    Args:
-        default_tag: The base default tag (typically a build ID or timestamp)
-        step_name: The name of the build step (e.g., "build-java17")
-        max_length: Maximum allowed tag length (default: 128, Docker image tag name character limit)
-
-    Returns:
-        A step-specific tag in the format "{default_tag}-{step_name}".
-        If the resulting tag exceeds max_length, the default_tag is truncated
-        to fit while preserving the step_name suffix.
-    """
-    # Create step-specific tag by appending step name to default tag
-    step_tag = f"{default_tag}-{step_name}"
-
-    # If tag is within length limit, return as-is
-    if len(step_tag) <= max_length:
-        return step_tag
-
-    # Tag exceeds Docker's maximum length limit (typically 128 characters)
-    # Truncate the default_tag portion while preserving the step_name suffix
-    # This ensures the step name is always included for uniqueness
-    LOGGER.info(
-        f"Step tag {step_tag} is too long, truncating default tag by length of step name"
-    )
-
-    step_suffix = f"-{step_name}"
-
-    # If the step suffix is too long, truncate it
-    if len(step_suffix) > max_length:
-        step_suffix = step_suffix[:max_length]
-
-    # Calculate how much space we have for the default_tag portion
-    available_space = max_length - len(step_suffix)
-    step_tag = f"{default_tag[:available_space]}{step_suffix}"
-
-    LOGGER.info(f"Truncated step tag: {step_tag}")
-
-    return step_tag
-
-
 def _set_default_tag(config: dict, default_tag: str) -> dict:
     """
     Set default tag if not set for each image
@@ -149,8 +102,6 @@ def _set_default_tag(config: dict, default_tag: str) -> dict:
     if not isinstance(steps, dict):
         return config
     for step_name, step in steps.items():
-        step_tag = _get_step_tag(default_tag, step_name)
-
         for substep_name, substep in step.items():
             if substep_name in ["push", "commit"]:
                 # Add default tag to tags list if not in the list
@@ -158,11 +109,11 @@ def _set_default_tag(config: dict, default_tag: str) -> dict:
                     curr_image_infos = []
                     for push_config in substep:
                         curr_image_infos.append(
-                            _add_default_tag_to_tags(push_config, step_tag)
+                            _add_default_tag_to_tags(push_config, default_tag)
                         )
                     config["steps"][step_name][substep_name] = curr_image_infos
                 else:
-                    curr_image_info = _add_default_tag_to_tags(substep, step_tag)
+                    curr_image_info = _add_default_tag_to_tags(substep, default_tag)
                     config["steps"][step_name][substep_name] = curr_image_info
     return config
 
