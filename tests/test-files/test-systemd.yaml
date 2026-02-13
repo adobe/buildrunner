@@ -10,7 +10,7 @@ steps:
   # Remove the image
   clean-images-1:
     run:
-      image: {{ DOCKER_REGISTRY }}/docker:20.10-dind
+      image: {{ DOCKER_REGISTRY }}/docker:27-dind
       cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/rockylinux:8.5
   # Start up a container, it should NOT fail based on rockylinux:8.5 not existing
   test-without-systemd:
@@ -25,7 +25,7 @@ steps:
       cmd:   /bin/true
   clean-images-2:
     run:
-      image: {{ DOCKER_REGISTRY }}/docker:20.10-dind
+      image: {{ DOCKER_REGISTRY }}/docker:27-dind
       pull:  false
       cmd:   docker rmi -f {{ DOCKER_REGISTRY }}/rockylinux:8.5 {{ DOCKER_REGISTRY }}/alpine:latest
   test-service-without-systemd:
