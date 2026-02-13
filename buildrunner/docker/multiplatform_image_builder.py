@@ -276,10 +276,18 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _get_image_digest(image_ref: str) -> Optional[str]:
-        inspect_result = docker.buildx.imagetools.inspect(image_ref)
-        if not inspect_result or not inspect_result.config:
+        try:
+            image = docker.image.inspect(image_ref)
+            if image.repo_digests:
+                # repo_digests is a list like ['registry/image@sha256:...']
+                # Extract just the digest part after '@'
+                for repo_digest in image.repo_digests:
+                    if "@" in repo_digest:
+                        return repo_digest.split("@", 1)[1]
             return None
-        return inspect_result.config.digest
+        except python_on_whales.exceptions.NoSuchImage:
+            LOGGER.warning(f"Image {image_ref} not found when trying to get digest")
+            return None
 
     # pylint: disable=too-many-arguments
     @retry(
