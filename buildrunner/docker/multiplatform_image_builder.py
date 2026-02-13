@@ -27,7 +27,12 @@ from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models import MP_LOCAL_REGISTRY
 from buildrunner.docker import get_dockerfile
 from buildrunner.docker.image_info import BuiltImageInfo, BuiltTaggedImage
-from buildrunner.errors import BuildRunnerConfigurationError, BuildRunnerError
+from buildrunner.errors import (
+    BuildRunnerConfigurationError,
+    BuildRunnerError,
+    BuildRunnerProcessingError,
+)
+from buildrunner.docker import new_client
 
 
 LOGGER = logging.getLogger(__name__)
@@ -276,10 +281,40 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
     @staticmethod
     def _get_image_digest(image_ref: str) -> Optional[str]:
+        """
+        Get the digest for an image with multiple fallback strategies.
+        """
+        # Strategy 1: Try to get digest from local image first via python-on-whales
         inspect_result = docker.buildx.imagetools.inspect(image_ref)
-        if not inspect_result or not inspect_result.config:
-            return None
-        return inspect_result.config.digest
+        if inspect_result and inspect_result.config:
+            LOGGER.info(
+                f"Found digest for {image_ref} from python-on-whales: {inspect_result.config.digest}"
+            )
+            return inspect_result.config.digest
+        LOGGER.warning(
+            f"Failed to inspect image {image_ref}: {inspect_result} using python-on-whales"
+        )
+
+        # Strategy 2: Try docker-py APIClient inspect_image (local)
+        try:
+            docker_client = new_client()
+            image_data = docker_client.inspect_image(image_ref)
+            # Extract digest from first repo digest that contains "@"
+            repo_digests = image_data.get("RepoDigests", [])
+            for repo_digest in repo_digests:
+                if "@" in repo_digest:
+                    digest = repo_digest.split("@", 1)[1]
+                    LOGGER.info(
+                        f"Found digest for {image_ref} from docker-py inspect_image: {digest}"
+                    )
+                    return digest
+        except Exception as err:
+            LOGGER.warning(
+                f"Failed to inspect image {image_ref} using docker-py: {err}"
+            )
+
+        LOGGER.warning(f"Could not find digest for {image_ref}")
+        return None
 
     # pylint: disable=too-many-arguments
     @retry(
@@ -391,6 +426,12 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
 
         # Retrieve the digest and put it on the queue
         image_digest = self._get_image_digest(image_ref)
+        if image_digest is None:
+            raise BuildRunnerProcessingError(
+                f"Failed to retrieve digest for image {image_ref} after push. "
+                "This may indicate an issue with the registry or image metadata. "
+                "Check that the image was pushed successfully and the registry is accessible."
+            )
         queue.put((image_ref, image_digest))
 
     @staticmethod
