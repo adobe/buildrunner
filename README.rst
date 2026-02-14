@@ -990,19 +990,6 @@ The default generated tag may be omitted by setting the 'add_build_tag' flag to
 false. In this case, the 'tags' property must be specified or else an error
 will occur.
 
-When multiple build steps push to the same Docker repository, each step receives
-a unique default tag that includes the step name (format: ``{default_tag}-{step_name}``).
-This prevents tag collisions between steps. For example, if two steps named
-``build-java17`` and ``build-java11`` both push to ``myimages/app``, they will
-receive default tags like ``main-1791.Ia09cc5.M0-1661374484-build-java17`` and
-``main-1791.Ia09cc5.M0-1661374484-build-java11`` respectively.
-
-Docker images pushed to registries are recorded in the ``artifacts.json`` file.
-When multiple steps push to the same repository, each step creates a separate
-artifact entry keyed by ``{step_name}/{repository}`` (e.g., ``build-java17/myimages/app``).
-This prevents artifact entries from overwriting each other and allows downstream
-systems to distinguish between images from different build steps.
-
 To push the image to a registry, you must add the --push argument to buildrunner.
 
 The following is an example of simple configuration where only the repository

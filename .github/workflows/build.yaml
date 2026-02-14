@@ -34,6 +34,7 @@ jobs:
     - name: Pre-commit checks
       run: uv run pre-commit run --all-files
 
+      # Set up QEMU and Buildx for multi-platform testing
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
       with:

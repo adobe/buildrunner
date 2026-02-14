@@ -262,7 +262,7 @@ class BuildBuildStepRunnerTask(BuildStepRunnerTask):  # pylint: disable=too-many
                 )
                 context["mp_built_image"] = built_images
                 if num_built_platforms > 0:
-                    context["image"] = built_images.native_platform_image.trunc_digest
+                    context["image"] = built_images.native_platform_image.image_ref
 
             else:
                 # Use the legacy builder

@@ -63,7 +63,7 @@ steps:
     build:
       # pull defaults to false
       dockerfile: |
-        FROM adobe/buildrunner-test3:{{ BUILDRUNNER_BUILD_DOCKER_TAG }}-test-commit-list
+        FROM adobe/buildrunner-test3:{{ BUILDRUNNER_BUILD_DOCKER_TAG }}
     run:
       cmds:
         # File should exist since the locally committed version is used

@@ -336,7 +336,7 @@ def test_valid_config_with_buildrunner_build_tag(
     buildrunner_config = BuildRunnerConfig.get_instance()
     push_info = buildrunner_config.run_config.steps["build-container"].push
     assert isinstance(push_info, list)
-    assert f"{id_string}-{build_number}-build-container" in push_info[0].tags
+    assert f"{id_string}-{build_number}" in push_info[0].tags
 
 
 @pytest.mark.parametrize(
@@ -362,9 +362,28 @@ def test_valid_config_with_buildrunner_build_tag(
             push:
                 repository: user1/buildrunner-test-multi-platform2
                 tags: [ 'latest' ]
-    """
+    """,
+        """
+    steps:
+        build-container-multi-platform:
+            build:
+                dockerfile: |
+                    FROM {{ DOCKER_REGISTRY }}/busybox
+                platforms:
+                    - linux/amd64
+                    - linux/arm64/v8
+            push:
+                - repository: user1/buildrunner-test-multi-platform
+                  tags: [ 'latest', '0.0.1' ]
+
+        use-built-image1:
+            run:
+                image: user1/buildrunner-test-multi-platform:{{ BUILDRUNNER_BUILD_DOCKER_TAG }}
+                cmd: echo "Hello World"
+            push: user1/buildrunner-test-multi-platform2
+    """,
     ],
-    ids=["buildrunner_build_tag_explict"],
+    ids=["buildrunner_build_tag_explict", "buildrunner_build_tag_implied"],
 )
 @mock.patch("buildrunner.config.DEFAULT_GLOBAL_CONFIG_FILES", [])
 @mock.patch("buildrunner.detect_vcs")

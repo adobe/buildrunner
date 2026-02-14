@@ -348,11 +348,8 @@ class PushBuildStepRunnerTask(BuildStepRunnerTask):
 
                 # Add tagged image as artifact if this is a push and not just a commit
                 if not self._commit_only:
-                    # Include step name in artifact key to prevent overwrites when multiple
-                    # steps push to the same repository with different tags
-                    artifact_key = f"{self.step_runner.name}/{repo.repository}"
                     self.step_runner.build_runner.add_artifact(
-                        artifact_key,
+                        repo.repository,
                         {
                             "type": "docker-image",
                             "docker:image": built_image_ids_str,
