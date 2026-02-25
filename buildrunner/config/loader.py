@@ -37,9 +37,6 @@ from . import fetch, jinja_context
 
 
 MASTER_GLOBAL_CONFIG_FILE = "/etc/buildrunner/buildrunner.yaml"
-VERSION_FILE_PATH = (
-    f"{os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))}/version.py"
-)
 RESULTS_DIR = "buildrunner.results"
 LOGGER = logging.getLogger(__name__)
 
@@ -126,35 +123,21 @@ def _validate_version(config: dict) -> None:
     """
     buildrunner_version = None
 
-    if not os.path.exists(VERSION_FILE_PATH):
+    from buildrunner import __version__
+
+    parts = __version__.strip().split(".")
+    buildrunner_version = f"{parts[0]}.{parts[1]}" if len(parts) >= 2 else None
+
+    if not buildrunner_version:
+        if __version__ != "DEVELOPMENT":
+            raise BuildRunnerVersionError("unable to determine buildrunner version")
         LOGGER.warning(
-            f"File {VERSION_FILE_PATH} does not exist. This could indicate an error with "
-            f"the buildrunner installation. Unable to validate version."
+            "Unable to determine buildrunner version for validation. Skipping config version check."
         )
         return
 
-    with open(VERSION_FILE_PATH, "r", encoding="utf-8") as version_file:
-        for line in version_file.readlines():
-            if "__version__" in line:
-                try:
-                    version_values = (
-                        line.split("=")[1]
-                        .strip()
-                        .replace("'", "")
-                        .replace('"', "")
-                        .split(".")
-                    )
-                    buildrunner_version = f"{version_values[0]}.{version_values[1]}"
-                except IndexError as exception:
-                    raise ConfigVersionFormatError(
-                        f'couldn\'t parse version from "{line}"'
-                    ) from exception
-
-    if not buildrunner_version:
-        raise BuildRunnerVersionError("unable to determine buildrunner version")
-
     # version is optional and is valid to not have it in the config
-    if "version" not in config.keys():
+    if "version" not in config:
         return
 
     config_version = config["version"]

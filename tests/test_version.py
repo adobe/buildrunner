@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from unittest.mock import patch
 
 import pytest
 from buildrunner.config import loader
@@ -18,63 +19,43 @@ def fixture_config_file():
     yield config
 
 
-@pytest.fixture(name="version_file", autouse=True)
-def fixture_setup_version_file(tmp_path):
-    version_file = tmp_path / "version.py"
-    version_file.write_text(f"__version__ = '{buildrunner_version}'")
-    original_path = loader.VERSION_FILE_PATH
-    loader.VERSION_FILE_PATH = str(version_file)
-    yield str(version_file)
-    loader.VERSION_FILE_PATH = original_path
-
-
-def test_valid_version_file(config):
-    loader._validate_version(config=config)
-
-
-def test_missing_version_file(config):
-    # No exception for a missing version file it just prints a warning
-    loader.VERSION_FILE_PATH = "bogus"
-    loader._validate_version(config=config)
-
-
-def test_missing_version_in_version_file(config, version_file):
-    with open(version_file, "w") as file:
-        file.truncate()
-
-    with pytest.raises(BuildRunnerVersionError):
+def test_valid_version(config):
+    """Valid config version (<= buildrunner version) passes validation."""
+    with patch("buildrunner.__version__", buildrunner_version):
         loader._validate_version(config=config)
 
 
-def test_invalid_delim_version(config, version_file):
-    with open(version_file, "w") as file:
-        file.truncate()
-        file.write("__version__: '1.3.4'")
-
-    with pytest.raises(ConfigVersionFormatError):
+def test_development_version_skips_validation(config):
+    """When buildrunner version is DEVELOPMENT, validation is skipped with a warning."""
+    with patch("buildrunner.__version__", "DEVELOPMENT"):
         loader._validate_version(config=config)
 
 
-def test_invalid_config_number_version(config, version_file):
-    with open(version_file, "w") as file:
-        file.truncate()
-        file.write("__version__ = '1'")
-
-    with pytest.raises(ConfigVersionFormatError):
-        loader._validate_version(config=config)
+def test_single_component_version_raises(config):
+    """Single-component buildrunner version (e.g. '1') raises BuildRunnerVersionError."""
+    with patch("buildrunner.__version__", "1"):
+        with pytest.raises(BuildRunnerVersionError):
+            loader._validate_version(config=config)
 
 
-def test_invalid_config_version_type(config, version_file):
-    with open(version_file, "w") as file:
-        file.truncate()
-        file.write("__version__ = 'two.zero.five'")
+def test_config_version_higher_than_buildrunner_raises(config):
+    """Config version higher than buildrunner version raises ConfigVersionFormatError."""
+    with patch("buildrunner.__version__", "1.3.4"):
+        config_high = OrderedDict({"version": "99.0"})
+        with pytest.raises(ConfigVersionFormatError):
+            loader._validate_version(config=config_high)
 
-    with pytest.raises(ConfigVersionTypeError):
-        loader._validate_version(config=config)
+
+def test_invalid_config_version_type(config):
+    """Non-numeric buildrunner version component raises ConfigVersionTypeError when comparing."""
+    with patch("buildrunner.__version__", "two.zero.five"):
+        with pytest.raises(ConfigVersionTypeError):
+            loader._validate_version(config=config)
 
 
 def test_bad_version(config):
-    config = OrderedDict({"version": 2.1})
-
-    with pytest.raises(ConfigVersionFormatError):
-        loader._validate_version(config=config)
+    """Config version 2.1 when buildrunner is 2.0 raises ConfigVersionFormatError."""
+    with patch("buildrunner.__version__", "2.0.0"):
+        config_bad = OrderedDict({"version": 2.1})
+        with pytest.raises(ConfigVersionFormatError):
+            loader._validate_version(config=config_bad)

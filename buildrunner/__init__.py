@@ -9,7 +9,7 @@ with the terms of the Adobe license agreement accompanying it.
 
 from collections import OrderedDict
 import fnmatch
-import importlib.machinery
+import importlib.metadata
 import inspect
 import json
 import logging
@@ -19,7 +19,6 @@ import sys
 import tarfile
 import tempfile
 import traceback
-import types
 from typing import List, Optional
 
 import requests
@@ -45,18 +44,10 @@ import buildrunner.docker.builder
 
 LOGGER = logging.getLogger(__name__)
 
-__version__ = "DEVELOPMENT"
 try:
-    _VERSION_FILE = os.path.join(os.path.dirname(__file__), "version.py")
-    if os.path.exists(_VERSION_FILE):
-        loader = importlib.machinery.SourceFileLoader(
-            "buildrunnerversion", _VERSION_FILE
-        )
-        _VERSION_MOD = types.ModuleType(loader.name)
-        loader.exec_module(_VERSION_MOD)
-        __version__ = getattr(_VERSION_MOD, "__version__", __version__)
-except Exception:  # pylint: disable=broad-except
-    pass
+    __version__ = importlib.metadata.version("buildrunner")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "DEVELOPMENT"
 
 SOURCE_DOCKERFILE = os.path.join(os.path.dirname(__file__), "SourceDockerfile")
 
