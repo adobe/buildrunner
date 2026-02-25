@@ -121,6 +121,8 @@ def _validate_version(config: dict) -> None:
     buildrunner. If the config version is greater than the buildrunner version or any parsing error occurs
     it will raise a buildrunner exception.
     """
+    buildrunner_version = None
+
     from buildrunner import __version__
 
     parts = __version__.strip().split(".")
@@ -134,10 +136,12 @@ def _validate_version(config: dict) -> None:
         )
         return
 
+    # version is optional and is valid to not have it in the config
     if "version" not in config:
         return
 
     config_version = config["version"]
+
     try:
         if float(config_version) > float(buildrunner_version):
             raise ConfigVersionFormatError(
@@ -147,7 +151,8 @@ def _validate_version(config: dict) -> None:
     except ValueError as exception:
         raise ConfigVersionTypeError(
             f'unable to convert config version "{config_version}" '
-            f'or buildrunner version "{buildrunner_version}" to a float'
+            f'or buildrunner version "{buildrunner_version}" '
+            f"to a float"
         ) from exception
 
 
