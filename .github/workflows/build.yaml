@@ -57,19 +57,16 @@ jobs:
         check_name: "Test Results ${{ matrix.python-version }}"
         github_retries: 10
         secondary_rate_limit_wait_seconds: 60.0
-  # Version source of truth: pyproject.toml [project] version. User must update it before merging to main.
-  # PRs are checked so that version differs from main. On push to main, CI tags and publishes that version.
   get-version:
     if: github.repository == 'adobe/buildrunner'
     runs-on: ubuntu-latest
     needs: test
-    permissions:
-      contents: write
     outputs:
       current-version: ${{ steps.version-number.outputs.CURRENT_VERSION }}
     steps:
       - uses: actions/checkout@v2
         with:
+          # Fetch all history instead of the latest commit
           fetch-depth: 0
       - name: Install uv
         uses: astral-sh/setup-uv@v6
@@ -79,70 +76,9 @@ jobs:
         run: uv sync --locked
       - name: Get current version
         id: version-number
-        run: echo "CURRENT_VERSION=$(uv version --short)" >> $GITHUB_OUTPUT
+        run: echo "CURRENT_VERSION=$(uv version --short).$(git rev-list --count HEAD)" >> $GITHUB_OUTPUT
       - name: Print current version
         run: echo CURRENT_VERSION ${{ steps.version-number.outputs.CURRENT_VERSION }}
-  # PR check: version must differ from main and be strictly greater (semver: major.minor.patch).
-  # MAJOR may not decrease; MINOR may not decrease unless MAJOR increased; PATCH may not decrease unless MAJOR or MINOR changed.
-  version-changed:
-    if: github.repository == 'adobe/buildrunner' && github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: 3.9
-      - name: Check version increased from main
-        run: |
-          PR_VERSION=$(uv version --short)
-          git fetch origin main
-          MAIN_VERSION=$(git show origin/main:pyproject.toml | sed -n 's/^version *= *"\(.*\)".*/\1/p' | tr -d ' ')
-          if [ -z "$MAIN_VERSION" ]; then
-            echo "Could not read version from main's pyproject.toml"
-            exit 1
-          fi
-          # Parse major.minor.patch (default missing to 0; e.g. "3" -> 3.0.0, "3.22" -> 3.22.0)
-          main_major=$(echo "$MAIN_VERSION" | cut -d. -f1)
-          main_minor=$(echo "$MAIN_VERSION" | cut -d. -f2)
-          main_patch=$(echo "$MAIN_VERSION" | cut -d. -f3)
-          [ -z "$main_minor" ] && main_minor=0
-          [ -z "$main_patch" ] && main_patch=0
-          pr_major=$(echo "$PR_VERSION" | cut -d. -f1)
-          pr_minor=$(echo "$PR_VERSION" | cut -d. -f2)
-          pr_patch=$(echo "$PR_VERSION" | cut -d. -f3)
-          [ -z "$pr_minor" ] && pr_minor=0
-          [ -z "$pr_patch" ] && pr_patch=0
-          # Require PR version strictly greater than main (at least one component increased, none decreased per semver rules)
-          fail_msg="Version must be strictly greater than main ($MAIN_VERSION). Rules: MAJOR may not decrease; MINOR may not decrease unless MAJOR increased; PATCH may not decrease unless MAJOR or MINOR changed. Bump with e.g. \`uv version --bump patch\`."
-          if [ "$pr_major" -lt "$main_major" ]; then
-            echo "::error::MAJOR decreased ($main_major → $pr_major). $fail_msg"
-            exit 1
-          fi
-          if [ "$pr_major" -gt "$main_major" ]; then
-            echo "Version OK: $MAIN_VERSION → $PR_VERSION"
-            exit 0
-          fi
-          if [ "$pr_minor" -lt "$main_minor" ]; then
-            echo "::error::MINOR decreased ($main_minor → $pr_minor) without MAJOR increase. $fail_msg"
-            exit 1
-          fi
-          if [ "$pr_minor" -gt "$main_minor" ]; then
-            echo "Version OK: $MAIN_VERSION → $PR_VERSION"
-            exit 0
-          fi
-          if [ "$pr_patch" -lt "$main_patch" ]; then
-            echo "::error::PATCH decreased ($main_patch → $pr_patch) without MAJOR or MINOR change. $fail_msg"
-            exit 1
-          fi
-          if [ "$pr_patch" -gt "$main_patch" ]; then
-            echo "Version OK: $MAIN_VERSION → $PR_VERSION"
-            exit 0
-          fi
-          echo "::error::Version unchanged ($MAIN_VERSION). $fail_msg"
-          exit 1
   tag-commit:
     if: github.repository == 'adobe/buildrunner' && github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -150,18 +86,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          # Fetch all history instead of the latest commit
           fetch-depth: 0
-          ref: main
       - name: Tag commit
         run: git tag ${{ needs.get-version.outputs.current-version }} && git push --tags
   publish-pypi:
-    if: github.repository == 'adobe/buildrunner' && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    if: github.repository == 'adobe/buildrunner'
     runs-on: ubuntu-latest
-    needs: [test, get-version]
+    needs: test
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: ${{ github.ref == 'refs/heads/main' && 'main' || github.sha }}
+        # Fetch all history instead of the latest commit
+        fetch-depth: 0
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
@@ -169,7 +106,7 @@ jobs:
     - name: Install dependencies
       run: uv sync --locked
     - name: Set version
-      run: uv version --no-sync "${{ needs.get-version.outputs.current-version }}"
+      run: uv version --no-sync "$(uv version --short).$(git rev-list --count HEAD)"
     - name: Build
       run: uv build
     - name: Check upload
@@ -182,13 +119,14 @@ jobs:
         user: __token__
         password: ${{ secrets.ADOBE_BOT_PYPI_TOKEN }}
   publish-docker:
-    if: github.repository == 'adobe/buildrunner' && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    if: github.repository == 'adobe/buildrunner'
     runs-on: ubuntu-latest
     needs: [test, get-version]
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: ${{ github.ref == 'refs/heads/main' && 'main' || github.sha }}
+        # Fetch all history instead of the latest commit
+        fetch-depth: 0
     - name: Docker Tags
       id: docker_tags
       uses: docker/metadata-action@v3
