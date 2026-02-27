@@ -112,8 +112,28 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self._cleanup_intermediate_images()
         if self._local_registry_is_running:
             self._stop_local_registry()
+
+    def _cleanup_intermediate_images(self):
+        """Remove all intermediate multiplatform images from the local Docker daemon."""
+        docker_client = new_client()
+        for built_image in self._built_images:
+            for platform_image in built_image.built_images:
+                try:
+                    LOGGER.info(
+                        f"Removing intermediate mp image {platform_image.image_ref}"
+                    )
+                    docker_client.remove_image(
+                        platform_image.image_ref,
+                        noprune=False,
+                        force=True,
+                    )
+                except Exception as err:  # pylint: disable=broad-except
+                    LOGGER.warning(
+                        f"Failed to remove intermediate mp image {platform_image.image_ref}: {err}"
+                    )
 
     def set_cache_from(self, cache_from):
         self._cache_from = cache_from
