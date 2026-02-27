@@ -826,3 +826,61 @@ def test_push_calls(mock_docker, mock_config, tagged_images, expected_call_count
         mpib.push()
 
     assert mock_docker.call_count == expected_call_count
+
+
+@pytest.mark.serial
+@patch("buildrunner.docker.multiplatform_image_builder.new_client")
+@patch("buildrunner.docker.multiplatform_image_builder.docker.image.remove")
+@patch("buildrunner.docker.multiplatform_image_builder.docker.push")
+@patch(
+    "buildrunner.docker.multiplatform_image_builder.docker.buildx.imagetools.inspect"
+)
+@patch("buildrunner.docker.multiplatform_image_builder.docker.buildx.build")
+def test_cleanup_intermediate_images_on_exit(
+    mock_build,
+    mock_imagetools_inspect,
+    mock_push,
+    mock_pow_remove,
+    mock_new_client,
+):
+    mock_docker_client = MagicMock()
+    mock_new_client.return_value = mock_docker_client
+    mock_imagetools_inspect.return_value = MagicMock()
+    mock_imagetools_inspect.return_value.config.digest = "fakedigest"
+
+    platforms = ["linux/amd64", "linux/arm64"]
+    test_path = f"{TEST_DIR}/test-files/multiplatform"
+
+    with MultiplatformImageBuilder() as mpib:
+        built_image = mpib.build_multiple_images(
+            platforms=platforms,
+            path=test_path,
+            file=f"{test_path}/Dockerfile",
+            use_threading=False,
+        )
+        image_refs = [img.image_ref for img in built_image.built_images]
+        assert len(image_refs) == 2
+
+    remove_calls = mock_docker_client.remove_image.call_args_list
+    removed_refs = [c[0][0] for c in remove_calls]
+    for ref in image_refs:
+        assert ref in removed_refs, f"Expected {ref} to be removed on exit"
+
+
+def test_cleanup_intermediate_images_on_exit_integration():
+    test_path = f"{TEST_DIR}/test-files/multiplatform"
+    platforms = ["linux/arm64"]
+
+    with MultiplatformImageBuilder() as mpib:
+        built_image = mpib.build_multiple_images(
+            platforms=platforms,
+            path=test_path,
+            file=f"{test_path}/Dockerfile",
+            use_threading=False,
+        )
+        image_ref = built_image.built_images[0].image_ref
+        found = docker.image.list(filters={"reference": image_ref})
+        assert len(found) == 1, "Image should exist before exit"
+
+    found = docker.image.list(filters={"reference": image_ref})
+    assert len(found) == 0, "Intermediate image should be removed after exit"
