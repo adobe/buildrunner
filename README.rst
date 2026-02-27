@@ -1154,6 +1154,22 @@ container), you must pass the --publish-ports argument to buildrunner.
 This must never be used on a shared server such as a build server as it could
 cause port mapping conflicts.
 
+Image Cleanup
+=============
+
+By default, buildrunner retains all generated Docker images after a build completes.
+To remove generated images at the end of the build, use the ``--cleanup-images`` flag:
+
+.. code:: bash
+
+  buildrunner --cleanup-images -f buildrunner.yaml
+
+.. note::
+
+  The ``--keep-images`` flag is **deprecated** and has no effect. Keeping images is
+  already the default behavior. Use ``--cleanup-images`` if you want images removed
+  after the build.
+
 Image Security Scans
 ====================
 
