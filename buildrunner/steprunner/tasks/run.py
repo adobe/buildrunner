@@ -673,6 +673,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             systemd=systemd,
             systemd_cgroup2=self.is_systemd_cgroup2(systemd, service, _image),
             network=self.step_runner.network_name,
+            mem_limit=service.mem_limit,
+            cpu_shares=service.cpu_shares,
+            cpu_period=service.cpu_period,
+            cpu_quota=service.cpu_quota,
         )
         self._service_links[cont_name] = name
 
@@ -1051,6 +1055,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         # allow privileged containers (used sparingly)
         if self.step.privileged:
             container_args["privileged"] = self.step.privileged
+
+        # set resource limits if specified
+        if self.step.mem_limit:
+            container_args["mem_limit"] = self.step.mem_limit
+        if self.step.cpu_shares:
+            container_args["cpu_shares"] = self.step.cpu_shares
+        if self.step.cpu_period:
+            container_args["cpu_period"] = self.step.cpu_period
+        if self.step.cpu_quota:
+            container_args["cpu_quota"] = self.step.cpu_quota
 
         # only expose ports for a run step if the flag is set
         if self.step_runner.build_runner.publish_ports and self.step.ports:

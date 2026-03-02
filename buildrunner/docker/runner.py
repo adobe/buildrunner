@@ -176,6 +176,10 @@ class DockerRunner:
         cap_add=None,
         privileged=False,
         network=None,
+        mem_limit=None,
+        cpu_shares=None,
+        cpu_period=None,
+        cpu_quota=None,
     ):
         """
         Kwargs:
@@ -266,6 +270,10 @@ class DockerRunner:
                 privileged=privileged,
                 tmpfs=tmpfs,
                 cgroupns=cgroupns,
+                mem_limit=mem_limit,
+                cpu_shares=cpu_shares,
+                cpu_period=cpu_period,
+                cpu_quota=cpu_quota,
             ),
         }
         if entrypoint:

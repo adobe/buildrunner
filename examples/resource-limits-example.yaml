@@ -1,0 +1,57 @@
+# Example buildrunner configuration demonstrating CPU and memory resource limits
+# These limits are passed to Docker's create_host_config method
+
+steps:
+  # Example 1: Run step with memory limit
+  run-with-memory-limit:
+    run:
+      image: ubuntu:20.04
+      # Memory limit can be specified as a string (e.g., "512m", "1g") or as bytes (integer)
+      mem-limit: "512m"
+      cmd: |
+        echo "Running with 512MB memory limit"
+        free -h
+
+  # Example 2: Run step with CPU limits
+  run-with-cpu-limits:
+    run:
+      image: ubuntu:20.04
+      # CPU shares (relative weight, default is 1024)
+      cpu-shares: 512
+      # CPU period in microseconds (default is 100000)
+      cpu-period: 100000
+      # CPU quota in microseconds (50000 = 50% of one CPU)
+      cpu-quota: 50000
+      cmd: |
+        echo "Running with CPU limits"
+        cat /sys/fs/cgroup/cpu/cpu.shares || echo "CPU shares not available"
+
+  # Example 3: Run step with both memory and CPU limits
+  run-with-all-limits:
+    run:
+      image: ubuntu:20.04
+      mem-limit: "1g"
+      cpu-shares: 1024
+      cpu-period: 100000
+      cpu-quota: 100000
+      cmd: |
+        echo "Running with memory and CPU limits"
+        echo "Memory limit: 1GB"
+        echo "CPU quota: 100% of one CPU"
+
+  # Example 4: Service container with resource limits
+  run-with-service-limits:
+    run:
+      image: ubuntu:20.04
+      services:
+        database:
+          image: postgres:13
+          # Services can also have resource limits
+          mem-limit: "256m"
+          cpu-shares: 512
+          env:
+            POSTGRES_PASSWORD: example
+      cmd: |
+        echo "Main container running with database service"
+        echo "Database service has 256MB memory limit and 512 CPU shares"
+

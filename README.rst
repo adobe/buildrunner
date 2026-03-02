@@ -1243,6 +1243,11 @@ There is a stand-alone command that just cleans up the cache. This command takes
 
   buildrunner_cleanup
 
+Resource Limits
+===============
+
+See `docs/resource-limits <docs/resource-limits.rst>`_.
+
 Common Issues
 =============
 
