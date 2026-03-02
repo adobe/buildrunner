@@ -108,6 +108,11 @@ class RunAndServicesBase(StepTask):
     systemd_cgroup2: Optional[bool] = None
     containers: Optional[List[str]] = None
     caches: Optional[Dict[str, Union[str, List[str]]]] = None
+    # Resource limits
+    mem_limit: Optional[Union[str, int]] = Field(alias="mem-limit", default=None)
+    cpu_shares: Optional[int] = Field(alias="cpu-shares", default=None)
+    cpu_period: Optional[int] = Field(alias="cpu-period", default=None)
+    cpu_quota: Optional[int] = Field(alias="cpu-quota", default=None)
 
 
 class Service(RunAndServicesBase):
