@@ -132,8 +132,8 @@ they are used when put into the global configuration file:
     enabled: false
     # Only trivy is currently supported
     scanner: "trivy"
-    # The version of the trivy image to pull
-    version: "latest"
+    # The version of the trivy image to pull (used when 'image' is not set)
+    version: "0.69.3"
     # The local cache directory for the scanner (used if supported by the scanner)
     cache-dir: null
     config:

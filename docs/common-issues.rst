@@ -70,6 +70,60 @@ A couple of potential solutions are:
 
 Neither of these solutions are perfect, but both significantly shrink the chance of encountering the race condition.
 
+Container cleanup on build abort
+#################################
+
+When a build is interrupted (e.g. a CI system sends ``SIGTERM`` to abort a superseded PR build),
+buildrunner needs to clean up the Docker containers it started. Without proper cleanup, containers
+running ``/usr/sbin/init`` (systemd) or ``/run.sh`` (sshd) will remain running indefinitely,
+accumulating over time and consuming disk, memory, and network resources on the build agent.
+
+How cleanup works
+=================
+
+Buildrunner tracks every Docker container it starts in a global registry. Cleanup happens in two ways:
+
+1. **Normal exit**: Each build step has a ``finally`` block that calls ``cleanup()`` on all containers
+   it created (the build container, service containers, SSH agent, Docker daemon proxy, and source
+   container). These ``finally`` blocks run on normal completion, exceptions, and ``sys.exit()``.
+
+2. **Signal-based cleanup**: A ``SIGTERM`` or ``SIGINT`` handler is installed at startup. When the
+   signal is received, the handler force-removes all registered containers via
+   ``docker remove --force`` and then calls ``os._exit()`` to terminate immediately. This covers
+   the case where the process is killed externally before ``finally`` blocks can run.
+
+The signal handler uses ``os._exit()`` (not ``sys.exit()``) to avoid triggering ``finally`` blocks
+after cleanup has already been performed, which would cause race conditions and double-removal
+attempts.
+
+Limitations
+===========
+
+- ``SIGKILL`` (``kill -9``) cannot be caught by any handler. If the process is killed with
+  ``SIGKILL``, containers will be orphaned. CI systems should always send ``SIGTERM`` first and
+  allow time for cleanup before escalating to ``SIGKILL``.
+
+- Containers started *inside* a buildrunner container (e.g. via testcontainers or direct
+  ``docker run`` commands within a build step) are not tracked by the cleanup registry. These
+  child containers must be cleaned up by the code that started them.
+
+- If the Docker daemon is unreachable when the signal handler runs, cleanup will fail silently
+  and a warning will be printed to stderr.
+
+Diagnosing orphaned containers
+==============================
+
+Containers started by buildrunner are labeled with the labels passed via ``--container-labels``.
+To find orphaned buildrunner containers on an agent:
+
+.. code:: bash
+
+    # List all containers with buildrunner labels (adjust label key to match your setup)
+    docker ps -a --filter label=com.example.build.source=buildrunner
+
+    # Force-remove all orphaned buildrunner containers
+    docker ps -q --filter label=com.example.build.source=buildrunner | xargs -r docker rm -f
+
 Utilizing multi-platform base images
 ####################################
 

@@ -19,7 +19,8 @@ from . import (
     BuildRunner,
     BuildRunnerConfigurationError,
 )
-from buildrunner import config, loggers
+from buildrunner import config, docker as br_docker, loggers
+from buildrunner.cleanup import install_signal_handlers, set_docker_client
 from buildrunner.config import BuildRunnerConfig
 from buildrunner.utils import epoch_time
 
@@ -417,8 +418,17 @@ def main():
         print(__version__)
         return os.EX_OK
 
+    # Install signal handlers so that SIGTERM/SIGINT (e.g. from CI system aborting
+    # a build) triggers cleanup of all Docker containers started by this process.
+    install_signal_handlers()
+
     try:
         build_runner = initialize_br(args)
+        # Give the cleanup module access to the Docker client for signal-time cleanup
+        try:
+            set_docker_client(br_docker.new_client())
+        except Exception:
+            pass  # Cleanup will create its own client if needed
         if not args.print_generated_files:
             build_runner.run()
             if build_runner.exit_code:

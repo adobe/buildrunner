@@ -9,6 +9,7 @@ with the terms of the Adobe license agreement accompanying it.
 import os
 
 
+from buildrunner.cleanup import register_container, unregister_container
 from buildrunner.docker import DOCKER_DEFAULT_DOCKERD_URL
 
 DAEMON_IMAGE_NAME = "busybox:latest"
@@ -92,6 +93,7 @@ class DockerDaemonProxy:
             else None,
         )["Id"]
         self.docker_client.start(self._daemon_container)
+        register_container(self._daemon_container)
         self.log.write(
             f"Created Docker daemon container {self._daemon_container:.10}\n"
         )
@@ -104,12 +106,14 @@ class DockerDaemonProxy:
         self.log.write(
             f"Destroying Docker daemon container {self._daemon_container:.10}\n"
         )
-        try:
-            if self._daemon_container:
+        if self._daemon_container:
+            try:
                 self.docker_client.remove_container(
                     self._daemon_container,
                     force=True,
                     v=True,
                 )
-        except Exception as _ex:
-            self.log.write(f"Failed to remove Docker daemon container: {_ex}\n")
+            except Exception as _ex:
+                self.log.write(f"Failed to remove Docker daemon container: {_ex}\n")
+            finally:
+                unregister_container(self._daemon_container)

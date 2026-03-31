@@ -1023,7 +1023,7 @@ The configuration may also specify additional tags to add to the image:
           # See docs/global-configuration.rst for more information on these attributes.
           #enabled: false
           #scanner: "trivy"
-          #version: "latest"
+          #version: "0.69.3"
           # NOTE: Any configuration provided here will be merged with global/command line config
           #config:
           #  optional-param: val1
