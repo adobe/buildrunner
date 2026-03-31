@@ -25,10 +25,10 @@ from paramiko import (
 )
 from paramiko.agent import AgentSSH
 from paramiko.common import io_sleep
-from paramiko.util import asbytes
 from paramiko.message import Message
 
 import buildrunner.docker.builder
+from buildrunner.cleanup import register_container, unregister_container
 from buildrunner.errors import (
     BuildRunnerConfigurationError,
     BuildRunnerProcessingError,
@@ -152,6 +152,7 @@ class DockerSSHAgentProxy:
         self.docker_client.start(
             self._ssh_agent_container,
         )
+        register_container(self._ssh_agent_container)
         self.log.write(f"Created ssh-agent container {self._ssh_agent_container:.10}\n")
 
         _ssh_host = "localhost"
@@ -268,6 +269,8 @@ class DockerSSHAgentProxy:
                 )
             except Exception as _ex:
                 self.log.write(f"Error destroying ssh-agent container: {_ex}\n")
+            finally:
+                unregister_container(self._ssh_agent_container)
 
     def get_ssh_agent_image(self):
         """
@@ -420,7 +423,7 @@ class CustomAgentConnectionThread(threading.Thread):
         """
         Send a reply back to the upstream agent.
         """
-        raw_msg = asbytes(msg)
+        raw_msg = msg.asbytes()
         length = struct.pack(">I", len(raw_msg))
         self._remote_channel.send(length + raw_msg)
 

@@ -359,7 +359,7 @@ def test__security_scan_trivy(
     }
 
     docker_runner_mock.ImageConfig.assert_called_once_with(
-        "registry1/aquasec/trivy:latest",
+        "registry1/aquasec/trivy:0.69.3",
         pull_image=False,
     )
     docker_runner_mock.assert_called_once_with(

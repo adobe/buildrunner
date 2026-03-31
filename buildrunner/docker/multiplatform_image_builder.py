@@ -23,6 +23,7 @@ import timeout_decorator
 from python_on_whales import docker
 from retry import retry
 
+from buildrunner.cleanup import register_container, unregister_container
 from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models import MP_LOCAL_REGISTRY
 from buildrunner.docker import get_dockerfile
@@ -166,6 +167,7 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
             if self._docker_registry:
                 image = f"{self._docker_registry}/{image}"
             container = docker.run(image, detach=True, publish_all=True)
+            register_container(container.name)
             ports = container.network_settings.ports
 
             # If any assert fails something changed in the registry image and we need to update this code
@@ -199,6 +201,8 @@ class MultiplatformImageBuilder:  # pylint: disable=too-many-instance-attributes
                 LOGGER.error(
                     f"Failed to stop and remove local registry {self._mp_registry_info.name}: {err}"
                 )
+            finally:
+                unregister_container(self._mp_registry_info.name)
             self._local_registry_is_running = False
         else:
             LOGGER.warning("Local registry is not running when attempting to stop it")

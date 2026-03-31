@@ -14,7 +14,7 @@ from buildrunner.config import models_step
             {
                 "enabled": False,
                 "scanner": "trivy",
-                "version": "latest",
+                "version": "0.69.3",
                 "cache-dir": None,
                 "config": {
                     "timeout": "20m",
@@ -30,7 +30,7 @@ from buildrunner.config import models_step
             {
                 "enabled": True,
                 "scanner": "trivy",
-                "version": "latest",
+                "version": "0.69.3",
                 "cache-dir": None,
                 "config": {
                     "timeout": "20m",

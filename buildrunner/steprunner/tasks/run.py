@@ -18,6 +18,7 @@ import uuid
 import python_on_whales
 
 import buildrunner.docker
+from buildrunner.cleanup import register_container, unregister_container
 from buildrunner.config import BuildRunnerConfig
 from buildrunner.config.models_step import RunAndServicesBase, StepRun, Service
 from buildrunner.docker.daemon import DockerDaemonProxy
@@ -116,6 +117,7 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self._docker_client.start(
                 self._source_container,
             )
+            register_container(self._source_container)
             self.step_runner.log.info(
                 f"Created source container {self._source_container:.10}"
             )
@@ -1206,11 +1208,16 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             self.step_runner.log.info(
                 f"Destroying source container {self._source_container:.10}"
             )
-            self._docker_client.remove_container(
-                self._source_container,
-                force=True,
-                v=True,
-            )
+            try:
+                self._docker_client.remove_container(
+                    self._source_container,
+                    force=True,
+                    v=True,
+                )
+            except Exception as _ex:
+                self.step_runner.log.info(f"Error removing source container: {_ex}")
+            finally:
+                unregister_container(self._source_container)
 
         for image in self.images_to_remove:
             python_on_whales.docker.image.remove(image, force=True)

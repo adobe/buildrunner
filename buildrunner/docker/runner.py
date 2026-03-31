@@ -26,6 +26,7 @@ import docker.errors
 import timeout_decorator
 
 from buildrunner import BuildRunnerConfig
+from buildrunner.cleanup import register_container, unregister_container
 from buildrunner.docker import (
     new_client,
     force_remove_container,
@@ -296,6 +297,7 @@ class DockerRunner:
         # start the container
         self.container = self.docker_client.create_container(self.image_name, **kwargs)
         self.docker_client.start(self.container["Id"])
+        register_container(self.container["Id"])
 
         # run any supplied provisioners
         if provisioners:
@@ -361,6 +363,8 @@ class DockerRunner:
                 print(
                     f'Unable to delete docker container with id "{self.container["Id"]}"'
                 )
+            finally:
+                unregister_container(self.container["Id"])
 
         self.container = None
 

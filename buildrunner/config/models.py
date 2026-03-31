@@ -56,7 +56,7 @@ class GlobalSecurityScanConfig(BaseModel, extra="forbid"):
 
     enabled: bool = False
     scanner: str = "trivy"
-    version: str = "latest"
+    version: str = "0.69.3"
     # The local cache directory for the scanner (used if supported by the scanner)
     cache_dir: Optional[str] = Field(None, alias="cache-dir")
     config: dict = {
