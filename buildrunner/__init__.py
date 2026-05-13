@@ -115,10 +115,10 @@ class BuildRunner:
             self.log.write(
                 f"{err}\nPlease verify you have a VCS set up for this project.\n"
             )
-            sys.exit()
+            sys.exit(1)
         except VCSMissingRevision as err:
             self.log.write(f"{err}\nMake sure you have at least one commit.\n")
-            sys.exit()
+            sys.exit(1)
 
         # load global configuration - must come *after* VCS detection
         BuildRunnerConfig.initialize_instance(
