@@ -46,8 +46,8 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
 
     # Lightweight docker image for artifact management
     ARTIFACT_LISTER_DOCKER_IMAGE = "ubuntu:19.04"
-    # Lightweight docker image for running nc
-    NC_DOCKER_IMAGE = "subfuzion/netcat:latest"
+    # Lightweight, multiplatform docker image for running nc
+    NC_DOCKER_IMAGE = "busybox:latest"
 
     # Default to 10 min when waiting for ports to be opened
     WAIT_FOR_DEFAULT_TIMEOUT = 600
@@ -766,9 +766,10 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             # Linux can talk to containers directly, but mac and other OSes cannot
             # See https://github.com/docker/for-mac/issues/155 for more info for mac
             nc_tester = None
+            nc_image_name = f"{BuildRunnerConfig.get_instance().global_config.docker_registry}/{self.NC_DOCKER_IMAGE}"
             try:
                 image_config = DockerRunner.ImageConfig(
-                    f"{BuildRunnerConfig.get_instance().global_config.docker_registry}/{self.NC_DOCKER_IMAGE}",
+                    nc_image_name,
                     pull_image=False,
                 )
                 nc_tester = DockerRunner(
@@ -778,13 +779,29 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                 )
                 nc_tester.start(
                     # The shell is the command
-                    shell=f"-n -z {ipaddr} {port}",
+                    shell=f"nc -n -z {ipaddr} {port}",
                     network=self.step_runner.network_name,
                 )
 
                 nc_tester.attach_until_finished()
                 exit_code = nc_tester.exit_code
-                socket_open = exit_code is not None and not exit_code
+                # nc only ever exits 0 (open) or 1 (closed/timed out). Any other
+                # exit code (e.g. 255 for "exec format error" on architecture
+                # mismatches) means nc never actually ran, so fail fast instead
+                # of retrying until the overall timeout is reached.
+                if exit_code not in (0, 1):
+                    nc_output = (
+                        nc_tester.docker_client.logs(nc_tester.container["Id"])
+                        .decode("utf-8", "replace")
+                        .strip()
+                    )
+                    raise BuildRunnerProcessingError(
+                        f"Unexpected exit code {exit_code} from nc image {nc_image_name} while checking "
+                        f"port {port} in container {name}; nc only exits 0 or 1 when it actually runs, "
+                        f"so this likely means the image failed to execute on this platform/architecture. "
+                        f"Container output: {nc_output or '<empty>'}"
+                    )
+                socket_open = exit_code == 0
             finally:
                 if nc_tester:
                     nc_tester.cleanup()
