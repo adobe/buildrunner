@@ -1,0 +1,26 @@
+# Description: This example demonstrates how to archive artifacts from a step
+# using the artifacts key, including a plain file and an uncompressed
+# directory, and how to access artifacts from a previous step in a
+# subsequent step using the depends keyword.
+version: 2.0
+steps:
+  make-artifacts:
+    run:
+      image: alpine:latest
+      cmds:
+        - echo "Hello from make-artifacts" > hello.txt
+        - mkdir -p outdir
+        - echo "Hello from outdir" > outdir/nested.txt
+      artifacts:
+        hello.txt:
+          my-property: some-value
+        outdir:
+          format: uncompressed
+  use-artifacts:
+    depends:
+      - make-artifacts
+    run:
+      image: alpine:latest
+      cmds:
+        - cat /artifacts/make-artifacts/hello.txt
+        - cat /artifacts/make-artifacts/outdir/nested.txt

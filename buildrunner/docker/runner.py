@@ -589,13 +589,11 @@ class DockerRunner:
                         f"It will not be saved again to `{local_cache_archive_file}`"
                     )
 
-    def run(self, cmd, console=None, stream=True, log=None, workdir=None):
+    def _build_exec_cmdv(self, cmd):
         """
-        Run the given command in the container.
+        Validate the container/shell are ready and build the argv to exec,
+        wrapping string commands in the container's shell.
         """
-        # Unused variable
-        _ = workdir
-
         if isinstance(cmd, str):
             cmdv = [self.shell, "-xc", cmd]
         elif (
@@ -607,14 +605,24 @@ class DockerRunner:
             cmdv = cmd
         else:
             raise TypeError(f"Unhandled command type: {type(cmd)}:{cmd}")
-        # if console is None:
-        #    raise Exception('No console!')
         if not self.container:
             raise BuildRunnerContainerError("Container has not been started")
         if not self.shell:
             raise BuildRunnerContainerError(
                 "Cannot call run if container cmd not shell"
             )
+        return cmdv
+
+    def run(self, cmd, console=None, stream=True, log=None, workdir=None):
+        """
+        Run the given command in the container.
+        """
+        # Unused variable
+        _ = workdir
+
+        cmdv = self._build_exec_cmdv(cmd)
+        # if console is None:
+        #    raise Exception('No console!')
 
         self._run_log(log, f"Executing: {cmdv}")
 
@@ -670,6 +678,40 @@ class DockerRunner:
                     f"Error running cmd ({cmd}): exit code is None"
                 )
             return inspect_res["ExitCode"]
+        raise BuildRunnerContainerError("Error running cmd: no exit code")
+
+    def run_and_capture(self, cmd, log=None):
+        """
+        Run the given command in the container and return its exit code and
+        captured stdout as a string, instead of streaming output to a
+        console/log or requiring the caller to write output to a file.
+        """
+        cmdv = self._build_exec_cmdv(cmd)
+
+        self._run_log(log, f"Executing: {cmdv}")
+
+        create_res = self.docker_client.exec_create(
+            self.container["Id"],
+            cmdv,
+            tty=False,
+        )
+        # demux separates stdout from the `-x` trace output (which goes to
+        # stderr), so stdout only contains the command's actual output.
+        stdout, stderr = self.docker_client.exec_start(
+            create_res,
+            stream=False,
+            demux=True,
+        )
+        if stderr:
+            self._run_log(log, stderr)
+
+        inspect_res = self.docker_client.exec_inspect(create_res)
+        if "ExitCode" in inspect_res:
+            if inspect_res["ExitCode"] is None:
+                raise BuildRunnerContainerError(
+                    f"Error running cmd ({cmd}): exit code is None"
+                )
+            return inspect_res["ExitCode"], stdout.decode("utf-8") if stdout else ""
         raise BuildRunnerContainerError("Error running cmd: no exit code")
 
     def run_script(

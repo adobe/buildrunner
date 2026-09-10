@@ -192,24 +192,13 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
             for pattern, properties in self.step.artifacts.items():
                 # query files for each artifacts pattern, capturing the output
                 # for parsing
-                stat_output_file = f"{str(uuid.uuid4())}.out"
-                stat_output_file_local = os.path.join(
-                    self.step_runner.results_dir,
-                    stat_output_file,
-                )
-                exit_code = artifact_lister.run(
-                    f'stat -c "%n{FILE_INFO_DELIMITER}%F" {pattern} >/stepresults/{stat_output_file}',
-                    console=console,
-                    stream=True,
+                exit_code, output = artifact_lister.run_and_capture(
+                    f'stat -c "%n{FILE_INFO_DELIMITER}%F" {pattern}',
                     log=self.step_runner.log,
                 )
 
                 # if the command was successful we found something
                 if exit_code == 0:
-                    with open(
-                        stat_output_file_local, "r", encoding="utf-8"
-                    ) as output_fd:
-                        output = output_fd.read()
                     artifact_files = [af.strip() for af in output.split("\n")]
                     for art_info in artifact_files:
                         if not art_info or FILE_INFO_DELIMITER not in art_info:
@@ -263,10 +252,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                                 properties,
                             )
 
-                # remove the stat output file
-                if os.path.exists(stat_output_file_local):
-                    os.remove(stat_output_file_local)
-
         finally:
             if artifact_lister:
                 # make sure the current user/group ids of our
@@ -297,19 +282,11 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
         if properties and properties.get("format", None) == "uncompressed":
             # recursively find all files in dir and add
             # each one, passing any properties
-            find_output_file = f"{str(uuid.uuid4())}.out"
-            find_output_file_local = os.path.join(
-                self.step_runner.results_dir,
-                find_output_file,
-            )
-            find_exit_code = artifact_lister.run(
-                f"find {artifact_file} -type f >/stepresults/{find_output_file}",
-                stream=False,
+            find_exit_code, output = artifact_lister.run_and_capture(
+                f"find {artifact_file} -type f",
                 log=self.step_runner.log,
             )
             if find_exit_code == 0:
-                with open(find_output_file_local, "r", encoding="utf-8") as output_fd:
-                    output = output_fd.read()
                 for _file in [_f.strip() for _f in output.split("\n")]:
                     if not _file:
                         continue
@@ -347,10 +324,6 @@ class RunBuildStepRunnerTask(BuildStepRunnerTask):
                         output_file_name,
                         properties,
                     )
-
-                # remove the find output file
-                if os.path.exists(find_output_file_local):
-                    os.remove(find_output_file_local)
 
         else:
             filename = os.path.basename(artifact_file)
