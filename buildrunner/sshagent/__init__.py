@@ -336,11 +336,13 @@ class CustomSSHAgent(AgentSSH):
         _ct.start()
 
 
-SSH2_AGENT_FAILURE = bytes([30])
+SSH2_AGENT_FAILURE = bytes([5])
 SSH2_AGENTC_REQUEST_IDENTITIES = 11
 SSH2_AGENT_IDENTITIES_ANSWER = bytes([12])
 SSH2_AGENTC_SIGN_REQUEST = 13
 SSH2_AGENT_SIGN_RESPONSE = bytes([14])
+SSH_AGENTC_EXTENSION = 27
+SSH_AGENT_EXTENSION_FAILURE = bytes([28])
 
 
 class CustomAgentConnectionThread(threading.Thread):
@@ -373,9 +375,19 @@ class CustomAgentConnectionThread(threading.Thread):
                             self._agent_identities_answer()
                         elif r_type == SSH2_AGENTC_SIGN_REQUEST:
                             self._agent_sign_response(request)
+                        elif r_type == SSH_AGENTC_EXTENSION:
+                            # e.g. session-bind@openssh.com sent by newer
+                            # openssh clients (9.x+); we don't support any
+                            # extensions, so reply with the well-formed
+                            # extension-failure response type.
+                            msg = Message()
+                            msg.add_byte(SSH_AGENT_EXTENSION_FAILURE)
+                            self._send_reply(msg)
                         else:
                             # return FAILURE message for everything else
-                            self._send_reply(SSH2_AGENT_FAILURE)
+                            msg = Message()
+                            msg.add_byte(SSH2_AGENT_FAILURE)
+                            self._send_reply(msg)
                 except SSHException:
                     raise
                 except Exception:  # pylint: disable=broad-except
