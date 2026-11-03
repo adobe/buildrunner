@@ -23,7 +23,7 @@ from paramiko import (
     SSHClient,
     SSHException,
 )
-from paramiko.agent import AgentSSH
+from paramiko.agent import AgentSSH, SSH_AGENT_RSA_SHA2_256, SSH_AGENT_RSA_SHA2_512
 from paramiko.common import io_sleep
 from paramiko.message import Message
 
@@ -413,16 +413,43 @@ class CustomAgentConnectionThread(threading.Thread):
 
     def _agent_sign_response(self, request):
         """
-        Lookup the key in the custom agent and use it to sign the passed data.
+        Lookup the key and sign the data using the requested signature algorithm.
         """
         key_blob = request.get_string()
         data = request.get_string()
+        # Message.get_int() pads truncated input with zeroes. Do not turn a
+        # malformed request into an implicit request for an RSA/SHA-1 signature.
+        if len(request.get_remainder()) != 4:
+            msg = Message()
+            msg.add_byte(SSH2_AGENT_FAILURE)
+            self._send_reply(msg)
+            return
+        flags = request.get_int()
+        if flags & ~(SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512):
+            msg = Message()
+            msg.add_byte(SSH2_AGENT_FAILURE)
+            self._send_reply(msg)
+            return
 
         signed = None
         for _key in self._agent.get_keys():
             if key_blob == _key.asbytes():
-                _signed = _key.sign_ssh_data(data)
+                if isinstance(_key, RSAKey):
+                    # Match OpenSSH's preference if both SHA-2 flags are set.
+                    if flags & SSH_AGENT_RSA_SHA2_256:
+                        algorithm = "rsa-sha2-256"
+                    elif flags & SSH_AGENT_RSA_SHA2_512:
+                        algorithm = "rsa-sha2-512"
+                    else:
+                        algorithm = "ssh-rsa"
+                    _signed = _key.sign_ssh_data(data, algorithm=algorithm)
+                elif flags:
+                    # RSA signature flags are not valid for other key types.
+                    break
+                else:
+                    _signed = _key.sign_ssh_data(data)
                 signed = _signed.asbytes()
+                break
         msg = Message()
         if signed:
             msg.add_byte(SSH2_AGENT_SIGN_RESPONSE)

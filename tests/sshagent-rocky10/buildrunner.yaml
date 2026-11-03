@@ -1,0 +1,17 @@
+steps:
+  rocky10-rsa-sha2:
+    run:
+      image: buildrunner-rocky10-sshagent-test:latest
+      pull: false
+      ssh-keys: ['probe-rsa']
+      services:
+        ssh-target:
+          image: buildrunner-rocky10-sshagent-test:latest
+          pull: false
+          cmd: bash /source/start-sshd.sh
+      volumes_from: ['ssh-target']
+      cmds:
+        - bash /source/validate.sh
+      artifacts:
+        validation/*.log: {}
+        validation/result.txt: {}

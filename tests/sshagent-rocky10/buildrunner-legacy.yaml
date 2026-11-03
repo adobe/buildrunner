@@ -1,0 +1,21 @@
+steps:
+  rocky8-rsa-sha1:
+    run:
+      image: buildrunner-legacy-sshagent-test:latest
+      pull: false
+      ssh-keys: ['probe-rsa']
+      env:
+        PROBE_SIGNATURE_ALGORITHMS: ssh-rsa
+      services:
+        ssh-target:
+          image: buildrunner-legacy-sshagent-test:latest
+          pull: false
+          cmd: bash /source/start-sshd.sh
+          env:
+            PROBE_ACCEPTED_ALGORITHMS: ssh-rsa
+      volumes_from: ['ssh-target']
+      cmds:
+        - bash /source/validate.sh
+      artifacts:
+        validation/*.log: {}
+        validation/result.txt: {}

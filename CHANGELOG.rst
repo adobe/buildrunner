@@ -5,6 +5,39 @@
 .. contents::
    :local:
 
+Unreleased
+##########
+
+* Honor RSA/SHA-2 signature requests in the forwarded SSH agent, allowing
+  injected RSA keys to work with strict SSH clients such as Rocky Linux 10.
+  Zero-flag RSA requests retain legacy ``ssh-rsa``/SHA-1 signing; non-RSA
+  signing behavior is unchanged.
+* Reject malformed or unsupported signing flags rather than silently ignoring
+  them. RSA-specific flags are rejected for non-RSA keys.
+* No dependency upgrade is required: the existing Paramiko requirement
+  (``>=2.10.3,<4.0.0``) already supports RSA/SHA-2 signing, and the lock file
+  already selects Paramiko 3.5.1. The existing failure response (5) is unchanged.
+
+.. warning::
+
+   Custom agent clients must provide a complete 32-bit signing-flags field
+   and use only supported flags. Requests that were previously accepted with
+   ignored or incomplete flags now receive an explicit failure response.
+   SHA-1 is not enabled globally, and this fix does not bypass key-size or
+   crypto-policy restrictions. The same RSA key can produce both SHA-1 and
+   SHA-2 signatures; key age and signature algorithm are separate concerns.
+
+   Opt-in Docker smoke tests exercise the real agent proxy, forwarding,
+   injected-key fingerprint matching, server-side signature verification,
+   artifact capture, and cleanup. Rocky 10 checks default negotiation and
+   both RSA/SHA-2 algorithms; a separate Rocky 8 job verifies legacy
+   ``ssh-rsa``/SHA-1 using the same traditional PEM, 2048-bit RSA key without
+   relaxing the Rocky 10 server's SHA-2-only configuration. See
+   ``tests/sshagent-rocky10/README.rst`` for reproduction instructions.
+   The full test suite, production SSH endpoints, and Fabric remote tasks
+   have not been validated. Canary the updated worker installation before
+   broad rollout.
+
 3.0
 ###
 
