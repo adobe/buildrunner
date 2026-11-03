@@ -417,11 +417,16 @@ class CustomAgentConnectionThread(threading.Thread):
         """
         key_blob = request.get_string()
         data = request.get_string()
+        algorithm = {2: "rsa-sha2-256", 4: "rsa-sha2-512"}.get(request.get_int())
 
         signed = None
         for _key in self._agent.get_keys():
             if key_blob == _key.asbytes():
-                _signed = _key.sign_ssh_data(data)
+                _signed = (
+                    _key.sign_ssh_data(data, algorithm)
+                    if algorithm
+                    else _key.sign_ssh_data(data)
+                )
                 signed = _signed.asbytes()
         msg = Message()
         if signed:
